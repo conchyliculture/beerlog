@@ -5,7 +5,9 @@ Program NFC215 tags with some code, and use that to keep a leaderboard of who is
 ## Installation
 
 ```
-virtualenv -p python2 beerlog
+sudo apt install python2-peewee
+virtualenv -p python2 --system-site-packages beerlog
+pip install nfcpy
 cd beerlog
 source bin/activate
 git clone https://github.com/conchyliculture/beerlog

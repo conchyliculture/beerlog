@@ -6,11 +6,13 @@ import argparse
 import binascii
 import json
 import logging
+import os
 import sys
 import time
 
 import nfc
 
+from beerlogdb import BeerLogDB
 
 class BeerLogError(Exception):
   """Custom exception for BeerLog."""
@@ -66,6 +68,7 @@ class BeerLog(object):
   def __init__(self):
     self.args = None
     self.clf = None
+    self.db = None
     self.known_tags_list = None
     self._last_read_uid = None
 
@@ -100,6 +103,10 @@ class BeerLog(object):
         '-d', '--debug', dest='debug', action='store_true',
         help='Debug mode')
     parser.add_argument(
+        '--database', dest='database', action='store',
+        default=os.path.join(os.path.dirname(__name__), 'beerlog.sqlite'),
+        help='the path to the sqlite file, or ":memory:" for a memory db')
+    parser.add_argument(
         '--known_tags', dest='known_tags', action='store',
         default="known_tags.json",
         help='the known tags file to use to use')
@@ -113,9 +120,15 @@ class BeerLog(object):
 
     self.args = args
 
+  def InitDB(self):
+    """TODO"""
+    self.db = BeerLogDB(self.args.database)
+    self.db.Connect()
+
   def Main(self):
     """Runs the script."""
     self.ParseArguments()
+    self.InitDB()
     self.LoadTagsDB()
     self.OpenNFC(path="usb")
     while True:
@@ -125,6 +138,8 @@ class BeerLog(object):
       except BeerLogError as _:
         pass
       time.sleep(0.5)
+
+    self.db.Close()
 
   def LoadTagsDB(self):
     """Loads the external known tags list.
@@ -195,4 +210,4 @@ class BeerLog(object):
 m = BeerLog()
 m.Main()
 
-# vim: tabstop=2 shiftwidth=4 expandtab
+# vim: tabstop=2 shiftwidth=2 expandtab

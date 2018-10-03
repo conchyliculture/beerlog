@@ -4,9 +4,11 @@ from __future__ import print_function
 
 import argparse
 import binascii
+import datetime
 import json
 import logging
 import os
+import subprocess
 import sys
 import time
 
@@ -71,6 +73,7 @@ class BeerLog(object):
     self.db = None
     self.known_tags_list = None
     self._last_read_uid = None
+    self._last_taken_picture = None
 
   def OpenNFC(self, path=None):
     """Inits the NFC reader.
@@ -104,6 +107,12 @@ class BeerLog(object):
         default=True,
         help='Disable beeping of the NFC reader')
     parser.add_argument(
+        '--capture', dest='capture_command', action='store',
+        help=(
+            'Picture capture command. Output filename will be appended. '
+            'Exemple: "fswebcam -r 1280x720. -S 10"')
+    )
+    parser.add_argument(
         '-d', '--debug', dest='debug', action='store_true',
         help='Debug mode')
     parser.add_argument(
@@ -114,6 +123,10 @@ class BeerLog(object):
         '--known_tags', dest='known_tags', action='store',
         default='known_tags.json',
         help='the known tags file to use to use')
+    parser.add_argument(
+        '--dir', dest='picture_dir', action='store',
+        default='pics',
+        help='Where to store the pictures')
 
     args = parser.parse_args()
 
@@ -121,6 +134,10 @@ class BeerLog(object):
       logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     else:
       logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+    if not os.path.isdir(args.picture_dir):
+      # TODO more checks
+      os.mkdir(args.picture_dir)
 
     self.args = args
 
@@ -162,11 +179,32 @@ class BeerLog(object):
           'Known tags file {0} is invalid: {1!s}'.format(
               self.args.known_tags, e))
 
+  def TakePicture(self, command):
+    """Takes a picture.
+
+    Args:
+      command(str): command to be run after a filename is appended to it.
+
+    Returns:
+      str: the path to the (hopefully created) picture, or None if no command
+        was passed.
+    """
+    if not command:
+      return None
+
+    filepath = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S.jpg')
+    cmd = '{0} "{1}"'.format(
+        command, os.path.join(self.args.picture_dir, filepath))
+    logging.debug('Running {0}'.format(cmd))
+    subprocess.call('{0} "{1}"'.format(cmd, filepath), shell=True)
+
+    return filepath
+
   def ReadTag(self, tag):
     """Reads a tag from the NFC reader.
 
     Args:
-      tag(): the tag object to read.
+      tag(nfc.tag): the tag object to read.
 
     Returns:
       bytearray: True if the read operation was successful,
@@ -174,6 +212,7 @@ class BeerLog(object):
     """
     if isinstance(tag, nfc.tag.tt2.Type2Tag):
       self._last_read_uid = NFC215.ReadUIDFromTag(tag)
+      self._last_taken_picture = self.TakePicture(self.args.capture_command)
       return self.args.should_beep
     return False
 
@@ -188,7 +227,7 @@ class BeerLog(object):
     return self.known_tags_list.get(uid).get('name')
 
   def ScanNFC(self):
-    """Sets the NFC reader into scanning mode.
+    """Sets the NFC reader into scanning mode. Takes a picture if required.
 
     Returns:
       str: the name of the character in the tag.
@@ -206,6 +245,8 @@ class BeerLog(object):
       raise BeerLogError('Unknown NFC tag')
 
     who = self.GetNameFromTag(self._last_read_uid)
+
+    self.db.AddEntry(character=who, pic=self._last_taken_picture)
     return who
 
 

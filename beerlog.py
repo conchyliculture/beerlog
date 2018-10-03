@@ -52,7 +52,7 @@ class NFC215(object):
     pages = []
     for i in range(0, (NFC215.TAG_FILE_SIZE/NFC215.PAGE_SIZE), 4):
       page = tag.read(i)
-      print("{0!s}:{1!s}".format(i, binascii.hexlify(page).upper()))
+      print('{0!s}:{1!s}'.format(i, binascii.hexlify(page).upper()))
       pages.append(binascii.hexlify(page).upper())
     print(''.join(pages))
 
@@ -108,7 +108,7 @@ class BeerLog(object):
         help='the path to the sqlite file, or ":memory:" for a memory db')
     parser.add_argument(
         '--known_tags', dest='known_tags', action='store',
-        default="known_tags.json",
+        default='known_tags.json',
         help='the known tags file to use to use')
 
     args = parser.parse_args()
@@ -121,7 +121,7 @@ class BeerLog(object):
     self.args = args
 
   def InitDB(self):
-    """TODO"""
+    """Initializes the BeerLogDB object."""
     self.db = BeerLogDB(self.args.database)
     self.db.Connect()
 

@@ -100,6 +100,10 @@ class BeerLog(object):
 
     parser = argparse.ArgumentParser(description='BeerLog')
     parser.add_argument(
+        '--nobeep', dest='should_beep', action='store_false',
+        default=True,
+        help='Disable beeping of the NFC reader')
+    parser.add_argument(
         '-d', '--debug', dest='debug', action='store_true',
         help='Debug mode')
     parser.add_argument(
@@ -171,8 +175,7 @@ class BeerLog(object):
     """
     if isinstance(tag, nfc.tag.tt2.Type2Tag):
       self._last_read_uid = NFC215.ReadUIDFromTag(tag)
-      return False
-      #return True
+      return self.args.should_beep
     return False
 
   def GetNameFromTag(self, uid):

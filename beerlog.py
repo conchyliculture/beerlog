@@ -68,12 +68,16 @@ class BeerLog(object):
   """
 
   def __init__(self):
-    self.args = None
     self.clf = None
     self.db = None
     self.known_tags_list = None
+    self._capture_command = None
+    self._database_path = None
+    self._known_tags = None
     self._last_read_uid = None
     self._last_taken_picture = None
+    self._picture_dir = None
+    self._should_beep = None
 
   def OpenNFC(self, path=None):
     """Inits the NFC reader.
@@ -130,6 +134,12 @@ class BeerLog(object):
 
     args = parser.parse_args()
 
+    self._capture_command = args.capture_command
+    self._database_path = args.database
+    self._known_tags = args.known_tags
+    self._picture_dir = args.picture_dir
+    self._should_beep = args.should_beep
+
     if args.debug:
       logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
     else:
@@ -139,11 +149,9 @@ class BeerLog(object):
       # TODO more checks
       os.mkdir(args.picture_dir)
 
-    self.args = args
-
   def InitDB(self):
     """Initializes the BeerLogDB object."""
-    self.db = BeerLogDB(self.args.database)
+    self.db = BeerLogDB(self._database_path)
 
   def Main(self):
     """Runs the script."""
@@ -168,16 +176,16 @@ class BeerLog(object):
       BeerLogError: if we couldn't load the file.
     """
     try:
-      with open(self.args.known_tags, 'r') as json_file:
+      with open(self._known_tags, 'r') as json_file:
         self.known_tags_list = json.load(json_file)
     except IOError as e:
       raise BeerLogError(
           'Could not load known tags file {0} with error {1!s}'.format(
-              self.args.known_tags, e))
+              self._known_tags, e))
     except ValueError as e:
       raise BeerLogError(
           'Known tags file {0} is invalid: {1!s}'.format(
-              self.args.known_tags, e))
+              self._known_tags, e))
 
   def TakePicture(self, command):
     """Takes a picture.
@@ -194,7 +202,7 @@ class BeerLog(object):
 
     filepath = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S.jpg')
     cmd = '{0} "{1}"'.format(
-        command, os.path.join(self.args.picture_dir, filepath))
+        command, os.path.join(self._picture_dir, filepath))
     logging.debug('Running {0}'.format(cmd))
     subprocess.call('{0} "{1}"'.format(cmd, filepath), shell=True)
 
@@ -212,8 +220,8 @@ class BeerLog(object):
     """
     if isinstance(tag, nfc.tag.tt2.Type2Tag):
       self._last_read_uid = NFC215.ReadUIDFromTag(tag)
-      self._last_taken_picture = self.TakePicture(self.args.capture_command)
-      return self.args.should_beep
+      self._last_taken_picture = self.TakePicture(self._capture_command)
+      return self._should_beep
     return False
 
   def GetNameFromTag(self, uid):

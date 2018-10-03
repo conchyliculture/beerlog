@@ -23,7 +23,7 @@ class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
   character = CharField()
   timestamp = DateTimeField(default=datetime.now)
-  pic = CharField()
+  pic = CharField(null=True)
 
 class BeerLogDB(object):
   """Wrapper for the database."""
@@ -57,7 +57,6 @@ class BeerLogDB(object):
         character=character,
         pic=pic
     )
-    entry.save()
     return entry
 
   def GetEntryById(self, entry_id):

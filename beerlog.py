@@ -230,9 +230,14 @@ class BeerLog(object):
     Args:
       uid(str): the uid in form 0x0580000000050002
     Returns:
-      str: the corresponding name for that tag uid.
+      str: the corresponding name for that tag uid, or None if no name is found.
     """
+    tag_object = self.known_tags_list.get(uid)
+    if not tag_object:
+      return None
+
     return self.known_tags_list.get(uid).get('name')
+
 
   def ScanNFC(self):
     """Sets the NFC reader into scanning mode. Takes a picture if required.

@@ -127,7 +127,6 @@ class BeerLog(object):
   def InitDB(self):
     """Initializes the BeerLogDB object."""
     self.db = BeerLogDB(self.args.database)
-    self.db.Connect()
 
   def Main(self):
     """Runs the script."""

@@ -258,7 +258,8 @@ class BeerLog(object):
     return who
 
 
-m = BeerLog()
-m.Main()
+if __name__ == '__main__':
+  m = BeerLog()
+  m.Main()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

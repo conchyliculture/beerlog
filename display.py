@@ -66,6 +66,9 @@ class Display(object):
     self._menu_index = ((self._menu_index - 1)%len(self.MENU_ITEMS))
     self.DrawMenu()
 
+  def MenuRight(self):
+    pass
+
 
 if __name__ == '__main__':
   m = Display(device.pygame())
@@ -79,5 +82,7 @@ if __name__ == '__main__':
           m.MenuUp()
         elif event.key == pygame.K_DOWN:
           m.MenuDown()
+        elif event.key == pygame.K_RIGHT:
+          m.MenuRight()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

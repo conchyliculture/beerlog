@@ -94,6 +94,6 @@ if __name__ == '__main__':
         m.MenuDown()
       elif event.type == constants.KEYRIGHT:
         m.MenuRight()
-    sleep(0.02)
+    sleep(0.05)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

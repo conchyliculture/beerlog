@@ -1,5 +1,8 @@
 """Base module for a BeerLog GUI"""
 
+from datetime import datetime
+
+
 class BeerGUI(object):
   """Base class for a BeerLog GUI"""
 
@@ -10,7 +13,7 @@ class BeerGUI(object):
     """TODO"""
     return None
 
-  def Setup(self, *args, **kwargs):
+  def Setup(self, **kwargs):
     """Sets up the device"""
     pass
 
@@ -25,6 +28,7 @@ class BaseEvent(object):
   """TODO"""
 
   def __init__(self, event_type):
+    self.timestamp = datetime.now()
     self.type = event_type
 
 # vim: tabstop=2 shiftwidth=2 expandtab

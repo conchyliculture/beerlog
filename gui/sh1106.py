@@ -2,10 +2,11 @@
 
 from __future__ import print_function
 
-from Queue import Queue
+import Queue
 
 from luma.core.interface.serial import i2c, spi
 from luma.oled.device import sh1106
+
 import RPi.GPIO as GPIO
 
 from gui import constants
@@ -16,57 +17,74 @@ from gui.base import BeerGUI
 class WaveShareOLEDHat(BeerGUI):
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
 
+  # How long to wait, in ms before accepting a new event of the same type
+  BOUNCE_MS = 100
+
   RST_PIN = 25
   CS_PIN = 8
   DC_PIN = 24
-  KEY_UP_PIN = 6
-  KEY_DOWN_PIN = 19
-  KEY_LEFT_PIN = 5
-  KEY_RIGHT_PIN = 26
-  KEY_PRESS_PIN = 13
-  KEY1_PIN = 21
-  KEY2_PIN = 20
-  KEY3_PIN = 16
+
+  _BUTTON_DICT = {
+      # KEY_UP_PIN
+      6: constants.KEYDOWN, # Yes.
+      # KEY_DOWN_PIN
+      19: constants.KEYUP,
+      # KEY_LEFT_PIN
+      5: constants.KEYRIGHT,
+      # KEY_RIGHT_PIN
+      26: constants.KEYLEFT,
+      # KEY_PRESS_PIN
+      # 13: constats.KEY,
+      # KEY1_PIN
+      # 21: constats.KEY,
+      # KEY2_PIN
+      # 20: constats.KEY,
+      # KEY3_PIN
+      #16
+  }
 
   def __init__(self):
     super(WaveShareOLEDHat, self).__init__()
+    self._events_queue = Queue.Queue()
+    self._last_event = None
     self._serial = None
-    self._events_queue = Queue()
 
   def _SetupOneGPIO(self, channel):
-    """TODO"""
+    """Sets one GPIO pin.
+
+    Args:
+      channel(int): the Pin number to set.
+    """
     GPIO.setup(channel, GPIO.IN, pull_up_down=GPIO.PUD_UP)
     GPIO.add_event_detect(channel, GPIO.RISING, callback=self._AddEvent)
 
   def _SetupGPIO(self):
-    """TODO"""
-    #init GPIO
+    """Sets all GPIO pins."""
     GPIO.setmode(GPIO.BCM)
-    for channel in [
-        self.KEY_UP_PIN,
-        self.KEY_DOWN_PIN,
-        self.KEY_LEFT_PIN,
-        self.KEY_RIGHT_PIN,
-        self.KEY_PRESS_PIN,
-        self.KEY1_PIN,
-        self.KEY2_PIN,
-        self.KEY3_PIN]:
+    for channel in self._BUTTON_DICT:
       self._SetupOneGPIO(channel)
 
   def _AddEvent(self, channel):
-    new_event = None
-    print('got event {0!s}'.format(channel))
-    if channel == self.KEY_UP_PIN:
-      new_event = BaseEvent(constants.KEYUP)
-    elif channel == self.KEY_DOWN_PIN:
-      new_event = BaseEvent(constants.KEYDOWN)
-    elif channel == self.KEY_RIGHT_PIN:
-      new_event = BaseEvent(constants.KEYRIGHT)
-    elif channel == self.KEY_LEFT_PIN:
-      new_event = BaseEvent(constants.KEYLEFT)
-    self._events_queue.put(new_event)
+    """Adds a new BaseEvent to the Queue.
 
-  def Setup(self, connection='spi'):
+    Args:
+      channel(int): the pin that was detected.
+    """
+
+    new_event = None
+    event_type = self._BUTTON_DICT.get(channel, None)
+    if event_type:
+      new_event = BaseEvent(event_type)
+      if self._last_event:
+        delta = new_event.timestamp - self._last_event.timestamp
+        delta_ms = delta.total_seconds() * 1000
+        if delta_ms > self.BOUNCE_MS:
+          self._events_queue.put(new_event)
+      else:
+        self._events_queue.put(new_event)
+      self._last_event = new_event
+
+  def Setup(self, connection='spi'): # pylint: disable=arguments-differ
     """Sets up the device.
 
     Args:
@@ -89,12 +107,19 @@ class WaveShareOLEDHat(BeerGUI):
 
     self._SetupGPIO()
 
-    self.device = sh1106(self._serial, rotate=0) #sh1106
-
+    self.device = sh1106(self._serial, rotate=0)
 
   def GetEvent(self):
-    return self._events_queue.get()
+    """Get an Event from the queue, or None if none available.
 
-
+    Returns:
+      BaseEvent: the new Event, or None if none available.
+    """
+    event = None
+    try:
+      event = self._events_queue.get()
+    except Queue.Empty:
+      pass
+    return event
 
 # vim: tabstop=2 shiftwidth=2 expandtab

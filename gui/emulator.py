@@ -19,7 +19,7 @@ class Emulator(BeerGUI):
       pygame.K_DOWN: constants.KEYDOWN
   }
 
-  def Setup(self):
+  def Setup(self): # pylint: disable=arguments-differ
     """Sets up the device."""
     self.device = device.pygame()
 

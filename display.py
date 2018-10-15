@@ -2,14 +2,10 @@
 
 from __future__ import print_function
 
-import sys
+from time import sleep
 from PIL import ImageFont
-
 from luma.core.render import canvas as LumaCanvas
-from luma.emulator import device
-
-import pygame
-import pygame.key
+from gui import constants
 
 
 class Display(object):
@@ -71,18 +67,33 @@ class Display(object):
 
 
 if __name__ == '__main__':
-  m = Display(device.pygame())
+  is_rpi = False
+  try:
+    with open('/sys/firmware/devicetree/base/model', 'r') as model:
+      is_rpi = model.read().startswith('Raspberry Pi')
+  except IOError:
+    pass
+
+  if is_rpi:
+    from gui import sh1106
+    g = sh1106.WaveShareOLEDHat()
+  else:
+    print('Is not a RPI, running PyGame')
+    from gui import emulator
+    g = emulator.Emulator()
+  g.Setup()
+  m = Display(g.GetDevice())
   m.DrawMenu()
+
   while True:
-    for event in pygame.event.get():
-      if event.type == pygame.QUIT:
-        sys.exit()
-      if event.type == pygame.KEYDOWN:
-        if event.key == pygame.K_UP:
-          m.MenuUp()
-        elif event.key == pygame.K_DOWN:
-          m.MenuDown()
-        elif event.key == pygame.K_RIGHT:
-          m.MenuRight()
+    event = g.GetEvent()
+    if event:
+      if event.type == constants.KEYUP:
+        m.MenuUp()
+      elif event.type == constants.KEYDOWN:
+        m.MenuDown()
+      elif event.type == constants.KEYRIGHT:
+        m.MenuRight()
+    sleep(0.02)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

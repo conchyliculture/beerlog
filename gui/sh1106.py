@@ -8,6 +8,8 @@ from luma.core.interface.serial import i2c, spi
 from luma.oled.device import sh1106
 import RPi.GPIO as GPIO
 
+from gui import constants
+from gui.base import BaseEvent
 from gui.base import BeerGUI
 
 
@@ -34,7 +36,7 @@ class WaveShareOLEDHat(BeerGUI):
   def _SetupOneGPIO(self, channel):
     """TODO"""
     GPIO.setup(channel, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-    GPIO.add_event_detect(self.KEY_UP_PIN, GPIO.RISING, callback=self._AddEvent)
+    GPIO.add_event_detect(channel, GPIO.RISING, callback=self._AddEvent)
 
   def _SetupGPIO(self):
     """TODO"""
@@ -52,7 +54,17 @@ class WaveShareOLEDHat(BeerGUI):
       self._SetupOneGPIO(channel)
 
   def _AddEvent(self, channel):
+    new_event = None
     print('got event {0!s}'.format(channel))
+    if channel == self.KEY_UP_PIN:
+      new_event = BaseEvent(constants.KEYUP)
+    elif channel == self.KEY_DOWN_PIN:
+      new_event = BaseEvent(constants.KEYDOWN)
+    elif channel == self.KEY_RIGHT_PIN:
+      new_event = BaseEvent(constants.KEYRIGHT)
+    elif channel == self.KEY_LEFT_PIN:
+      new_event = BaseEvent(constants.KEYLEFT)
+    self._events_queue.put(new_event)
 
   def Setup(self, connection='spi'):
     """Sets up the device.
@@ -79,6 +91,9 @@ class WaveShareOLEDHat(BeerGUI):
 
     self.device = sh1106(self._serial, rotate=0) #sh1106
 
+
+  def GetEvent(self):
+    return self._events_queue.get()
 
 
 

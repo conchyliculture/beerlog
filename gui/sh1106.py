@@ -117,7 +117,7 @@ class WaveShareOLEDHat(BeerGUI):
     """
     event = None
     try:
-      event = self._events_queue.get()
+      event = self._events_queue.get_nowait()
     except Queue.Empty:
       pass
     return event

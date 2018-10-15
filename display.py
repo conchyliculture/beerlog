@@ -2,21 +2,10 @@
 
 from __future__ import print_function
 
-<<<<<<< HEAD
 from time import sleep
 from PIL import ImageFont
 from luma.core.render import canvas as LumaCanvas
 from gui import constants
-=======
-import sys
-from PIL import ImageFont
-
-from luma.core.render import canvas as LumaCanvas
-from luma.emulator import device
-
-import pygame
-import pygame.key
->>>>>>> 272bdd96eb847d33a0111980b5772255f3efe478
 
 
 class Display(object):

@@ -80,6 +80,6 @@ class BeerLogDB(object):
     Returns:
       int: the total number of Entry lines in the database.
     """
-    return Entry.select().count()
+    return Entry.select().count(None)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

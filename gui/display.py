@@ -2,6 +2,8 @@
 
 from __future__ import print_function
 
+from time import sleep
+
 from PIL import ImageFont
 from luma.core.render import canvas as LumaCanvas
 
@@ -59,6 +61,10 @@ class Display(object):
           self.luma_device.bounding_box, outline="white", fill="black")
       for i in range(len(self.MENU_ITEMS)):
         self._DrawMenuItem(drawer, i)
+
+  def DrawWho(self, who):
+    with LumaCanvas(self.luma_device) as drawer:
+      drawer.text((0, 0), who, font=self._text_font, fill="white")
 
   def MenuDown(self):
     self._menu_index = ((self._menu_index + 1)%len(self.MENU_ITEMS))

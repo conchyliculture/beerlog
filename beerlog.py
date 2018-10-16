@@ -7,7 +7,7 @@ import datetime
 import json
 import logging
 import os
-import Queue
+from multiprocessing.queues import SimpleQueue
 import subprocess
 import sys
 import time
@@ -23,19 +23,18 @@ class BeerLog(object):
   """BeerLog main class.
 
   Attributes:
-    args(argparse.NameSpace): Parsed arguments.
-    nfcreader(bnfc.base): the BeerNFC object.
+    nfc_reader(bnfc.base): the BeerNFC object.
   """
 
   def __init__(self):
-    self.nfcreader = None
+    self.nfc_reader = None
     self.db = None
     self.known_tags_list = None
     self._capture_command = None
     self._clf = None
     self._database_path = None
     self._display = None
-    self._events_queue = Queue.Queue()
+    self._events_queue = SimpleQueue()
     self._known_tags = None
     self._last_read_uid = None
     self._last_taken_picture = None
@@ -43,15 +42,15 @@ class BeerLog(object):
     self._should_beep = None
 
   def InitNFC(self, path=None):
-    """Inits the NFC reader.
+    """Initializes the NFC reader.
 
     Args:
       path(str): the option path to the device.
     """
-    self.nfcreader = BeerNFC(
-        events_queue=self._events_queue, should_beep=self._should_beep)
-    self.nfcreader.OpenNFC(path=path)
-    self.nfcreader.process.start()
+    self.nfc_reader = BeerNFC(
+      events_queue=self._events_queue, should_beep=self._should_beep)
+    self.nfc_reader.OpenNFC(path=path)
+    self.nfc_reader.process.start()
 
   def ParseArguments(self):
     """Parses arguments.
@@ -62,30 +61,30 @@ class BeerLog(object):
 
     parser = argparse.ArgumentParser(description='BeerLog')
     parser.add_argument(
-        '--nobeep', dest='should_beep', action='store_false',
-        default=True,
-        help='Disable beeping of the NFC reader')
+      '--nobeep', dest='should_beep', action='store_false',
+      default=False, # TODO Change
+      help='Disable beeping of the NFC reader')
     parser.add_argument(
-        '--capture', dest='capture_command', action='store',
-        help=(
-            'Picture capture command. Output filename will be appended. '
-            'Exemple: "fswebcam -r 1280x720. -S 10"')
+      '--capture', dest='capture_command', action='store',
+      help=(
+        'Picture capture command. Output filename will be appended. '
+        'Exemple: "fswebcam -r 1280x720. -S 10"')
     )
     parser.add_argument(
-        '-d', '--debug', dest='debug', action='store_true',
-        help='Debug mode')
+      '-d', '--debug', dest='debug', action='store_true',
+      help='Debug mode')
     parser.add_argument(
-        '--database', dest='database', action='store',
-        default=os.path.join(os.path.dirname(__name__), 'beerlog.sqlite'),
-        help='the path to the sqlite file, or ":memory:" for a memory db')
+      '--database', dest='database', action='store',
+      default=os.path.join(os.path.dirname(__name__), 'beerlog.sqlite'),
+      help='the path to the sqlite file, or ":memory:" for a memory db')
     parser.add_argument(
-        '--known_tags', dest='known_tags', action='store',
-        default='known_tags.json',
-        help='the known tags file to use to use')
+      '--known_tags', dest='known_tags', action='store',
+      default='known_tags.json',
+      help='the known tags file to use to use')
     parser.add_argument(
-        '--dir', dest='picture_dir', action='store',
-        default='pics',
-        help='Where to store the pictures')
+      '--dir', dest='picture_dir', action='store',
+      default='pics',
+      help='Where to store the pictures')
 
     args = parser.parse_args()
 
@@ -114,7 +113,7 @@ class BeerLog(object):
     self.InitDB()
     self.LoadTagsDB()
     self.InitNFC(path="usb")
-    #self.InitDisplay()
+#    self.InitDisplay()
     self.Loop()
 
   def InitDisplay(self):
@@ -134,26 +133,23 @@ class BeerLog(object):
       g = emulator.Emulator()
     g.Setup()
     self._display = Display(
-        luma_device=g.GetDevice(), events_queue=self._events_queue)
+      luma_device=g.GetDevice(), events_queue=self._events_queue)
     self._display.DrawMenu()
 
   def Loop(self):
     """Main loop"""
     while True:
       event = None
-      try:
-        event = self._events_queue.get_nowait()
-      except Queue.Empty:
-        pass
+      event = self._events_queue.get()
       if event:
         self._HandleEvent(event)
       time.sleep(0.05)
 
   def _HandleEvent(self, event):
     """TODO"""
-    if event.type == constants.NFCSCANNED:
+    if event.type == constants.EVENTTYPES.NFCSCANNED:
       who = self.GetNameFromTag(event.uid)
-      print('uid {0:s}'.format(who))
+      self._display.DrawWho(who)
     time.sleep(0.05)
     try:
       pass
@@ -163,8 +159,8 @@ class BeerLog(object):
       pass
     time.sleep(0.5)
 
-    #self.db.AddEntry(character=who, pic=self._last_taken_picture)
-#      self._last_taken_picture = self.TakePicture(self._capture_command)
+    # self.db.AddEntry(character=who, pic=self._last_taken_picture)
+    #      self._last_taken_picture = self.TakePicture(self._capture_command)
 
     self.db.Close()
 
@@ -179,12 +175,12 @@ class BeerLog(object):
         self.known_tags_list = json.load(json_file)
     except IOError as e:
       raise BeerLogError(
-          'Could not load known tags file {0} with error {1!s}'.format(
-              self._known_tags, e))
+        'Could not load known tags file {0} with error {1!s}'.format(
+          self._known_tags, e))
     except ValueError as e:
       raise BeerLogError(
-          'Known tags file {0} is invalid: {1!s}'.format(
-              self._known_tags, e))
+        'Known tags file {0} is invalid: {1!s}'.format(
+          self._known_tags, e))
 
   def TakePicture(self, command):
     """Takes a picture.
@@ -201,7 +197,7 @@ class BeerLog(object):
 
     filepath = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S.jpg')
     cmd = '{0} "{1}"'.format(
-        command, os.path.join(self._picture_dir, filepath))
+      command, os.path.join(self._picture_dir, filepath))
     logging.debug('Running {0}'.format(cmd))
     subprocess.call('{0} "{1}"'.format(cmd, filepath), shell=True)
 
@@ -224,6 +220,8 @@ class BeerLog(object):
   def tagUidToName(self, uid):
     """TODO"""
     return self.known_tags_list.get(uid).get('name')
+
+
 #    if not self._last_read_uid:
 #      raise BeerLogError('Unknown NFC tag')
 

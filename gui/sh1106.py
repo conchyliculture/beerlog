@@ -26,13 +26,13 @@ class WaveShareOLEDHat(BeerGUI):
 
   _BUTTON_DICT = {
       # KEY_UP_PIN
-      6: constants.KEYDOWN, # Yes.
+      6: constants.EVENTTYPES.KEYDOWN, # Yes.
       # KEY_DOWN_PIN
-      19: constants.KEYUP,
+      19: constants.EVENTTYPES.KEYUP,
       # KEY_LEFT_PIN
-      5: constants.KEYRIGHT,
+      5: constants.EVENTTYPES.KEYRIGHT,
       # KEY_RIGHT_PIN
-      26: constants.KEYLEFT,
+      26: constants.EVENTTYPES.KEYLEFT,
       # KEY_PRESS_PIN
       # 13: constats.KEY,
       # KEY1_PIN

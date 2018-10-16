@@ -1,10 +1,9 @@
 """TODO"""
 
-NOEVENT = 0
-KEYUP = 1
-KEYDOWN = 2
-KEYLEFT = 3
-KEYRIGHT = 4
-KEYENTER = 5
-KEYBACK = 6
-NFCSCANNED = 7
+
+class Enum(tuple): __getattr__ = tuple.index
+
+
+EVENTTYPES = Enum(
+  ['NOEVENT', 'KEYUP', 'KEYDOWN', 'KEYLEFT', 'KEYRIGHT', 'KEYENTER', 'KEYBACK',
+   'NFCSCANNED'])

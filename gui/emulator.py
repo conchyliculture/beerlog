@@ -14,9 +14,9 @@ class Emulator(BeerGUI):
   """Implements a GUI with luma emulator"""
 
   EVENT_DICT = {
-      pygame.NOEVENT: constants.NOEVENT,
-      pygame.K_UP: constants.KEYUP,
-      pygame.K_DOWN: constants.KEYDOWN
+      pygame.NOEVENT: constants.EVENTTYPES.NOEVENT,
+      pygame.K_UP: constants.EVENTTYPES.KEYUP,
+      pygame.K_DOWN: constants.EVENTTYPES.KEYDOWN
   }
 
   def Setup(self): # pylint: disable=arguments-differ
@@ -29,6 +29,8 @@ class Emulator(BeerGUI):
     new_event = None
     if event.type == pygame.KEYDOWN:
       new_event = BaseEvent(self.EVENT_DICT.get(event.key, None))
+    else:
+      raise Exception('lol')
     return new_event
 
 

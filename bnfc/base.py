@@ -18,8 +18,11 @@ class NFCEvent(BaseEvent):
   """Event for a NFC tag."""
 
   def __init__(self, uid=None):
-    super(NFCEvent, self).__init__(constants.NFCSCANNED)
+    super(NFCEvent, self).__init__(constants.EVENTTYPES.NFCSCANNED)
     self.uid = uid
+
+  def __str__(self):
+    return 'NFCEvent uid:{0:s} [{1!s}]'.format(self.uid, self.timestamp )
 
 
 class NFC215(object):
@@ -70,7 +73,7 @@ class BeerNFC(object):
 
   SCAN_TIMEOUT_MS = 3*1000 # 3sec
 
-  def __init__(self, events_queue=None, should_beep=True):
+  def __init__(self, events_queue=None, should_beep=False):
     """Initializes a BeerNFS object.
 
     Args:
@@ -81,27 +84,18 @@ class BeerNFC(object):
       BeerLogError: if arguments are invalid.
     """
     self._events_queue = events_queue
-    self._path = None
     self._should_beep = should_beep
 
     if not self._events_queue:
       raise BeerLogError('Need an events queue')
 
-    self.clf = None
     self._last_event = None
-#    self.db = None
-#    self.known_tags_list = None
-#    self._capture_command = None
-#    self._database_path = None
-#    self._known_tags = None
-    self._last_read_uid = None
     self.process = None
 #    self._last_taken_picture = None
 #    self._picture_dir = None
-    self._should_beep = None
 
   def OpenNFC(self, path=None):
-    """Inits the NFC reader.
+    """Initializes the NFC reader.
 
     Args:
       path(str): the option path to the device.
@@ -109,28 +103,27 @@ class BeerNFC(object):
     Raises:
       BeerLogError: when we couldn't open the device.
     """
+    self.process = multiprocessing.Process(target=self._DoNFC, args=(path,))
+
+  def _DoNFC(self, path):
+    """TODO"""
     try:
-      self.clf = nfc.ContactlessFrontend(path=path)
+      with nfc.ContactlessFrontend(path) as clf:
+        while True:
+          success = clf.connect(
+            rdwr={'on-connect': self.ReadTag}
+          )
+
+          if not success:
+            logging.debug('Could not read NFC tag, or we timedout')
+          time.sleep(0.1)
     except IOError as e:
       raise BeerLogError(
-          (
-              'Could not load NFC reader (path: {0}) with error: {1!s}\n'
-              'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
-              '; rmmod nfc'
-          ).format(path, e))
-
-    self.process = multiprocessing.Process(target=self._DoNFC)
-
-  def _DoNFC(self):
-    """TODO"""
-    while True:
-      uid = self.ScanNFC()
-      if not uid:
-        continue
-      event = NFCEvent(uid=uid)
-      self._AddToQueue(event)
-      self._last_read_uid = None
-      time.sleep(0.1)
+        (
+          'Could not load NFC reader (path: {0}) with error: {1!s}\n'
+          'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
+          '; rmmod nfc'
+        ).format(path, e))
 
   def _AddToQueue(self, event):
     """TODO"""
@@ -140,6 +133,8 @@ class BeerNFC(object):
         delta_ms = delta.total_seconds() * 1000
         if delta_ms > self.SCAN_TIMEOUT_MS:
           self._events_queue.put(event)
+        else:
+          logging.debug('Already scanned {0!s} recently'.format(event))
       else:
         self._events_queue.put(event)
       self._last_event = event
@@ -155,34 +150,10 @@ class BeerNFC(object):
         or None if it wasn't.
     """
     if isinstance(tag, nfc.tag.tt2.Type2Tag):
-      self._last_read_uid = NFC215.ReadUIDFromTag(tag)
+      uid = NFC215.ReadUIDFromTag(tag)
+      event = NFCEvent(uid=uid)
+      self._AddToQueue(event)
       return self._should_beep
     return False
-
-
-  def ScanNFC(self):
-    """Sets the NFC reader into scanning mode. Takes a picture if required.
-
-    Returns:
-      str: the uid in the tag.
-    Raises:
-      BeerLogError: if we couldn't read a character from the tag.
-    """
-
-    after5s = lambda: time.time() - started > 1
-    started = time.time()
-    success = self.clf.connect(
-        rdwr={'on-connect': self.ReadTag},
-        terminate=after5s
-    )
-
-    if not success:
-      logging.debug('Could not read NFC tag, or we timedout')
-#      raise BeerLogError('Could not read NFC tag')
-
-#    if not self._last_read_uid:
-#      raise BeerLogError('Unknown NFC tag')
-
-    return self._last_read_uid
 
 # vim: tabstop=2 shiftwidth=2 expandtab

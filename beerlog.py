@@ -15,7 +15,7 @@ import time
 from beerlogdb import BeerLogDB
 from bnfc.base import BeerNFC
 from errors import BeerLogError
-from gui.display import Display
+from gui.display import LumaDisplay
 from gui import constants
 
 
@@ -28,15 +28,13 @@ class BeerLog(object):
 
   def __init__(self):
     self.nfc_reader = None
+    self.ui = None
     self.db = None
     self.known_tags_list = None
     self._capture_command = None
-    self._clf = None
     self._database_path = None
-    self._display = None
     self._events_queue = SimpleQueue()
     self._known_tags = None
-    self._last_read_uid = None
     self._last_taken_picture = None
     self._picture_dir = None
     self._should_beep = None
@@ -113,33 +111,19 @@ class BeerLog(object):
     self.InitDB()
     self.LoadTagsDB()
     self.InitNFC(path="usb")
-#    self.InitDisplay()
+    self.InitUI()
     self.Loop()
 
-  def InitDisplay(self):
+  def InitUI(self):
     """Initialises the user interface."""
-    is_rpi = False
-    try:
-      with open('/sys/firmware/devicetree/base/model', 'r') as model:
-        is_rpi = model.read().startswith('Raspberry Pi')
-    except IOError:
-      pass
-    if is_rpi:
-      from gui import sh1106
-      g = sh1106.WaveShareOLEDHat()
-    else:
-      print('Is not a RPI, running PyGame')
-      from gui import emulator
-      g = emulator.Emulator()
-    g.Setup()
-    self._display = Display(
-      luma_device=g.GetDevice(), events_queue=self._events_queue)
-    self._display.DrawMenu()
+    # Only GUI for now
+    self.ui = LumaDisplay(events_queue=self._events_queue)
+    self.ui.Setup()
+    self.ui.DrawMenu()
 
   def Loop(self):
     """Main loop"""
     while True:
-      event = None
       event = self._events_queue.get()
       if event:
         self._HandleEvent(event)
@@ -149,16 +133,13 @@ class BeerLog(object):
     """TODO"""
     if event.type == constants.EVENTTYPES.NFCSCANNED:
       who = self.GetNameFromTag(event.uid)
-      self._display.DrawWho(who)
-    time.sleep(0.05)
-    try:
-      pass
-    #  who = self.ScanNFC()
-    #  print('{0} a bu une biere'.format(who))
-    except BeerLogError as _:
-      pass
-    time.sleep(0.5)
-
+      self.ui.DrawWho(who)
+    elif event.type == constants.EVENTTYPES.KEYDOWN:
+      self.ui.MenuDown()
+    elif event.type == constants.EVENTTYPES.KEYUP:
+      self.ui.MenuUp()
+    else:
+      print(event)
     # self.db.AddEntry(character=who, pic=self._last_taken_picture)
     #      self._last_taken_picture = self.TakePicture(self._capture_command)
 
@@ -220,15 +201,6 @@ class BeerLog(object):
   def tagUidToName(self, uid):
     """TODO"""
     return self.known_tags_list.get(uid).get('name')
-
-
-#    if not self._last_read_uid:
-#      raise BeerLogError('Unknown NFC tag')
-
-#    who = self.GetNameFromTag(self._last_read_uid)
-
-#    self.db.AddEntry(character=who, pic=self._last_taken_picture)
-#    return who
 
 
 if __name__ == '__main__':

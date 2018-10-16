@@ -11,10 +11,10 @@ import RPi.GPIO as GPIO
 
 from gui import constants
 from gui.base import BaseEvent
-from gui.base import BeerGUI
+from gui.base import LumaDevice
 
 
-class WaveShareOLEDHat(BeerGUI):
+class WaveShareOLEDHat(LumaDevice):
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
 
   # How long to wait, in ms before accepting a new event of the same type
@@ -71,7 +71,6 @@ class WaveShareOLEDHat(BeerGUI):
       channel(int): the pin that was detected.
     """
 
-    new_event = None
     event_type = self._BUTTON_DICT.get(channel, None)
     if event_type:
       new_event = BaseEvent(event_type)
@@ -107,7 +106,7 @@ class WaveShareOLEDHat(BeerGUI):
 
     self._SetupGPIO()
 
-    self.device = sh1106(self._serial, rotate=0)
+    self._device = sh1106(self._serial, rotate=0)
 
   def GetEvent(self):
     """Get an Event from the queue, or None if none available.

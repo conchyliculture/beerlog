@@ -6,11 +6,11 @@ import pygame
 import pygame.key
 from luma.emulator import device
 from gui import constants
-from gui.base import BaseEvent
-from gui.base import BeerGUI
+from gui.base import UIEvent
+from gui.base import LumaDevice
 
 
-class Emulator(BeerGUI):
+class Emulator(LumaDevice):
   """Implements a GUI with luma emulator"""
 
   EVENT_DICT = {
@@ -21,17 +21,16 @@ class Emulator(BeerGUI):
 
   def Setup(self): # pylint: disable=arguments-differ
     """Sets up the device."""
-    self.device = device.pygame()
+    self._device = device.pygame()
 
   def GetEvent(self):
     """TODO"""
-    event = pygame.event.poll()
-    new_event = None
-    if event.type == pygame.KEYDOWN:
-      new_event = BaseEvent(self.EVENT_DICT.get(event.key, None))
-    else:
-      raise Exception('lol')
-    return new_event
-
+    pygame_event = pygame.event.poll()
+    if pygame_event.type == pygame.KEYDOWN:
+      new_event_type = self.EVENT_DICT.get(pygame_event.key, None)
+      if new_event_type:
+        return UIEvent(new_event_type)
+   # else:
+      #logging.debug('Unknown PyGame Event: {0!s}'.format(pygame_event))
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -2,32 +2,47 @@
 
 from __future__ import print_function
 
-from time import sleep
-
 from PIL import ImageFont
 from luma.core.render import canvas as LumaCanvas
 
 from errors import BeerLogError
 
 
-class Display(object):
+class LumaDisplay(object):
 
   MENU_ITEMS = ['un', 'deux', 'trois', 'douze']
 
   MENU_TEXT_X = 2
   MENU_TEXT_HEIGHT = 10
 
-  def __init__(self, luma_device=None, events_queue=None):
+  def __init__(self, events_queue=None):
     self._events_queue = events_queue
+    self.luma_device = None
     self._menu_index = 0
     self._text_font = ImageFont.load_default()
 
     if not self._events_queue:
       raise BeerLogError('Display needs an events_queue')
 
-    self.luma_device = luma_device
-    if not self.luma_device:
-      raise BeerLogError('Display needs a luma_device')
+  def Setup(self):
+    is_rpi = False
+    try:
+      with open('/sys/firmware/devicetree/base/model', 'r') as model:
+        is_rpi = model.read().startswith('Raspberry Pi')
+    except IOError:
+      pass
+
+    if is_rpi:
+      from gui import sh1106
+      device = sh1106.WaveShareOLEDHat(queue=self._events_queue)
+    else:
+      print('Is not a RPI, running PyGame')
+      from gui import emulator
+      device = emulator.Emulator(queue=self._events_queue)
+
+    device.Setup()
+    device.Loop()
+    self.luma_device = device.GetDevice()
 
   def _DrawMenuItem(self, drawer, number):
     selected = self._menu_index == number

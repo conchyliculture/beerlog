@@ -151,8 +151,9 @@ class BeerNFC(object):
     """
     if isinstance(tag, nfc.tag.tt2.Type2Tag):
       uid = NFC215.ReadUIDFromTag(tag)
-      event = NFCEvent(uid=uid)
-      self._AddToQueue(event)
+      if uid:
+        event = NFCEvent(uid=uid)
+        self._AddToQueue(event)
       return self._should_beep
     return False
 

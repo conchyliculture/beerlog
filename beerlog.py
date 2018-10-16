@@ -3,60 +3,20 @@
 from __future__ import print_function
 
 import argparse
-import binascii
 import datetime
 import json
 import logging
 import os
+import Queue
 import subprocess
 import sys
 import time
 
-import nfc
-
 from beerlogdb import BeerLogDB
-
-class BeerLogError(Exception):
-  """Custom exception for BeerLog."""
-  pass
-
-
-class NFC215(object):
-  """Handles read operations on NFC215 tags."""
-  BULK_READ_PAGE_COUNT = 4
-  PAGE_SIZE = 4
-  TAG_FILE_SIZE = 532
-
-  @staticmethod
-  def ReadUIDFromTag(tag):
-    """Reads UID from a tag.
-
-    Args:
-      tag(nfc.tag.tt2_nxp.NTAG215): the input data read from the tag.
-    Returns:
-      uid(str): the tag uid in form 0x0580000000050002.
-    """
-    uid = None
-    if tag.product == 'NXP NTAG215':
-      bytes_array = tag.read(21)[0:8]
-      uid = '0x{0}'.format(binascii.hexlify(bytes_array))
-    else:
-      logging.debug('Unknown tag product: {0:s}'.format(tag.product))
-    return uid
-
-  @staticmethod
-  def ReadAllPages(tag):
-    """Displays all pages from tag
-
-    Args:
-      tag(nfc.tag.tt2_nxp.NTAG215): the input data read from the tag.
-    """
-    pages = []
-    for i in range(0, (NFC215.TAG_FILE_SIZE/NFC215.PAGE_SIZE), 4):
-      page = tag.read(i)
-      print('{0!s}:{1!s}'.format(i, binascii.hexlify(page).upper()))
-      pages.append(binascii.hexlify(page).upper())
-    print(''.join(pages))
+from bnfc.base import BeerNFC
+from errors import BeerLogError
+from gui.display import Display
+from gui import constants
 
 
 class BeerLog(object):
@@ -64,39 +24,34 @@ class BeerLog(object):
 
   Attributes:
     args(argparse.NameSpace): Parsed arguments.
-    clf(nfc.clf.ContactlessFrontend): the NFC Frontend.
+    nfcreader(bnfc.base): the BeerNFC object.
   """
 
   def __init__(self):
-    self.clf = None
+    self.nfcreader = None
     self.db = None
     self.known_tags_list = None
     self._capture_command = None
+    self._clf = None
     self._database_path = None
+    self._display = None
+    self._events_queue = Queue.Queue()
     self._known_tags = None
     self._last_read_uid = None
     self._last_taken_picture = None
     self._picture_dir = None
     self._should_beep = None
 
-  def OpenNFC(self, path=None):
+  def InitNFC(self, path=None):
     """Inits the NFC reader.
 
     Args:
       path(str): the option path to the device.
-
-    Raises:
-      BeerLogError: when we couldn't open the device.
     """
-    try:
-      self.clf = nfc.ContactlessFrontend(path=path)
-    except IOError as e:
-      raise BeerLogError(
-          (
-              'Could not load NFC reader (path: {0}) with error: {1!s}\n'
-              'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
-              '; rmmod nfc'
-          ).format(path, e))
+    self.nfcreader = BeerNFC(
+        events_queue=self._events_queue, should_beep=self._should_beep)
+    self.nfcreader.OpenNFC(path=path)
+    self.nfcreader.process.start()
 
   def ParseArguments(self):
     """Parses arguments.
@@ -158,14 +113,58 @@ class BeerLog(object):
     self.ParseArguments()
     self.InitDB()
     self.LoadTagsDB()
-    self.OpenNFC(path="usb")
+    self.InitNFC(path="usb")
+    #self.InitDisplay()
+    self.Loop()
+
+  def InitDisplay(self):
+    """Initialises the user interface."""
+    is_rpi = False
+    try:
+      with open('/sys/firmware/devicetree/base/model', 'r') as model:
+        is_rpi = model.read().startswith('Raspberry Pi')
+    except IOError:
+      pass
+    if is_rpi:
+      from gui import sh1106
+      g = sh1106.WaveShareOLEDHat()
+    else:
+      print('Is not a RPI, running PyGame')
+      from gui import emulator
+      g = emulator.Emulator()
+    g.Setup()
+    self._display = Display(
+        luma_device=g.GetDevice(), events_queue=self._events_queue)
+    self._display.DrawMenu()
+
+  def Loop(self):
+    """Main loop"""
     while True:
+      event = None
       try:
-        who = self.ScanNFC()
-        print('{0} a bu une biere'.format(who))
-      except BeerLogError as _:
+        event = self._events_queue.get_nowait()
+      except Queue.Empty:
         pass
-      time.sleep(0.5)
+      if event:
+        self._HandleEvent(event)
+      time.sleep(0.05)
+
+  def _HandleEvent(self, event):
+    """TODO"""
+    if event.type == constants.NFCSCANNED:
+      who = self.GetNameFromTag(event.uid)
+      print('uid {0:s}'.format(who))
+    time.sleep(0.05)
+    try:
+      pass
+    #  who = self.ScanNFC()
+    #  print('{0} a bu une biere'.format(who))
+    except BeerLogError as _:
+      pass
+    time.sleep(0.5)
+
+    #self.db.AddEntry(character=who, pic=self._last_taken_picture)
+#      self._last_taken_picture = self.TakePicture(self._capture_command)
 
     self.db.Close()
 
@@ -208,22 +207,6 @@ class BeerLog(object):
 
     return filepath
 
-  def ReadTag(self, tag):
-    """Reads a tag from the NFC reader.
-
-    Args:
-      tag(nfc.tag): the tag object to read.
-
-    Returns:
-      bytearray: True if the read operation was successful,
-        or None if it wasn't.
-    """
-    if isinstance(tag, nfc.tag.tt2.Type2Tag):
-      self._last_read_uid = NFC215.ReadUIDFromTag(tag)
-      self._last_taken_picture = self.TakePicture(self._capture_command)
-      return self._should_beep
-    return False
-
   def GetNameFromTag(self, uid):
     """Returns the corresponding name from a uid
 
@@ -236,31 +219,18 @@ class BeerLog(object):
     if not tag_object:
       return None
 
+    return tag_object.get('name')
+
+  def tagUidToName(self, uid):
+    """TODO"""
     return self.known_tags_list.get(uid).get('name')
+#    if not self._last_read_uid:
+#      raise BeerLogError('Unknown NFC tag')
 
+#    who = self.GetNameFromTag(self._last_read_uid)
 
-  def ScanNFC(self):
-    """Sets the NFC reader into scanning mode. Takes a picture if required.
-
-    Returns:
-      str: the name of the character in the tag.
-    Raises:
-      BeerLogError: if we couldn't read a character from the tag.
-    """
-    success = self.clf.connect(rdwr={
-        'on-connect': self.ReadTag
-    })
-
-    if not success:
-      raise BeerLogError('Could not read NFC tag')
-
-    if not self._last_read_uid:
-      raise BeerLogError('Unknown NFC tag')
-
-    who = self.GetNameFromTag(self._last_read_uid)
-
-    self.db.AddEntry(character=who, pic=self._last_taken_picture)
-    return who
+#    self.db.AddEntry(character=who, pic=self._last_taken_picture)
+#    return who
 
 
 if __name__ == '__main__':

@@ -2,10 +2,10 @@
 
 from __future__ import print_function
 
-from time import sleep
 from PIL import ImageFont
 from luma.core.render import canvas as LumaCanvas
-from gui import constants
+
+from errors import BeerLogError
 
 
 class Display(object):
@@ -15,11 +15,17 @@ class Display(object):
   MENU_TEXT_X = 2
   MENU_TEXT_HEIGHT = 10
 
-  def __init__(self, luma_device):
+  def __init__(self, luma_device=None, events_queue=None):
+    self._events_queue = events_queue
     self._menu_index = 0
     self._text_font = ImageFont.load_default()
 
+    if not self._events_queue:
+      raise BeerLogError('Display needs an events_queue')
+
     self.luma_device = luma_device
+    if not self.luma_device:
+      raise BeerLogError('Display needs a luma_device')
 
   def _DrawMenuItem(self, drawer, number):
     selected = self._menu_index == number
@@ -65,35 +71,5 @@ class Display(object):
   def MenuRight(self):
     pass
 
-
-if __name__ == '__main__':
-  is_rpi = False
-  try:
-    with open('/sys/firmware/devicetree/base/model', 'r') as model:
-      is_rpi = model.read().startswith('Raspberry Pi')
-  except IOError:
-    pass
-
-  if is_rpi:
-    from gui import sh1106
-    g = sh1106.WaveShareOLEDHat()
-  else:
-    print('Is not a RPI, running PyGame')
-    from gui import emulator
-    g = emulator.Emulator()
-  g.Setup()
-  m = Display(g.GetDevice())
-  m.DrawMenu()
-
-  while True:
-    event = g.GetEvent()
-    if event:
-      if event.type == constants.KEYUP:
-        m.MenuUp()
-      elif event.type == constants.KEYDOWN:
-        m.MenuDown()
-      elif event.type == constants.KEYRIGHT:
-        m.MenuRight()
-    sleep(0.05)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

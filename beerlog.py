@@ -31,11 +31,12 @@ class BeerLog(object):
     self.ui = None
     self.db = None
     self.known_tags_list = None
-    self.termination_exception = None
     self._capture_command = None
     self._database_path = None
     self._events_queue = SimpleQueue()
     self._known_tags = None
+    self.dblog = []
+    self._dblog_index = 0
     self._last_taken_picture = None
     self._picture_dir = None
     self._should_beep = None
@@ -105,6 +106,8 @@ class BeerLog(object):
   def InitDB(self):
     """Initializes the BeerLogDB object."""
     self.db = BeerLogDB(self._database_path)
+    for entry in self.db.GetAllLog():
+      self.dblog.insert(0, self._EntryToText(entry))
 
   def Main(self):
     """Runs the script."""
@@ -112,26 +115,33 @@ class BeerLog(object):
     self.InitDB()
     self.LoadTagsDB()
     self.InitNFC(path="usb")
+    time.sleep(1)
+
+    if not self.nfc_reader.process.is_alive():
+      logging.error('Error loading NFC reader')
+      raise BeerLogError('We fail')
+
+    logging.debug('Finished loading NFC')
     self.InitUI()
-    try:
-      self.Loop()
-    except Exception as e:
-      self.db.Close()
-      raise e
+    logging.debug('Finished loading UI')
+    self.Loop()
+
+  def _DrawLastLog(self, num=6):
+    self.ui.DrawLog(self.dblog[self._dblog_index:num+self._dblog_index])
 
   def InitUI(self):
     """Initialises the user interface."""
     # Only GUI for now
     self.ui = LumaDisplay(events_queue=self._events_queue)
     self.ui.Setup()
-    self.ui.DrawMenu()
+    self._DrawLastLog()
 
   def Loop(self):
     """Main loop"""
     while True:
       if not self.nfc_reader.process.is_alive():
-        logging.debug("NFC Reader process has terminated. Exiting")
-        raise self.nfc_reader.process.termination_exception
+        logging.error('NFC Reader process has terminated. Exiting')
+        raise BeerLogError('We fail')
       event = self._events_queue.get()
       if event:
         self._HandleEvent(event)
@@ -145,15 +155,16 @@ class BeerLog(object):
     """
     if event.type == UIEvent.TYPES.NFCSCANNED:
       who = self.GetNameFromTag(event.uid)
-      self.ui.DrawWho(who)
-      self.db.AddEntry(character=who, pic=self._last_taken_picture)
-      self._last_taken_picture = self.TakePicture(self._capture_command)
+      #self._last_taken_picture = self.TakePicture(self._capture_command)
+      entry = self.db.AddEntry(character=who, pic=None)
+      self.dblog.insert(0, self._EntryToText(entry))
+      self._DrawLastLog()
     elif event.type == UIEvent.TYPES.KEYDOWN:
-      self.ui.MenuDown()
+      #self.ui.MenuDown()
+      pass
     elif event.type == UIEvent.TYPES.KEYUP:
-      self.ui.MenuUp()
-    else:
-      print(event)
+      #self.ui.MenuUp()
+      pass
 
   def LoadTagsDB(self):
     """Loads the external known tags list.
@@ -206,6 +217,12 @@ class BeerLog(object):
       return None
 
     return tag_object.get('name')
+
+  @staticmethod
+  def _EntryToText(entry):
+    return '{0:s} - {1:s}'.format(
+        entry.character.rjust(6)[0:10], entry.timestamp.strftime('%H:%M:%S'))
+    pass
 
 
 if __name__ == '__main__':

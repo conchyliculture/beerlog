@@ -17,7 +17,8 @@ class Emulator(LumaDevice):
     # Defines association between pygame event type and UIEvents types.
     pygame.NOEVENT: UIEvent.TYPES.NOEVENT,
     pygame.K_UP: UIEvent.TYPES.KEYUP,
-    pygame.K_DOWN: UIEvent.TYPES.KEYDOWN
+    pygame.K_DOWN: UIEvent.TYPES.KEYDOWN,
+    pygame.K_m: UIEvent.TYPES.MENU
   }
 
   def Setup(self):  # pylint: disable=arguments-differ
@@ -37,5 +38,7 @@ class Emulator(LumaDevice):
       new_event_type = self.EVENT_DICT.get(pygame_event.key, None)
       if new_event_type:
         return UIEvent(new_event_type)
+      else:
+        print(pygame_event)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

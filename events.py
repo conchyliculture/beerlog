@@ -23,7 +23,7 @@ class UIEvent(BaseEvent):
   """Subclass of BaseEvent for UI events."""
 
   TYPES = Enum(
-    ['NOEVENT', 'KEYUP', 'KEYDOWN', 'KEYLEFT', 'KEYRIGHT', 'KEYENTER',
+    ['MENU', 'NOEVENT', 'KEYUP', 'KEYDOWN', 'KEYLEFT', 'KEYRIGHT', 'KEYENTER',
      'KEYBACK', 'NFCSCANNED'])
 
   def __str__(self):

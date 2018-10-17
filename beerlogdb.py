@@ -90,4 +90,8 @@ class BeerLogDB(object):
     """
     return Entry.select().count(None)
 
+  @staticmethod
+  def GetAllLog():
+    return Entry.select().order_by(Entry.timestamp.asc())
+
 # vim: tabstop=2 shiftwidth=2 expandtab

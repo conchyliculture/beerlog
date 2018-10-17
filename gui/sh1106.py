@@ -9,13 +9,13 @@ from luma.oled.device import sh1106
 
 import RPi.GPIO as GPIO
 
-from gui import constants
-from gui.base import BaseEvent
-from gui.base import BeerGUI
+from events import UIEvent
+from gui.display import LumaDevice
 
 
-class WaveShareOLEDHat(BeerGUI):
+class WaveShareOLEDHat(LumaDevice):
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
+  _luma_device = None
 
   # How long to wait, in ms before accepting a new event of the same type
   BOUNCE_MS = 100
@@ -25,27 +25,28 @@ class WaveShareOLEDHat(BeerGUI):
   DC_PIN = 24
 
   _BUTTON_DICT = {
-      # KEY_UP_PIN
-      6: constants.KEYDOWN, # Yes.
-      # KEY_DOWN_PIN
-      19: constants.KEYUP,
-      # KEY_LEFT_PIN
-      5: constants.KEYRIGHT,
-      # KEY_RIGHT_PIN
-      26: constants.KEYLEFT,
-      # KEY_PRESS_PIN
-      # 13: constats.KEY,
-      # KEY1_PIN
-      # 21: constats.KEY,
-      # KEY2_PIN
-      # 20: constats.KEY,
-      # KEY3_PIN
-      #16
+    # Association between GPIO pins and UIEvents types
+    # KEY_UP_PIN
+    6: UIEvent.TYPES.KEYDOWN,  # Yes.
+    # KEY_DOWN_PIN
+    19: UIEvent.TYPES.KEYUP,
+    # KEY_LEFT_PIN
+    5: UIEvent.TYPES.KEYRIGHT,
+    # KEY_RIGHT_PIN
+    26: UIEvent.TYPES.KEYLEFT,
+    # KEY_PRESS_PIN
+    # 13: constants.KEY?,
+    # KEY1_PIN
+    # 21: constants.KEY?,
+    # KEY2_PIN
+    # 20: constants.KEY?,
+    # KEY3_PIN
+    # 16: constants.KEY?
   }
 
   def __init__(self):
     super(WaveShareOLEDHat, self).__init__()
-    self._events_queue = Queue.Queue()
+    self._oledhat_events_queue = Queue.Queue()
     self._last_event = None
     self._serial = None
 
@@ -71,20 +72,19 @@ class WaveShareOLEDHat(BeerGUI):
       channel(int): the pin that was detected.
     """
 
-    new_event = None
     event_type = self._BUTTON_DICT.get(channel, None)
     if event_type:
-      new_event = BaseEvent(event_type)
+      new_event = UIEvent(event_type)
       if self._last_event:
         delta = new_event.timestamp - self._last_event.timestamp
         delta_ms = delta.total_seconds() * 1000
         if delta_ms > self.BOUNCE_MS:
-          self._events_queue.put(new_event)
+          self._oledhat_events_queue.put(new_event)
       else:
-        self._events_queue.put(new_event)
+        self._oledhat_events_queue.put(new_event)
       self._last_event = new_event
 
-  def Setup(self, connection='spi'): # pylint: disable=arguments-differ
+  def Setup(self, connection='spi'):  # pylint: disable=arguments-differ
     """Sets up the device.
 
     Args:
@@ -93,6 +93,7 @@ class WaveShareOLEDHat(BeerGUI):
       Exception: if we didn't specify the connection parameter correctly.
     """
     if connection == 'spi':
+      # noinspection PyTypeChecker
       self._serial = spi(
           device=0, port=0, bus_speed_hz=8000000,
           transfer_size=4096,
@@ -107,17 +108,18 @@ class WaveShareOLEDHat(BeerGUI):
 
     self._SetupGPIO()
 
-    self.device = sh1106(self._serial, rotate=0)
+    self._luma_device = sh1106(self._serial, rotate=0)
 
   def GetEvent(self):
-    """Get an Event from the queue, or None if none available.
+    """Constantly polled by a loop to search for new events to report in the
+    main queue
 
     Returns:
       BaseEvent: the new Event, or None if none available.
     """
     event = None
     try:
-      event = self._events_queue.get_nowait()
+      event = self._oledhat_events_queue.get_nowait()
     except Queue.Empty:
       pass
     return event

@@ -12,18 +12,21 @@ from peewee import Proxy
 from peewee import SqliteDatabase
 
 database_proxy = Proxy()
-# pylint: disable=no-init
+
+
 class BeerModel(Model):
   """Model for the database."""
   class Meta(object):
     """Sets Metadata for the database."""
     database = database_proxy
 
+
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
   character = CharField()
   timestamp = DateTimeField(default=datetime.now)
   pic = CharField(null=True)
+
 
 class BeerLogDB(object):
   """Wrapper for the database."""
@@ -35,15 +38,18 @@ class BeerLogDB(object):
 
     sqlite_db.create_tables([Entry], safe=True)
 
-  def Connect(self):
+  @staticmethod
+  def Connect():
     """Connects to the database."""
     database_proxy.connect()
 
-  def Close(self):
+  @staticmethod
+  def Close():
     """Closes the database."""
     database_proxy.close()
 
-  def AddEntry(self, character=None, pic=None):
+  @staticmethod
+  def AddEntry(character=None, pic=None):
     """Inserts an entry in the database.
 
     Args:
@@ -59,7 +65,8 @@ class BeerLogDB(object):
     )
     return entry
 
-  def GetEntryById(self, entry_id):
+  @staticmethod
+  def GetEntryById(entry_id):
     """Returns an Entry by its primary key.
 
     Args:
@@ -74,7 +81,8 @@ class BeerLogDB(object):
       return None
     return entry
 
-  def CountAll(self):
+  @staticmethod
+  def CountAll():
     """Returns the number of Entry
 
     Returns:

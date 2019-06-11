@@ -22,7 +22,7 @@ class NFCEvent(BaseEvent):
     self.uid = uid
 
   def __str__(self):
-    return 'NFCEvent uid:{0:s} [{1!s}]'.format(self.uid, self.timestamp )
+    return 'NFCEvent uid:{0:s} [{1!s}]'.format(self.uid, self.timestamp)
 
 
 class NFC215(object):

@@ -198,7 +198,7 @@ class BeerLog(object):
 
     return tag_object.get('name')
 
-  def tagUidToName(self, uid):
+  def TagUidToName(self, uid):
     """TODO"""
     return self.known_tags_list.get(uid).get('name')
 

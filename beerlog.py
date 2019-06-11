@@ -90,7 +90,7 @@ class BeerLog(object):
         default='pics',
         help='Where to store the pictures')
     parser.add_argument(
-        '--fake-nfc', dest='picture_dir', action='store_true',
+        '--fake_nfc', dest='picture_dir', action='store_true',
         help='Uses a fake NFC reader that will sometimes tag things')
 
     args = parser.parse_args()

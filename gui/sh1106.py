@@ -2,15 +2,13 @@
 
 from __future__ import print_function
 
-import Queue
-
 from luma.core.interface.serial import i2c, spi
 from luma.oled.device import sh1106
 
 import RPi.GPIO as GPIO
 
 from gui import constants
-from gui.base import BaseEvent
+from gui.base import UIEvent
 from gui.base import LumaDevice
 
 
@@ -34,17 +32,17 @@ class WaveShareOLEDHat(LumaDevice):
       # KEY_RIGHT_PIN
       26: constants.EVENTTYPES.KEYLEFT,
       # KEY_PRESS_PIN
-      # 13: constats.KEY,
+      13: constants.EVENTTYPES.KEYPRESS,
       # KEY1_PIN
-      # 21: constats.KEY,
+      21: constants.EVENTTYPES.KEYMENU1,
       # KEY2_PIN
-      # 20: constats.KEY,
+      20: constants.EVENTTYPES.KEYMENU2,
       # KEY3_PIN
-      #16
+      16: constants.EVENTTYPES.KEYMENU3,
   }
 
   def __init__(self, queue):
-    super(WaveShareOLEDHat, self).__init__()
+    super(WaveShareOLEDHat, self).__init__(queue)
     self._last_event = None
     self._serial = None
 
@@ -64,7 +62,7 @@ class WaveShareOLEDHat(LumaDevice):
       self._SetupOneGPIO(channel)
 
   def _AddEvent(self, channel):
-    """Adds a new BaseEvent to the Queue.
+    """Adds a new UIEvent to the Queue.
 
     Args:
       channel(int): the pin that was detected.
@@ -72,14 +70,14 @@ class WaveShareOLEDHat(LumaDevice):
 
     event_type = self._BUTTON_DICT.get(channel, None)
     if event_type:
-      new_event = BaseEvent(event_type)
+      new_event = UIEvent(event_type)
       if self._last_event:
         delta = new_event.timestamp - self._last_event.timestamp
         delta_ms = delta.total_seconds() * 1000
         if delta_ms > self.BOUNCE_MS:
-          self._events_queue.put(new_event)
+          self.queue.put(new_event)
       else:
-        self._events_queue.put(new_event)
+        self.queue.put(new_event)
       self._last_event = new_event
 
   def Setup(self, connection='spi'): # pylint: disable=arguments-differ
@@ -106,18 +104,5 @@ class WaveShareOLEDHat(LumaDevice):
     self._SetupGPIO()
 
     self._device = sh1106(self._serial, rotate=0)
-
-  def GetEvent(self):
-    """Get an Event from the queue, or None if none available.
-
-    Returns:
-      BaseEvent: the new Event, or None if none available.
-    """
-    event = None
-    try:
-      event = self._events_queue.get_nowait()
-    except Queue.Empty:
-      pass
-    return event
 
 # vim: tabstop=2 shiftwidth=2 expandtab

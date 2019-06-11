@@ -1,9 +1,7 @@
 """Base module for a BeerLog GUI"""
 
 from datetime import datetime
-from time import sleep
-from threading import Thread
-import constants
+from gui import constants
 
 
 class LumaDevice(object):
@@ -13,22 +11,9 @@ class LumaDevice(object):
     self._device = None
     self.queue = queue
 
-  def Loop(self):
-    """Runs the main loop for the GUI, """
-    Thread(target=self._Loop, args=(self.queue, )).start()
-
-  def _Loop(self, queue):
-    while True:
-      event = self.GetEvent()
-      queue.put(event)
-      sleep(0.05)
-
   def GetDevice(self):
-    return self._device
-
-  def GetEvent(self):
     """TODO"""
-    return None
+    return self._device
 
   def Setup(self, **kwargs):
     """Sets up the device"""
@@ -48,7 +33,6 @@ class UIEvent(BaseEvent):
 
   def __str__(self):
     return 'UIEvent type:{0:s} [{1!s}]'.format(
-      constants.EVENTTYPES[self.type], self.timestamp )
-
+        constants.EVENTTYPES[self.type], self.timestamp)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

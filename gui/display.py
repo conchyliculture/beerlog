@@ -34,14 +34,13 @@ class LumaDisplay(object):
 
     if is_rpi:
       from gui import sh1106
-      device = sh1106.WaveShareOLEDHat(queue=self._events_queue)
+      device = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
-      print('Is not a RPI, running PyGame')
-      from gui import emulator
-      device = emulator.Emulator(queue=self._events_queue)
+      raise Exception('Is not a RPI, bailing out ')
+#      from gui import emulator
+#      device = emulator.Emulator(self._events_queue)
 
     device.Setup()
-    device.Loop()
     self.luma_device = device.GetDevice()
 
   def _DrawMenuItem(self, drawer, number):

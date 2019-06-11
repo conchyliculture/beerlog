@@ -148,6 +148,7 @@ class BeerLog(object):
     if event.type == constants.EVENTTYPES.NFCSCANNED:
       who = self.GetNameFromTag(event.uid)
       self.ui.DrawWho(who)
+      logging.debug('Got a scan event from {0}'.format(who))
     # self.db.AddEntry(character=who, pic=self._last_taken_picture)
     #      self._last_taken_picture = self.TakePicture(self._capture_command)
     elif event.type == constants.EVENTTYPES.KEYDOWN:

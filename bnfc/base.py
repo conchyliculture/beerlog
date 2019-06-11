@@ -5,6 +5,7 @@ from __future__ import print_function
 import binascii
 import logging
 import multiprocessing
+import random
 import time
 
 import nfc
@@ -63,70 +64,28 @@ class NFC215(object):
     print(''.join(pages))
 
 
-class BeerNFC(object):
-  """BeerNFC class.
-
-  Attributes:
-    args(argparse.NameSpace): Parsed arguments.
-    clf(nfc.clf.ContactlessFrontend): the NFC Frontend.
-  """
+class BaseNFC(object):
+  """Base class for a NFC reader."""
 
   SCAN_TIMEOUT_MS = 3*1000 # 3sec
 
-  def __init__(self, events_queue=None, should_beep=False):
-    """Initializes a BeerNFS object.
+  def __init__(self, events_queue):
+    """Initializes a BaseNFC object.
 
     Args:
       events_queue(Queue.Queue): the common events queue.
-      should_beep(bool): whether to beep when a tag is scanned.
-
-    Raises:
-      BeerLogError: if arguments are invalid.
     """
     self._events_queue = events_queue
-    self._should_beep = should_beep
-
-    if not self._events_queue:
-      raise BeerLogError('Need an events queue')
 
     self._last_event = None
     self.process = None
-#    self._last_taken_picture = None
-#    self._picture_dir = None
-
-  def OpenNFC(self, path=None):
-    """Initializes the NFC reader.
-
-    Args:
-      path(str): the option path to the device.
-
-    Raises:
-      BeerLogError: when we couldn't open the device.
-    """
-    self.process = multiprocessing.Process(target=self._DoNFC, args=(path,))
-
-  def _DoNFC(self, path):
-    """TODO"""
-    try:
-      with nfc.ContactlessFrontend(path) as clf:
-        while True:
-          success = clf.connect(
-            rdwr={'on-connect': self.ReadTag}
-          )
-
-          if not success:
-            logging.debug('Could not read NFC tag, or we timedout')
-          time.sleep(0.1)
-    except IOError as e:
-      raise BeerLogError(
-        (
-          'Could not load NFC reader (path: {0}) with error: {1!s}\n'
-          'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
-          '; rmmod nfc'
-        ).format(path, e))
 
   def _AddToQueue(self, event):
-    """TODO"""
+    """Pushes an event on the events Queue.
+
+    Args:
+      event(BaseEvent): the event to push.
+    """
     if event:
       if self._last_event:
         delta = event.timestamp - self._last_event.timestamp
@@ -138,6 +97,73 @@ class BeerNFC(object):
       else:
         self._events_queue.put(event)
       self._last_event = event
+
+  def OpenNFC(self):
+    """Initializes the NFC reader.
+
+    Raises:
+      BeerLogError: when we couldn't open the device.
+    """
+    self.process = multiprocessing.Process(target=self._Nop)
+
+  def _Nop(self):
+    """Do nothing."""
+    while True:
+      time.sleep(0.1)
+
+
+class BeerNFC(BaseNFC):
+  """BeerNFC class."""
+
+  def __init__(self, events_queue=None, should_beep=False, path=None):
+    """Initializes a BeerNFC object.
+
+    Args:
+      events_queue(Queue.Queue): the common events queue.
+      should_beep(bool): whether to beep when a tag is scanned.
+      path(str): the path to the NFC reader.
+
+    Raises:
+      BeerLogError: if arguments are invalid.
+    """
+    super(BeerNFC, self).__init__(events_queue=events_queue)
+    self._should_beep = should_beep
+    self.path = path
+
+    self.OpenNFC()
+
+#    self._last_taken_picture = None
+#    self._picture_dir = None
+
+  def OpenNFC(self):
+    """Initializes the NFC reader.
+
+    Raises:
+      BeerLogError: when we couldn't open the device.
+    """
+    self.process = multiprocessing.Process(
+        target=self._DoNFC, args=(self.path,))
+
+  def _DoNFC(self):
+    """TODO"""
+    try:
+      with nfc.ContactlessFrontend(self.path) as clf:
+        while True:
+          success = clf.connect(
+              rdwr={'on-connect': self.ReadTag}
+          )
+
+          if not success:
+            logging.debug('Could not read NFC tag, or we timedout')
+          time.sleep(0.1)
+    except IOError as e:
+      raise BeerLogError(
+          (
+              'Could not load NFC reader (path: {0}) with error: {1!s}\n'
+              'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
+              '; rmmod nfc'
+          ).format(self.path, e))
+
 
   def ReadTag(self, tag):
     """Reads a tag from the NFC reader.
@@ -156,5 +182,28 @@ class BeerNFC(object):
         self._AddToQueue(event)
       return self._should_beep
     return False
+
+class FakeNFC(BaseNFC):
+  """Fake NFC reader"""
+
+  FIXED_UID = "0x0580000000050002"
+
+  def OpenNFC(self):
+    """Initializes the NFC reader.
+
+    Raises:
+      BeerLogError: when we couldn't open the device.
+    """
+    self.process = multiprocessing.Process(target=self._Random)
+
+  def _Random(self):
+    """Randomly add NFCEvent to the queue."""
+    while True:
+      coin = random.randint(1, 2)
+      if coin == 1:
+        event = NFCEvent(uid=self.FIXED_UID)
+        self._events_queue.put(event)
+      time.sleep(1)
+
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -43,9 +43,8 @@ class WaveShareOLEDHat(LumaDevice):
       #16
   }
 
-  def __init__(self):
+  def __init__(self, queue):
     super(WaveShareOLEDHat, self).__init__()
-    self._events_queue = Queue.Queue()
     self._last_event = None
     self._serial = None
 

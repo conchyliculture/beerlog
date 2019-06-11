@@ -9,11 +9,12 @@ import constants
 class LumaDevice(object):
   """Wrapper around a luma device."""
 
-  def __init__(self, queue=None):
+  def __init__(self, queue):
     self._device = None
     self.queue = queue
 
   def Loop(self):
+    """Runs the main loop for the GUI, """
     Thread(target=self._Loop, args=(self.queue, )).start()
 
   def _Loop(self, queue):

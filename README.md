@@ -18,5 +18,3 @@ cd beerlog
 
 sudo apt install jq
 wget  https://goto.ninja/beertags -O - | jq ".[keys[1]]" > known_tags.json
-
-

@@ -12,21 +12,18 @@ from peewee import Proxy
 from peewee import SqliteDatabase
 
 database_proxy = Proxy()
-
-
+# pylint: disable=no-init
 class BeerModel(Model):
   """Model for the database."""
   class Meta(object):
     """Sets Metadata for the database."""
     database = database_proxy
 
-
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
   character = CharField()
   timestamp = DateTimeField(default=datetime.now)
   pic = CharField(null=True)
-
 
 class BeerLogDB(object):
   """Wrapper for the database."""
@@ -38,18 +35,15 @@ class BeerLogDB(object):
 
     sqlite_db.create_tables([Entry], safe=True)
 
-  @staticmethod
-  def Connect():
+  def Connect(self):
     """Connects to the database."""
     database_proxy.connect()
 
-  @staticmethod
-  def Close():
+  def Close(self):
     """Closes the database."""
     database_proxy.close()
 
-  @staticmethod
-  def AddEntry(character=None, pic=None):
+  def AddEntry(self, character=None, pic=None):
     """Inserts an entry in the database.
 
     Args:
@@ -65,8 +59,7 @@ class BeerLogDB(object):
     )
     return entry
 
-  @staticmethod
-  def GetEntryById(entry_id):
+  def GetEntryById(self, entry_id):
     """Returns an Entry by its primary key.
 
     Args:
@@ -81,17 +74,12 @@ class BeerLogDB(object):
       return None
     return entry
 
-  @staticmethod
-  def CountAll():
+  def CountAll(self):
     """Returns the number of Entry
 
     Returns:
       int: the total number of Entry lines in the database.
     """
     return Entry.select().count(None)
-
-  @staticmethod
-  def GetAllLog():
-    return Entry.select().order_by(Entry.timestamp.asc())
 
 # vim: tabstop=2 shiftwidth=2 expandtab

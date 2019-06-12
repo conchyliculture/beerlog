@@ -2,20 +2,18 @@
 
 from __future__ import print_function
 
-import Queue
-
 from luma.core.interface.serial import i2c, spi
 from luma.oled.device import sh1106
 
 import RPi.GPIO as GPIO
 
-from events import UIEvent
-from gui.display import LumaDevice
+from gui import constants
+from gui.base import UIEvent
+from gui.base import LumaDevice
 
 
 class WaveShareOLEDHat(LumaDevice):
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
-  _luma_device = None
 
   # How long to wait, in ms before accepting a new event of the same type
   BOUNCE_MS = 100
@@ -25,28 +23,26 @@ class WaveShareOLEDHat(LumaDevice):
   DC_PIN = 24
 
   _BUTTON_DICT = {
-    # Association between GPIO pins and UIEvents types
-    # KEY_UP_PIN
-    6: UIEvent.TYPES.KEYDOWN,  # Yes.
-    # KEY_DOWN_PIN
-    19: UIEvent.TYPES.KEYUP,
-    # KEY_LEFT_PIN
-    5: UIEvent.TYPES.KEYRIGHT,
-    # KEY_RIGHT_PIN
-    26: UIEvent.TYPES.KEYLEFT,
-    # KEY_PRESS_PIN
-    # 13: constants.KEY?,
-    # KEY1_PIN
-    # 21: constants.KEY?,
-    # KEY2_PIN
-    # 20: constants.KEY?,
-    # KEY3_PIN
-    # 16: constants.KEY?
+      # KEY_UP_PIN
+      6: constants.EVENTTYPES.KEYDOWN, # Yes.
+      # KEY_DOWN_PIN
+      19: constants.EVENTTYPES.KEYUP,
+      # KEY_LEFT_PIN
+      5: constants.EVENTTYPES.KEYRIGHT,
+      # KEY_RIGHT_PIN
+      26: constants.EVENTTYPES.KEYLEFT,
+      # KEY_PRESS_PIN
+      13: constants.EVENTTYPES.KEYPRESS,
+      # KEY1_PIN
+      21: constants.EVENTTYPES.KEYMENU1,
+      # KEY2_PIN
+      20: constants.EVENTTYPES.KEYMENU2,
+      # KEY3_PIN
+      16: constants.EVENTTYPES.KEYMENU3,
   }
 
-  def __init__(self):
-    super(WaveShareOLEDHat, self).__init__()
-    self._oledhat_events_queue = Queue.Queue()
+  def __init__(self, queue):
+    super(WaveShareOLEDHat, self).__init__(queue)
     self._last_event = None
     self._serial = None
 
@@ -66,7 +62,7 @@ class WaveShareOLEDHat(LumaDevice):
       self._SetupOneGPIO(channel)
 
   def _AddEvent(self, channel):
-    """Adds a new BaseEvent to the Queue.
+    """Adds a new UIEvent to the Queue.
 
     Args:
       channel(int): the pin that was detected.
@@ -79,12 +75,12 @@ class WaveShareOLEDHat(LumaDevice):
         delta = new_event.timestamp - self._last_event.timestamp
         delta_ms = delta.total_seconds() * 1000
         if delta_ms > self.BOUNCE_MS:
-          self._oledhat_events_queue.put(new_event)
+          self.queue.put(new_event)
       else:
-        self._oledhat_events_queue.put(new_event)
+        self.queue.put(new_event)
       self._last_event = new_event
 
-  def Setup(self, connection='spi'):  # pylint: disable=arguments-differ
+  def Setup(self, connection='spi'): # pylint: disable=arguments-differ
     """Sets up the device.
 
     Args:
@@ -93,7 +89,6 @@ class WaveShareOLEDHat(LumaDevice):
       Exception: if we didn't specify the connection parameter correctly.
     """
     if connection == 'spi':
-      # noinspection PyTypeChecker
       self._serial = spi(
           device=0, port=0, bus_speed_hz=8000000,
           transfer_size=4096,
@@ -108,20 +103,6 @@ class WaveShareOLEDHat(LumaDevice):
 
     self._SetupGPIO()
 
-    self._luma_device = sh1106(self._serial, rotate=0)
-
-  def GetEvent(self):
-    """Constantly polled by a loop to search for new events to report in the
-    main queue
-
-    Returns:
-      BaseEvent: the new Event, or None if none available.
-    """
-    event = None
-    try:
-      event = self._oledhat_events_queue.get_nowait()
-    except Queue.Empty:
-      pass
-    return event
+    self._device = sh1106(self._serial, rotate=0)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -3,6 +3,4 @@ venv
 *.json
 *.pyc
 *.swp
-pics
-pics/*
 *.sqlite

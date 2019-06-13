@@ -198,7 +198,7 @@ class FakeNFC(BaseNFC):
   def _Random(self):
     """Randomly add NFCEvent to the queue."""
     while True:
-      coin = random.randint(1, 4)
+      coin = random.randint(1, 40)
       if coin == 1:
         event = NFCEvent(uid=self.FIXED_UID)
         self._events_queue.put(event)

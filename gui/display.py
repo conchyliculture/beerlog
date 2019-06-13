@@ -10,7 +10,6 @@ from luma.core.render import canvas as LumaCanvas
 from PIL import Image
 from PIL import ImageFont
 
-from gui.constants import Enum
 from errors import BeerLogError
 
 
@@ -19,8 +18,7 @@ class LumaDisplay(object):
   MENU_TEXT_X = 2
   MENU_TEXT_HEIGHT = 10
 
-  STATES = Enum(
-      ['SCORE', 'STATS', 'SCANNED', 'ERROR'])
+  STATES = ['SCORE', 'STATS', 'SCANNED', 'ERROR']
 
   def __init__(self, events_queue=None):
     self._events_queue = events_queue
@@ -31,18 +29,26 @@ class LumaDisplay(object):
     if not self._events_queue:
       raise BeerLogError('Display needs an events_queue')
 
-    self._timedout = False
-    self.machine = Machine(
-        model=self, states=list(self.STATES), initial=self.STATES.SCORE)
+
+
+    self.machine = Machine(states=list(self.STATES), initial='SCORE')
 
     # Transitions
     # (trigger, source, destination)
-    self.machine.add_transition('back', '*', self.STATES.SCORE)
-    self.machine.add_transition('stats', self.STATES.SCORE, self.STATES.STATS)
-    self.machine.add_transition('scan', '*', self.STATES.SCANNED)
-    self.machine.add_transition('error', '*', self.STATES.ERROR)
+    self.machine.add_transition('back', '*', 'SCORE')
+    self.machine.add_transition('stats', 'SCORE', 'STATS')
+    self.machine.add_transition('scan', '*', 'SCANNED')
+    self.machine.add_transition('error', '*', 'ERROR')
     self.machine.add_transition(
-        'update', '*', self.STATES.SCORE, conditions=['HasTimedout'])
+        'update', '*', 'SCORE', conditions=['HasTimedout'])
+
+  def Update(self):
+    if self.machine.state == 'SPLASH':
+      self.Splash('pics/splash.png')
+    elif self.machine.state == 'ERROR':
+      self.ShowError('ERROR')
+    elif self.machine.state == 'SCORE':
+      self.DrawText('Los scoros')
 
   def Setup(self):
     is_rpi = False
@@ -63,18 +69,28 @@ class LumaDisplay(object):
     device.Setup()
     self.luma_device = device.GetDevice()
 
-  def Splash(self, logoPath):
+  def Splash(self, logo_path):
     """Displays the splash screen
 
     Args:
-      logoPath(str): the relative path to the image.
+      logo_path(str): the relative path to the image.
     """
     background = Image.new(self.luma_device.mode, self.luma_device.size)
-    splash = Image.open(logoPath).convert(self.luma_device.mode)
+    splash = Image.open(logo_path).convert(self.luma_device.mode)
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
     self.luma_device.display(background)
     time.sleep(2)
+
+  def ShowError(self, error):
+    """TODO"""
+    self.DrawText(error)
+
+  def DrawText(self, text, font=None, x=0, y=0, fill='white'):
+    """TODO"""
+    with LumaCanvas(self.luma_device) as drawer:
+#      drawer.text((0, 0), who, font=self._text_font, fill="white")
+      drawer.text((x, y), text, font=(font or self._text_font), fill=fill)
 
 #  def _DrawMenuItem(self, drawer, number):
 #    selected = self._menu_index == number
@@ -120,16 +136,5 @@ class LumaDisplay(object):
 #  def MenuUp(self):
 #    self._menu_index = ((self._menu_index - 1)%len(self.MENU_ITEMS))
 #    self.DrawMenu()
-
-  def MenuRight(self):
-    pass
-
-  def HasTimedout(self):
-    """TODO"""
-    if self._timedout:
-      self._timedout = False
-      return True
-    return False
-
 
 # vim: tabstop=2 shiftwidth=2 expandtab

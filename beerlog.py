@@ -10,14 +10,16 @@ import os
 from multiprocessing.queues import SimpleQueue
 import subprocess
 import sys
+from threading import Timer
 import time
 
 from beerlogdb import BeerLogDB
 from bnfc.base import BeerNFC
 from bnfc.base import FakeNFC
 from errors import BeerLogError
-from gui.display import LumaDisplay
 from gui import constants
+from gui.base import UIEvent
+from gui.display import LumaDisplay
 
 
 class BeerLog(object):
@@ -40,6 +42,8 @@ class BeerLog(object):
     self._last_taken_picture = None
     self._picture_dir = None
     self._should_beep = None
+
+    self._timers = []
 
   def InitNFC(self, path=None):
     """Initializes the NFC reader.
@@ -129,7 +133,22 @@ class BeerLog(object):
     # Only GUI for now
     self.ui = LumaDisplay(events_queue=self._events_queue)
     self.ui.Setup()
-    self.ui.Splash('pics/splash.png')
+    self.ui.Update()
+
+  def PushEvent(self, event):
+    """TODO"""
+    self._events_queue.put(event)
+
+  def AddDelayedEvent(self, event, timeout):
+    """TODO"""
+    t = Timer(timeout, self.PushEvent, args=(event,))
+    t.start()
+    self._timers.append(t)
+
+  def ResetTimers(self):
+    """TODO"""
+    for timer in self._timers:
+      timer.cancel()
 
   def Loop(self):
     """Main program loop.
@@ -145,19 +164,24 @@ class BeerLog(object):
   def _HandleEvent(self, event):
     """TODO"""
     # TODO : have a UI class of events, and let the ui object deal with them
+    self.ResetTimers()
     if event.type == constants.EVENTTYPES.NFCSCANNED:
       who = self.GetNameFromTag(event.uid)
       self.ui.DrawWho(who)
       logging.debug('Got a scan event from {0}'.format(who))
     # self.db.AddEntry(character=who, pic=self._last_taken_picture)
     #      self._last_taken_picture = self.TakePicture(self._capture_command)
-    elif event.type == constants.EVENTTYPES.KEYDOWN:
-      self.ui.MenuDown()
+#    elif event.type == constants.EVENTTYPES.KEYDOWN:
+#      self.ui.MenuDown()
     elif event.type == constants.EVENTTYPES.KEYUP:
-      self.ui.MenuUp()
+      self.ui.machine.back()
+    elif event.type == constants.EVENTTYPES.ESCAPE:
+      self.ui.machine.back()
     else:
       print('Unknown Event:')
       print(event)
+      self.ui.machine.error()
+      self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 3)
 
     self.db.Close()
 

@@ -160,6 +160,7 @@ class BeerLog(object):
       if event:
         self._HandleEvent(event)
       time.sleep(0.05)
+      self.ui.Update()
 
   def _HandleEvent(self, event):
     """TODO"""

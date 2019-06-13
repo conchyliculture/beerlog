@@ -18,7 +18,7 @@ class LumaDisplay(object):
   MENU_TEXT_X = 2
   MENU_TEXT_HEIGHT = 10
 
-  STATES = ['SCORE', 'STATS', 'SCANNED', 'ERROR']
+  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
 
   def __init__(self, events_queue=None):
     self._events_queue = events_queue
@@ -31,7 +31,7 @@ class LumaDisplay(object):
 
 
 
-    self.machine = Machine(states=list(self.STATES), initial='SCORE')
+    self.machine = Machine(states=list(self.STATES), initial='SPLASH')
 
     # Transitions
     # (trigger, source, destination)

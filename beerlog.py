@@ -129,7 +129,7 @@ class BeerLog(object):
     # Only GUI for now
     self.ui = LumaDisplay(events_queue=self._events_queue)
     self.ui.Setup()
-    self.ui.DrawMenu()
+    self.ui.Splash()
 
   def Loop(self):
     """Main program loop.

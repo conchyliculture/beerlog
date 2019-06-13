@@ -7,7 +7,6 @@ import time
 from transitions import Machine
 
 from luma.core.render import canvas as LumaCanvas
-from luma.core.virtual import viewport as LumaViewport
 from PIL import Image
 from PIL import ImageFont
 
@@ -64,11 +63,17 @@ class LumaDisplay(object):
     device.Setup()
     self.luma_device = device.GetDevice()
 
-  def Splash(self):
-    splash = Image.open('pics/splash.png').convert(self.luma_device.mode)
-    w, h = splash.size
-    virtual = LumaViewport(self.luma_device, width=w, height=h)
-    virtual.display(splash)
+  def Splash(self, logoPath):
+    """Displays the splash screen
+
+    Args:
+      logoPath(str): the relative path to the image.
+    """
+    background = Image.new(self.luma_device.mode, self.luma_device.size)
+    splash = Image.open(logoPath).convert(self.luma_device.mode)
+    posn = ((self.luma_device.width - splash.width) // 2, 0)
+    background.paste(splash, posn)
+    self.luma_device.display(background)
     time.sleep(2)
 
 #  def _DrawMenuItem(self, drawer, number):

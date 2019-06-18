@@ -10,6 +10,7 @@ from peewee import DoesNotExist
 from peewee import Model
 from peewee import Proxy
 from peewee import SqliteDatabase
+from peewee import fn
 
 database_proxy = Proxy()
 # pylint: disable=no-init
@@ -81,5 +82,20 @@ class BeerLogDB(object):
       int: the total number of Entry lines in the database.
     """
     return Entry.select().count(None)
+
+  def GetScoreBoard(self, limit=10):
+    """Returns a query with the scoreboard.
+
+    Args:
+      limit(int): the number of top scorer to display.
+    Returns:
+      peewee.ModelSelect: the query.
+    """
+    query = Entry.select(
+        Entry,
+        fn.MAX(Entry.timestamp).alias('last'),
+        fn.COUNT().alias('count')
+    ).group_by(Entry.character).limit(limit).order_by(fn.COUNT().desc())
+    return query
 
 # vim: tabstop=2 shiftwidth=2 expandtab

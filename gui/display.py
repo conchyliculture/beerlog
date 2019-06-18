@@ -54,11 +54,20 @@ class LumaDisplay(object):
     """TODO"""
     scoreboard = self._database.GetScoreBoard()
     with LumaCanvas(self.luma_device) as drawer:
-      char_size = drawer.textsize(' ', font=self._font)
-      max_text_width = self.luma_device.width / char_size
-      drawer.rectangle(
-          self.luma_device.bounding_box, outline="white", fill="black")
-      drawer.text((0, 0), 'H'*max_text_width, font=self._font)
+      char_w, char_h = drawer.textsize(' ', font=self._font)
+      max_text_width = self.luma_device.width / char_w
+      max_name_width = max_text_width-12
+      # ie: '  Name      Cnt Last'
+      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+' Cnt Last'
+      drawer.text((2, 0), header, font=self._font, fill='white')
+      for i, row in enumerate(scoreboard[0:4], start=1):
+        # ie: '1.Fox        12 12h'
+        #     '2.Dog        10  5m'
+        text = str(i)+'.'
+        text += ('{0:<'+str(max_name_width)+'}').format(row.character)
+        text += ' {0:>3d}'.format(row.count)
+        text += ' 12h'
+        drawer.text((2, i*char_h), text, font=self._font, fill='white')
 
   def Setup(self):
     is_rpi = False

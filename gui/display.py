@@ -1,9 +1,7 @@
-# pylint: disable=missing-docstring
-
+"""TODO"""
 from __future__ import print_function
 
 import time
-#from threading import Timer
 from transitions import Machine
 
 from luma.core.render import canvas as LumaCanvas
@@ -14,6 +12,7 @@ from errors import BeerLogError
 
 
 class LumaDisplay(object):
+  """TODO"""
 
   MENU_TEXT_X = 2
   MENU_TEXT_HEIGHT = 10
@@ -24,8 +23,9 @@ class LumaDisplay(object):
     self._events_queue = events_queue
     self._database = database
     self.luma_device = None
-    self._menu_index = 0
     self._font = ImageFont.load_default()
+
+    self._last_scanned = None
 
     if not self._events_queue:
       raise BeerLogError('Display needs an events_queue')
@@ -33,25 +33,44 @@ class LumaDisplay(object):
     if not self._database:
       raise BeerLogError('Display needs a DB object')
 
-    self.machine = Machine(states=list(self.STATES), initial='SPLASH')
+    self.machine = Machine(
+        states=list(self.STATES), initial='SPLASH', send_event=True)
 
+    # Used to set our attributes from the Machine object
+    self.machine._SetEnv = self._SetEnv
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE')
     self.machine.add_transition('stats', 'SCORE', 'STATS')
-    self.machine.add_transition('scan', '*', 'SCANNED')
+    self.machine.add_transition('scan', '*', 'SCANNED', before='_SetEnv')
     self.machine.add_transition('error', '*', 'ERROR')
 
+  def _SetEnv(self, event):
+    """Helper method to change some of our attributes on transiton changes.
+
+    Args:
+      event(transitions.EventData): the event.
+    """
+    self._last_scanned = event.kwargs.get('who', None)
+
   def Update(self):
+    """TODO"""
     if self.machine.state == 'SPLASH':
       self.Splash('pics/splash_small.png')
     elif self.machine.state == 'ERROR':
       self.ShowError('ERROR')
     elif self.machine.state == 'SCORE':
       self.ShowScores()
+    elif self.machine.state == 'SCANNED':
+      self.ShowScanned()
+
+  def ShowScanned(self):
+    """Draws the screen showing the last scanned tag."""
+    with LumaCanvas(self.luma_device) as drawer:
+      drawer.text((10, 10), self._last_scanned, font=self._font, fill="white")
 
   def ShowScores(self):
-    """TODO"""
+    """Draws the Scoreboard screen."""
     scoreboard = self._database.GetScoreBoard()
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
@@ -143,11 +162,7 @@ class LumaDisplay(object):
 #          self.luma_device.bounding_box, outline="white", fill="black")
 #      for i in range(len(self.MENU_ITEMS)):
 #        self._DrawMenuItem(drawer, i)
-
-  def DrawWho(self, who):
-    with LumaCanvas(self.luma_device) as drawer:
-      drawer.text((0, 0), who, font=self._font, fill="white")
-
+#
 #  def MenuDown(self):
 #    self._menu_index = ((self._menu_index + 1)%len(self.MENU_ITEMS))
 #    self.DrawMenu()

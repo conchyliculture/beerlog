@@ -168,13 +168,11 @@ class BeerLog(object):
     self.ResetTimers()
     if event.type == constants.EVENTTYPES.NFCSCANNED:
       who = self.GetNameFromTag(event.uid)
-      self.ui.DrawWho(who)
-      logging.debug('Got a scan event from {0}'.format(who))
-    # self.db.AddEntry(character=who, pic=self._last_taken_picture)
-    #      self._last_taken_picture = self.TakePicture(self._capture_command)
-#    elif event.type == constants.EVENTTYPES.KEYDOWN:
-#      self.ui.MenuDown()
+      self.ui.machine.scan(who=who)
+      self.db.AddEntry(character=who, pic=self._last_taken_picture)
+      self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
+      # TODO
       self.ui.machine.back()
     elif event.type == constants.EVENTTYPES.ESCAPE:
       self.ui.machine.back()

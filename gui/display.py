@@ -50,7 +50,17 @@ class LumaDisplay(object):
     elif self.machine.state == 'ERROR':
       self.ShowError('ERROR')
     elif self.machine.state == 'SCORE':
-      self.DrawText('Los scoros')
+      self.ShowScores()
+
+  def ShowScores(self):
+    """TODO"""
+    scoreboard = self._database.GetScoreBoard()
+    with LumaCanvas(self.luma_device) as drawer:
+      char_size = drawer.textsize(' ', font=self._font)
+      max_text_width = self.luma_device.width / char_size
+      drawer.rectangle(
+          self.luma_device.bounding_box, outline="white", fill="black")
+      drawer.text((0, 0), 'H'*max_text_width, font=self._font)
 
   def Setup(self):
     is_rpi = False

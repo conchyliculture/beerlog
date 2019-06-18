@@ -41,8 +41,6 @@ class LumaDisplay(object):
     self.machine.add_transition('stats', 'SCORE', 'STATS')
     self.machine.add_transition('scan', '*', 'SCANNED')
     self.machine.add_transition('error', '*', 'ERROR')
-    self.machine.add_transition(
-        'update', '*', 'SCORE', conditions=['HasTimedout'])
 
   def Update(self):
     if self.machine.state == 'SPLASH':

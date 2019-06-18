@@ -20,8 +20,9 @@ class LumaDisplay(object):
 
   STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
 
-  def __init__(self, events_queue=None):
+  def __init__(self, events_queue=None, database=None):
     self._events_queue = events_queue
+    self._database = database
     self.luma_device = None
     self._menu_index = 0
     self._font = ImageFont.load_default()
@@ -29,7 +30,8 @@ class LumaDisplay(object):
     if not self._events_queue:
       raise BeerLogError('Display needs an events_queue')
 
-
+    if not self._database:
+      raise BeerLogError('Display needs a DB object')
 
     self.machine = Machine(states=list(self.STATES), initial='SPLASH')
 

@@ -131,7 +131,7 @@ class BeerLog(object):
   def InitUI(self):
     """Initialises the user interface."""
     # Only GUI for now
-    self.ui = LumaDisplay(events_queue=self._events_queue)
+    self.ui = LumaDisplay(events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
     self.ui.Update()
 

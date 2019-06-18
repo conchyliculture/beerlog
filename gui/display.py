@@ -24,7 +24,7 @@ class LumaDisplay(object):
     self._events_queue = events_queue
     self.luma_device = None
     self._menu_index = 0
-    self._text_font = ImageFont.load_default()
+    self._font = ImageFont.load_default()
 
     if not self._events_queue:
       raise BeerLogError('Display needs an events_queue')
@@ -89,8 +89,8 @@ class LumaDisplay(object):
   def DrawText(self, text, font=None, x=0, y=0, fill='white'):
     """TODO"""
     with LumaCanvas(self.luma_device) as drawer:
-#      drawer.text((0, 0), who, font=self._text_font, fill="white")
-      drawer.text((x, y), text, font=(font or self._text_font), fill=fill)
+#      drawer.text((0, 0), who, font=self._font, fill="white")
+      drawer.text((x, y), text, font=(font or self._font), fill=fill)
 
 #  def _DrawMenuItem(self, drawer, number):
 #    selected = self._menu_index == number
@@ -110,13 +110,13 @@ class LumaDisplay(object):
 #      drawer.text(
 #          text_geometry,
 #          self.MENU_ITEMS[number],
-#          font=self._text_font, fill='black'
+#          font=self._font, fill='black'
 #          )
 #    else:
 #      drawer.text(
 #          text_geometry,
 #          self.MENU_ITEMS[number],
-#          font=self._text_font, fill='white')
+#          font=self._font, fill='white')
 #
 #  def DrawMenu(self):
 #    with LumaCanvas(self.luma_device) as drawer:
@@ -127,7 +127,7 @@ class LumaDisplay(object):
 
   def DrawWho(self, who):
     with LumaCanvas(self.luma_device) as drawer:
-      drawer.text((0, 0), who, font=self._text_font, fill="white")
+      drawer.text((0, 0), who, font=self._font, fill="white")
 
 #  def MenuDown(self):
 #    self._menu_index = ((self._menu_index + 1)%len(self.MENU_ITEMS))

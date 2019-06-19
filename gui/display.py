@@ -56,7 +56,7 @@ class LumaDisplay(object):
   def Update(self):
     """TODO"""
     if self.machine.state == 'SPLASH':
-      self.Splash('pics/splash_small.png')
+      self.Splash('assets/pics/splash_small.png')
     elif self.machine.state == 'ERROR':
       self.ShowError('ERROR')
     elif self.machine.state == 'SCORE':

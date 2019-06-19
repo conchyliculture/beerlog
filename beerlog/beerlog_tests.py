@@ -1,13 +1,13 @@
-"""Tests for beerlog modules"""
+"""Tests for the beerlog module"""
 
-from __future__ import print_function
+from __future__ import unicode_literals
 
 import json
 import tempfile
 import unittest
 
-from beerlog import BeerLog
-from beerlogdb import BeerLogDB
+import beerlog
+import beerlogdb
 
 # pylint: disable=protected-access
 
@@ -16,7 +16,7 @@ class TestBeerLogDB(unittest.TestCase):
 
   def testDB(self):
     """Simple test case."""
-    db = BeerLogDB(':memory:')
+    db = beerlogdb.BeerLogDB(':memory:')
 
     saved_entry = db.AddEntry(character='pute', pic='race.jpg')
     entry = db.GetEntryById(saved_entry.id)
@@ -27,12 +27,12 @@ class TestBeerLogDB(unittest.TestCase):
     saved_entry = db.AddEntry(character='pute', pic='race.jpg')
     self.assertEqual(3, db.CountAll())
 
-class TestBeerLog(unittest.TestCase):
-  """Tests for beerlog module."""
+class BeerLogTests(unittest.TestCase):
+  """Tests for the BeerLog class."""
 
   def testBeerLog(self):
     """Simple test case."""
-    bl_object = BeerLog()
+    bl_object = beerlog.BeerLog()
 
     with tempfile.NamedTemporaryFile() as temp:
       temp.write(json.dumps({'0x0':{'name': 'Kikoo'}}))
@@ -45,9 +45,3 @@ class TestBeerLog(unittest.TestCase):
       self.assertEqual('Kikoo', bl_object.GetNameFromTag('0x0'))
 
       self.assertEqual(None, bl_object.GetNameFromTag('0x1'))
-
-
-if __name__ == '__main__':
-  unittest.main()
-
-# vim: tabstop=2 shiftwidth=2 expandtab

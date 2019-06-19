@@ -1,6 +1,7 @@
 """TODO"""
 from __future__ import print_function
 
+import os
 import time
 from transitions import Machine
 
@@ -14,10 +15,9 @@ from errors import BeerLogError
 class LumaDisplay(object):
   """TODO"""
 
-  MENU_TEXT_X = 2
-  MENU_TEXT_HEIGHT = 10
-
   STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
+
+  DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
 
   def __init__(self, events_queue=None, database=None):
     self._events_queue = events_queue
@@ -25,6 +25,11 @@ class LumaDisplay(object):
     self.luma_device = None
     self._font = ImageFont.load_default()
 
+    self._splash_pic_path = os.path.join(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.realpath(__file__)))),
+        self.DEFAULT_SPLASH_PIC)
     self._last_scanned = None
 
     if not self._events_queue:
@@ -56,9 +61,9 @@ class LumaDisplay(object):
   def Update(self):
     """TODO"""
     if self.machine.state == 'SPLASH':
-      self.Splash('assets/pics/splash_small.png')
+      self.ShowSplash()
     elif self.machine.state == 'ERROR':
-      self.ShowError('ERROR')
+      self.ShowError()
     elif self.machine.state == 'SCORE':
       self.ShowScores()
     elif self.machine.state == 'SCANNED':
@@ -89,6 +94,7 @@ class LumaDisplay(object):
         drawer.text((2, i*char_h), text, font=self._font, fill='white')
 
   def Setup(self):
+    """TODO"""
     is_rpi = False
     try:
       with open('/sys/firmware/devicetree/base/model', 'r') as model:
@@ -101,33 +107,26 @@ class LumaDisplay(object):
       device = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
       raise Exception('Is not a RPI, bailing out ')
-#      from gui import emulator
-#      device = emulator.Emulator(self._events_queue)
 
     device.Setup()
     self.luma_device = device.GetDevice()
 
-  def Splash(self, logo_path):
-    """Displays the splash screen
-
-    Args:
-      logo_path(str): the relative path to the image.
-    """
+  def ShowSplash(self):
+    """Displays the splash screen."""
     background = Image.new(self.luma_device.mode, self.luma_device.size)
-    splash = Image.open(logo_path).convert(self.luma_device.mode)
+    splash = Image.open(self._splash_pic_path).convert(self.luma_device.mode)
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
     self.luma_device.display(background)
     time.sleep(2)
 
-  def ShowError(self, error):
+  def ShowError(self):
     """TODO"""
-    self.DrawText(error)
+    self.DrawText('error')
 
   def DrawText(self, text, font=None, x=0, y=0, fill='white'):
     """TODO"""
     with LumaCanvas(self.luma_device) as drawer:
-#      drawer.text((0, 0), who, font=self._font, fill="white")
       drawer.text((x, y), text, font=(font or self._font), fill=fill)
 
 #  def _DrawMenuItem(self, drawer, number):

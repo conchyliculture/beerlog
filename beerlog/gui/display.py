@@ -37,12 +37,12 @@ class LumaDisplay(object):
         states=list(self.STATES), initial='SPLASH', send_event=True)
 
     # Used to set our attributes from the Machine object
-    self.machine._SetEnv = self._SetEnv
+    self.machine.SetEnv = self._SetEnv
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE')
     self.machine.add_transition('stats', 'SCORE', 'STATS')
-    self.machine.add_transition('scan', '*', 'SCANNED', before='_SetEnv')
+    self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
     self.machine.add_transition('error', '*', 'ERROR')
 
   def _SetEnv(self, event):

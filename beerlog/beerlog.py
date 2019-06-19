@@ -7,7 +7,10 @@ import datetime
 import json
 import logging
 import os
-from multiprocessing.queues import SimpleQueue
+try:
+  from multiprocessing.queues import SimpleQueue
+except ImportError:
+  from multiprocessing import SimpleQueue
 import subprocess
 import sys
 from threading import Timer

@@ -34,7 +34,7 @@ class BeerLogTests(unittest.TestCase):
     """Simple test case."""
     bl_object = beerlog.BeerLog()
 
-    with tempfile.NamedTemporaryFile() as temp:
+    with tempfile.NamedTemporaryFile(mode='w+') as temp:
       temp.write(json.dumps({'0x0':{'name': 'Kikoo'}}))
       temp.flush()
       bl_object._known_tags = temp.name

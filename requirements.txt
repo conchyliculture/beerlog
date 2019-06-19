@@ -1,0 +1,6 @@
+luma.core
+luma.oled
+nfcpy
+peewee
+RPi.GPIO
+transitions

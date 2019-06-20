@@ -44,7 +44,7 @@ class BeerLogDB(object):
     """Closes the database."""
     database_proxy.close()
 
-  def AddEntry(self, character=None, pic=None):
+  def AddEntry(self, character, pic):
     """Inserts an entry in the database.
 
     Args:

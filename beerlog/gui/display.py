@@ -6,8 +6,11 @@ import time
 from transitions import Machine
 
 from luma.core.render import canvas as LumaCanvas
+from luma.core.sprite_system import framerate_regulator
 from PIL import Image
+from PIL import ImageDraw
 from PIL import ImageFont
+from PIL import ImageSequence
 
 from errors import BeerLogError
 
@@ -18,10 +21,17 @@ class LumaDisplay():
   STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
+  DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
 
+  # TODO: remove the default None here
   def __init__(self, events_queue=None, database=None):
     self._events_queue = events_queue
     self._database = database
+    if not self._events_queue:
+      raise BeerLogError('Display needs an events_queue')
+    if not self._database:
+      raise BeerLogError('Display needs a DB object')
+
     self.luma_device = None
     self._font = ImageFont.load_default()
 
@@ -30,13 +40,14 @@ class LumaDisplay():
             os.path.dirname(
                 os.path.dirname(os.path.realpath(__file__)))),
         self.DEFAULT_SPLASH_PIC)
+
+    self._scanned_gif_path = os.path.join(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.realpath(__file__)))),
+        self.DEFAULT_SCAN_GIF)
+
     self._last_scanned = None
-
-    if not self._events_queue:
-      raise BeerLogError('Display needs an events_queue')
-
-    if not self._database:
-      raise BeerLogError('Display needs a DB object')
 
     self.machine = Machine(
         states=list(self.STATES), initial='SPLASH', send_event=True)
@@ -71,8 +82,31 @@ class LumaDisplay():
 
   def ShowScanned(self):
     """Draws the screen showing the last scanned tag."""
-    with LumaCanvas(self.luma_device) as drawer:
-      drawer.text((10, 10), self._last_scanned, font=self._font, fill="white")
+    regulator = framerate_regulator(fps=30)
+    beer = Image.open(self._scanned_gif_path)
+    size = [min(*self.luma_device.size)] * 2
+    posn = (
+        (self.luma_device.width - size[0]) // 2,
+        self.luma_device.height - size[1]
+    )
+    msg = 'Cheers ' + self._last_scanned + '!'
+
+    for gif_frame in ImageSequence.Iterator(beer):
+      with regulator:
+        background = Image.new('RGB', self.luma_device.size, 'black')
+        # Add a frame from the animation
+        background.paste(gif_frame.resize(size, resample=Image.LANCZOS), posn)
+
+        # Add a text layer over the frame
+        text_layer = ImageDraw.Draw(background)
+        text_width, text_height = text_layer.textsize(msg)
+        text_pos = (
+            (self.luma_device.width - text_width) // 2,
+            self.luma_device.height - text_height
+        )
+        text_layer.text(text_pos, msg, (255, 255, 255), font=self._font)
+
+        self.luma_device.display(background.convert(self.luma_device.mode))
 
   def ShowScores(self):
     """Draws the Scoreboard screen."""
@@ -92,6 +126,19 @@ class LumaDisplay():
         text += ' {0:>3d}'.format(row.count)
         text += ' 12h'
         drawer.text((2, i*char_h), text, font=self._font, fill='white')
+
+  def ShowSplash(self):
+    """Displays the splash screen."""
+    background = Image.new(self.luma_device.mode, self.luma_device.size)
+    splash = Image.open(self._splash_pic_path).convert(self.luma_device.mode)
+    posn = ((self.luma_device.width - splash.width) // 2, 0)
+    background.paste(splash, posn)
+    self.luma_device.display(background)
+    time.sleep(2)
+
+  def ShowError(self):
+    """TODO"""
+    self.DrawText('error')
 
   def Setup(self):
     """TODO"""
@@ -113,19 +160,6 @@ class LumaDisplay():
 
     gui_object.Setup()
     self.luma_device = gui_object.GetDevice()
-
-  def ShowSplash(self):
-    """Displays the splash screen."""
-    background = Image.new(self.luma_device.mode, self.luma_device.size)
-    splash = Image.open(self._splash_pic_path).convert(self.luma_device.mode)
-    posn = ((self.luma_device.width - splash.width) // 2, 0)
-    background.paste(splash, posn)
-    self.luma_device.display(background)
-    time.sleep(2)
-
-  def ShowError(self):
-    """TODO"""
-    self.DrawText('error')
 
   def DrawText(self, text, font=None, x=0, y=0, fill='white'):
     """TODO"""

@@ -26,7 +26,7 @@ class NFCEvent(BaseEvent):
     return 'NFCEvent uid:{0:s} [{1!s}]'.format(self.uid, self.timestamp)
 
 
-class NFC215(object):
+class NFC215():
   """Handles read operations on NFC215 tags."""
   BULK_READ_PAGE_COUNT = 4
   PAGE_SIZE = 4
@@ -64,7 +64,7 @@ class NFC215(object):
     print(''.join(pages))
 
 
-class BaseNFC(object):
+class BaseNFC():
   """Base class for a NFC reader."""
 
   SCAN_TIMEOUT_MS = 3*1000 # 3sec

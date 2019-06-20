@@ -12,7 +12,7 @@ from PIL import ImageFont
 from errors import BeerLogError
 
 
-class LumaDisplay(object):
+class LumaDisplay():
   """TODO"""
 
   STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']

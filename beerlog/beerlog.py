@@ -25,7 +25,7 @@ from events import UIEvent
 from gui.display import LumaDisplay
 
 
-class BeerLog(object):
+class BeerLog():
   """BeerLog main class.
 
   Attributes:

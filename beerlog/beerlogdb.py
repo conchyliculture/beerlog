@@ -16,7 +16,7 @@ database_proxy = Proxy()
 # pylint: disable=no-init
 class BeerModel(Model):
   """Model for the database."""
-  class Meta(object):
+  class Meta():
     """Sets Metadata for the database."""
     database = database_proxy
 
@@ -26,7 +26,7 @@ class Entry(BeerModel):
   timestamp = DateTimeField(default=datetime.now)
   pic = CharField(null=True)
 
-class BeerLogDB(object):
+class BeerLogDB():
   """Wrapper for the database."""
 
   def __init__(self, database_path):

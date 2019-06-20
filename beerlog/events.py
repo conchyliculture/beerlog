@@ -5,7 +5,7 @@ from datetime import datetime
 import constants
 
 
-class BaseEvent(object):
+class BaseEvent():
   """Base Event type for the main process Loop.
 
     Attributes:

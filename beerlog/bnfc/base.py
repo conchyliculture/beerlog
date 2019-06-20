@@ -106,7 +106,7 @@ class BaseNFC(object):
     Raises:
       BeerLogError: when we couldn't open the device.
     """
-    self.process = multiprocessing.Process(target=self._Nop)
+    self.process = multiprocessing.Process(target=self._Nop, daemon=True)
 
   def _Nop(self):
     """Do nothing."""
@@ -142,7 +142,7 @@ class BeerNFC(BaseNFC):
       BeerLogError: when we couldn't open the device.
     """
     self.process = multiprocessing.Process(
-        target=self._DoNFC, args=(self.path,))
+        target=self._DoNFC, args=(self.path,), daemon=True)
 
   def _DoNFC(self, path):
     """TODO"""
@@ -193,7 +193,7 @@ class FakeNFC(BaseNFC):
     Raises:
       BeerLogError: when we couldn't open the device.
     """
-    self.process = multiprocessing.Process(target=self._Random)
+    self.process = multiprocessing.Process(target=self._Random, daemon=True)
 
   def _Random(self):
     """Randomly add NFCEvent to the queue."""

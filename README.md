@@ -6,7 +6,7 @@ Program NFC215 tags with some code, and use that to keep a leaderboard of who is
 
 ```
 sudo apt install python-virtualenv
-virtualenv -p python2 --system-site-packages beerlog
+virtualenv -p python3 --system-site-packages beerlog
 cd beerlog
 source bin/activate
 

@@ -79,7 +79,7 @@ class LumaDisplay(object):
     scoreboard = self._database.GetScoreBoard()
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
-      max_text_width = self.luma_device.width / char_w
+      max_text_width = int(self.luma_device.width / char_w)
       max_name_width = max_text_width-12
       # ie: '  Name      Cnt Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+' Cnt Last'

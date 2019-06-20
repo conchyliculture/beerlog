@@ -44,7 +44,7 @@ class NFC215(object):
     uid = None
     if tag.product == 'NXP NTAG215':
       bytes_array = tag.read(21)[0:8]
-      uid = '0x{0}'.format(binascii.hexlify(bytes_array))
+      uid = '0x{0}'.format(binascii.hexlify(bytes_array).decode('utf-8'))
     else:
       logging.debug('Unknown tag product: {0:s}'.format(tag.product))
     return uid

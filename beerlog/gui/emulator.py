@@ -2,15 +2,14 @@
 
 from __future__ import print_function
 
+from luma.emulator import device
 import pygame
 import pygame.key
-from luma.emulator import device
-from gui import constants
-from gui.base import UIEvent
-from gui.base import LumaDevice
+import constants
+from events import UIEvent
 
 
-class Emulator(LumaDevice):
+class Emulator():
   """Implements a GUI with luma emulator"""
 
   EVENT_DICT = {
@@ -19,9 +18,14 @@ class Emulator(LumaDevice):
       pygame.K_DOWN: constants.EVENTTYPES.KEYDOWN
   }
 
+  def __init__(self, queue):
+    self._emulator = None
+    self._last_event = None
+    self.queue = queue
+
   def Setup(self): # pylint: disable=arguments-differ
     """Sets up the device."""
-    self._device = device.pygame()
+    self._emulator = device.pygame()
 
   def GetEvent(self):
     """TODO"""
@@ -32,5 +36,10 @@ class Emulator(LumaDevice):
         return UIEvent(new_event_type)
    # else:
       #logging.debug('Unknown PyGame Event: {0!s}'.format(pygame_event))
+    return None
+
+  def GetDevice(self):
+    """TODO"""
+    return self._emulator
 
 # vim: tabstop=2 shiftwidth=2 expandtab

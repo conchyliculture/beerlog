@@ -104,12 +104,15 @@ class LumaDisplay(object):
 
     if is_rpi:
       from gui import sh1106
-      device = sh1106.WaveShareOLEDHat(self._events_queue)
+      gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
       raise Exception('Is not a RPI, bailing out ')
 
-    device.Setup()
-    self.luma_device = device.GetDevice()
+    if not gui_object:
+      raise Exception('Could not initialize a GUI object')
+
+    gui_object.Setup()
+    self.luma_device = gui_object.GetDevice()
 
   def ShowSplash(self):
     """Displays the splash screen."""

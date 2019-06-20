@@ -19,9 +19,9 @@ import time
 from beerlogdb import BeerLogDB
 from bnfc.base import BeerNFC
 from bnfc.base import FakeNFC
+import constants
 from errors import BeerLogError
-from gui import constants
-from gui.base import UIEvent
+from events import UIEvent
 from gui.display import LumaDisplay
 
 

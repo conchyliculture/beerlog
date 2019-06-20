@@ -7,12 +7,11 @@ from luma.oled.device import sh1106
 
 import RPi.GPIO as GPIO
 
-from gui import constants
-from gui.base import UIEvent
-from gui.base import LumaDevice
+import constants
+from events import UIEvent
 
 
-class WaveShareOLEDHat(LumaDevice):
+class WaveShareOLEDHat():
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
 
   # How long to wait, in ms before accepting a new event of the same type
@@ -42,8 +41,9 @@ class WaveShareOLEDHat(LumaDevice):
   }
 
   def __init__(self, queue):
-    super(WaveShareOLEDHat, self).__init__(queue)
+    self._oled_hat = None
     self._last_event = None
+    self.queue = queue
     self._serial = None
 
   def _SetupOneGPIO(self, channel):
@@ -103,6 +103,10 @@ class WaveShareOLEDHat(LumaDevice):
 
     self._SetupGPIO()
 
-    self._device = sh1106(self._serial, rotate=0)
+    self._oled_hat = sh1106(self._serial, rotate=0)
+
+  def GetDevice(self):
+    """Returns the """
+    return self._oled_hat
 
 # vim: tabstop=2 shiftwidth=2 expandtab

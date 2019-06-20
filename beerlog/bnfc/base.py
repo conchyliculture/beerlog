@@ -11,8 +11,8 @@ import time
 import nfc
 
 from errors import BeerLogError
-from gui import constants
-from gui.base import BaseEvent
+import constants
+from events import BaseEvent
 
 
 class NFCEvent(BaseEvent):
@@ -203,6 +203,5 @@ class FakeNFC(BaseNFC):
         event = NFCEvent(uid=self.FIXED_UID)
         self._events_queue.put(event)
       time.sleep(1)
-
 
 # vim: tabstop=2 shiftwidth=2 expandtab

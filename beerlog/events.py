@@ -2,12 +2,11 @@
 
 from datetime import datetime
 
-
-class Enum(tuple): __getattr__ = tuple.index
+import constants
 
 
 class BaseEvent(object):
-  """Base Event type for the main process Loop.o
+  """Base Event type for the main process Loop.
 
     Attributes:
       timestamp(datetime.datetime): the time when the event was generated.
@@ -18,16 +17,17 @@ class BaseEvent(object):
     self.timestamp = datetime.now()
     self.type = event_type
 
+class ErrorEvent(BaseEvent):
+  """Event to carry error messages."""
+
+  def __init__(self):
+    super(ErrorEvent, self).__init__('ERROR')
 
 class UIEvent(BaseEvent):
-  """Subclass of BaseEvent for UI events."""
-
-  TYPES = Enum(
-    ['MENU', 'NOEVENT', 'KEYUP', 'KEYDOWN', 'KEYLEFT', 'KEYRIGHT', 'KEYENTER',
-     'KEYBACK', 'NFCSCANNED'])
+  """Class for UI related events."""
 
   def __str__(self):
     return 'UIEvent type:{0:s} [{1!s}]'.format(
-      self.TYPES[self.type], self.timestamp)
+        constants.EVENTTYPES[self.type], self.timestamp)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

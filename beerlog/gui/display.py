@@ -2,6 +2,7 @@
 from __future__ import print_function
 
 import os
+import time
 from transitions import Machine
 
 from luma.core.render import canvas as LumaCanvas
@@ -196,6 +197,8 @@ class LumaDisplay():
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
     self.luma_device.display(background)
+    time.sleep(1)
+    self.machine.back()
 
   def ShowError(self):
     """Displays an error message."""

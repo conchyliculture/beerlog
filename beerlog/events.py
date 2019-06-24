@@ -20,8 +20,13 @@ class BaseEvent():
 class ErrorEvent(BaseEvent):
   """Event to carry error messages."""
 
-  def __init__(self):
-    super(ErrorEvent, self).__init__('ERROR')
+  def __init__(self, message):
+    super(ErrorEvent, self).__init__(constants.EVENTTYPES.ERROR)
+    self.message = message
+
+  def __str__(self):
+    return '{0:s}'.format(self.message)
+
 
 class UIEvent(BaseEvent):
   """Class for UI related events."""

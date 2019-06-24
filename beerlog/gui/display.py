@@ -7,6 +7,7 @@ from transitions import Machine
 
 from luma.core.render import canvas as LumaCanvas
 from luma.core.sprite_system import framerate_regulator
+from luma.core.virtual import terminal
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
@@ -68,8 +69,10 @@ class LumaDisplay():
     self.machine.add_transition(
         'down', 'SCORE', 'SCORE', after='DecrementScoreIndex')
 
-  def _IncrementScoreIndex(self):
-    """Helper method to increment current score board index."""
+    self.machine.add_transition('up', 'ERROR', 'SCORE')
+    self.machine.add_transition('down', 'ERROR', 'SCORE')
+    self.machine.add_transition('left', 'ERROR', 'SCORE')
+    self.machine.add_transition('right', 'ERROR', 'SCORE')
     if self._selected_menu_index is None:
       self._selected_menu_index = 0
     else:
@@ -89,6 +92,8 @@ class LumaDisplay():
       event(transitions.EventData): the event.
     """
     self._last_scanned = event.kwargs.get('who', None)
+    self._last_error = event.kwargs.get('error', None)
+    self._selected_menu_index = None
 
   def Update(self):
     """TODO"""
@@ -166,11 +171,12 @@ class LumaDisplay():
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
     self.luma_device.display(background)
-    time.sleep(2)
 
   def ShowError(self):
-    """TODO"""
-    self.DrawText('error')
+    """Displays an error message."""
+    term = terminal(self.luma_device, self._font)
+    print(self._last_error)
+    term.println(self._last_error)
 
   def Setup(self):
     """TODO"""

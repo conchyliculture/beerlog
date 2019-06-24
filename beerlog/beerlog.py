@@ -21,6 +21,7 @@ from bnfc.base import BeerNFC
 from bnfc.base import FakeNFC
 import constants
 from errors import BeerLogError
+from events import ErrorEvent
 from events import UIEvent
 from gui.display import LumaDisplay
 
@@ -161,7 +162,13 @@ class BeerLog():
     while True:
       event = self._events_queue.get()
       if event:
-        self._HandleEvent(event)
+        try:
+          self._HandleEvent(event)
+        except Exception as e:
+          print(e)
+          err_event = ErrorEvent('{0!s}'.format(e))
+          self.PushEvent(err_event)
+
       time.sleep(0.05)
       self.ui.Update()
 
@@ -184,11 +191,15 @@ class BeerLog():
       self.ui.machine.down()
     elif event.type == constants.EVENTTYPES.ESCAPE:
       self.ui.machine.back()
+    elif event.type == constants.EVENTTYPES.ERROR:
+      self.ui.machine.error(error=str(event))
     else:
-      print('Unknown Event:')
       print(event)
-      self.ui.machine.error()
-      self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 3)
+      err_msg = 'Unknown Event: {0!s}'.format(event)
+      print(err_msg)
+      #TODO
+      #self.PushEvent(ErrorEvent(err_msg))
+      #self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 3)
 
     self.db.Close()
 

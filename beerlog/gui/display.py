@@ -58,30 +58,48 @@ class LumaDisplay():
     # Used to set our attributes from the Machine object
     self.machine.SetEnv = self._SetEnv
     self.machine.IncrementScoreIndex = self._IncrementScoreIndex
+    self.machine.DecrementScoreIndex = self._DecrementScoreIndex
     # Transitions
     # (trigger, source, destination)
-    self.machine.add_transition('back', '*', 'SCORE')
+    self.machine.add_transition('back', '*', 'SCORE', before='SetEnv')
     self.machine.add_transition('stats', 'SCORE', 'STATS')
     self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
-    self.machine.add_transition('error', '*', 'ERROR')
+    self.machine.add_transition('error', '*', 'ERROR', before='SetEnv')
     self.machine.add_transition(
         'up', 'SCORE', 'SCORE', after='IncrementScoreIndex')
     self.machine.add_transition(
         'down', 'SCORE', 'SCORE', after='DecrementScoreIndex')
+    self.machine.add_transition('up', 'SPLASH', 'SCORE')
+    self.machine.add_transition('down', 'SPLASH', 'SCORE')
 
     self.machine.add_transition('up', 'ERROR', 'SCORE')
     self.machine.add_transition('down', 'ERROR', 'SCORE')
     self.machine.add_transition('left', 'ERROR', 'SCORE')
     self.machine.add_transition('right', 'ERROR', 'SCORE')
+
+    self.machine.add_transition('up', '*', '=')
+    self.machine.add_transition('down', '*', '=')
+
+
+  def _IncrementScoreIndex(self, event):
+    """Helper method to increment current score board index.
+
+    Args:
+      event(transitions.EventData): the event.
+    """
     if self._selected_menu_index is None:
-      self._selected_menu_index = 0
+      self._selected_menu_index = 1
     else:
       self._selected_menu_index += 1
 
   def _DecrementScoreIndex(self):
-    """Helper method to decrement current score board index."""
+    """Helper method to decrement current score board index.
+
+    Args:
+      event(transitions.EventData): the event.
+    """
     if self._selected_menu_index is None:
-      self._selected_menu_index = 0
+      self._selected_menu_index = 1
     else:
       self._selected_menu_index += 1
 
@@ -134,6 +152,14 @@ class LumaDisplay():
 
         self.luma_device.display(background.convert(self.luma_device.mode))
 
+  def _IsScoreSelected(self, i, l):
+    """TODO"""
+    if self._selected_menu_index is None:
+      return False
+    if (self._selected_menu_index + 1) % l == i - 1:
+      return True
+    return False
+
   def ShowScores(self):
     """Draws the Scoreboard screen."""
     scoreboard = self._database.GetScoreBoard()
@@ -151,7 +177,7 @@ class LumaDisplay():
         text += ('{0:<'+str(max_name_width)+'}').format(row.character)
         text += ' {0:>3d}'.format(row.count)
         text += ' 12h'
-        if (self._selected_menu_index+1) % len(scoreboard) == i:
+        if self._IsScoreSelected(i, len(scoreboard)):
           rectangle_geometry = (
               2,
               i * char_h,

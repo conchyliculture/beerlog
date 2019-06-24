@@ -49,17 +49,38 @@ class LumaDisplay():
 
     self._last_scanned = None
 
+    self._selected_menu_index = None
+
     self.machine = Machine(
         states=list(self.STATES), initial='SPLASH', send_event=True)
 
     # Used to set our attributes from the Machine object
     self.machine.SetEnv = self._SetEnv
+    self.machine.IncrementScoreIndex = self._IncrementScoreIndex
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE')
     self.machine.add_transition('stats', 'SCORE', 'STATS')
     self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
     self.machine.add_transition('error', '*', 'ERROR')
+    self.machine.add_transition(
+        'up', 'SCORE', 'SCORE', after='IncrementScoreIndex')
+    self.machine.add_transition(
+        'down', 'SCORE', 'SCORE', after='DecrementScoreIndex')
+
+  def _IncrementScoreIndex(self):
+    """Helper method to increment current score board index."""
+    if self._selected_menu_index is None:
+      self._selected_menu_index = 0
+    else:
+      self._selected_menu_index += 1
+
+  def _DecrementScoreIndex(self):
+    """Helper method to decrement current score board index."""
+    if self._selected_menu_index is None:
+      self._selected_menu_index = 0
+    else:
+      self._selected_menu_index += 1
 
   def _SetEnv(self, event):
     """Helper method to change some of our attributes on transiton changes.
@@ -118,14 +139,25 @@ class LumaDisplay():
       # ie: '  Name      Cnt Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+' Cnt Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
-      for i, row in enumerate(scoreboard[0:4], start=1):
+      for i, row in enumerate(scoreboard, start=1):
         # ie: '1.Fox        12 12h'
         #     '2.Dog        10  5m'
         text = str(i)+'.'
         text += ('{0:<'+str(max_name_width)+'}').format(row.character)
         text += ' {0:>3d}'.format(row.count)
         text += ' 12h'
-        drawer.text((2, i*char_h), text, font=self._font, fill='white')
+        if (self._selected_menu_index+1) % len(scoreboard) == i:
+          rectangle_geometry = (
+              2,
+              i * char_h,
+              self.luma_device.width,
+              ((i+1) * char_h)
+              )
+          drawer.rectangle(
+              rectangle_geometry, outline='white', fill='white')
+          drawer.text((2, i*char_h), text, font=self._font, fill='black')
+        else:
+          drawer.text((2, i*char_h), text, font=self._font, fill='white')
 
   def ShowSplash(self):
     """Displays the splash screen."""

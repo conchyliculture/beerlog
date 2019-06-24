@@ -179,8 +179,9 @@ class BeerLog():
       self.db.AddEntry(character=who, pic=self._last_taken_picture)
       self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
-      # TODO
-      self.ui.machine.back()
+      self.ui.machine.up()
+    elif event.type == constants.EVENTTYPES.KEYDOWN:
+      self.ui.machine.down()
     elif event.type == constants.EVENTTYPES.ESCAPE:
       self.ui.machine.back()
     else:

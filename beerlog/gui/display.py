@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import os
-import time
 from transitions import Machine
 
 from luma.core.render import canvas as LumaCanvas
@@ -49,6 +48,7 @@ class LumaDisplay():
         self.DEFAULT_SCAN_GIF)
 
     self._last_scanned = None
+    self._last_error = None
 
     self._selected_menu_index = None
 
@@ -80,23 +80,22 @@ class LumaDisplay():
     self.machine.add_transition('up', '*', '=')
     self.machine.add_transition('down', '*', '=')
 
-
-  def _IncrementScoreIndex(self, event):
+  def _IncrementScoreIndex(self, _unused_event):
     """Helper method to increment current score board index.
 
     Args:
-      event(transitions.EventData): the event.
+      _unused_event(transitions.EventData): the event.
     """
     if self._selected_menu_index is None:
       self._selected_menu_index = 1
     else:
       self._selected_menu_index += 1
 
-  def _DecrementScoreIndex(self):
+  def _DecrementScoreIndex(self, _unused_event):
     """Helper method to decrement current score board index.
 
     Args:
-      event(transitions.EventData): the event.
+      _unused_event(transitions.EventData): the event.
     """
     if self._selected_menu_index is None:
       self._selected_menu_index = 1

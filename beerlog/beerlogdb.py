@@ -83,11 +83,9 @@ class BeerLogDB():
     """
     return Entry.select().count(None)
 
-  def GetScoreBoard(self, limit=10):
+  def GetScoreBoard(self):
     """Returns a query with the scoreboard.
 
-    Args:
-      limit(int): the number of top scorer to display.
     Returns:
       peewee.ModelSelect: the query.
     """
@@ -95,7 +93,10 @@ class BeerLogDB():
         Entry,
         fn.MAX(Entry.timestamp).alias('last'),
         fn.COUNT().alias('count')
-    ).group_by(Entry.character).limit(limit).order_by(fn.COUNT().desc())
+    ).group_by(Entry.character).order_by(
+        fn.COUNT().desc(),
+        fn.MAX(Entry.timestamp).desc())
+
     return query
 
 # vim: tabstop=2 shiftwidth=2 expandtab

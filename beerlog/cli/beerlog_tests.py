@@ -6,8 +6,8 @@ import json
 import tempfile
 import unittest
 
-import beerlog
-import beerlogdb
+from beerlog.cli import beerlog_cli
+from beerlog import beerlogdb
 
 # pylint: disable=protected-access
 
@@ -32,7 +32,7 @@ class BeerLogTests(unittest.TestCase):
 
   def testBeerLog(self):
     """Simple test case."""
-    bl_object = beerlog.BeerLog()
+    bl_object = beerlog_cli.BeerLog()
 
     with tempfile.NamedTemporaryFile(mode='w+') as temp:
       temp.write(json.dumps({'0x0':{'name': 'Kikoo'}}))

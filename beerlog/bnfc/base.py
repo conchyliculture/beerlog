@@ -10,9 +10,9 @@ import time
 
 import nfc
 
-from errors import BeerLogError
-import constants
-from events import BaseEvent
+from beerlog.errors import BeerLogError
+from beerlog import constants
+from beerlog.events import BaseEvent
 
 
 class NFCEvent(BaseEvent):

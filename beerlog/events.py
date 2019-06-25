@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-import constants
+from beerlog import constants
 
 
 class BaseEvent():

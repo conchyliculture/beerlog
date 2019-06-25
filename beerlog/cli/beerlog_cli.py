@@ -16,14 +16,14 @@ import sys
 from threading import Timer
 import time
 
-from beerlogdb import BeerLogDB
-from bnfc.base import BeerNFC
-from bnfc.base import FakeNFC
-import constants
-from errors import BeerLogError
-from events import ErrorEvent
-from events import UIEvent
-from gui.display import LumaDisplay
+from beerlog.beerlogdb import BeerLogDB
+from beerlog.bnfc.base import BeerNFC
+from beerlog.bnfc.base import FakeNFC
+from beerlog import constants
+from beerlog.errors import BeerLogError
+from beerlog.events import ErrorEvent
+from beerlog.events import UIEvent
+from beerlog.gui.display import LumaDisplay
 
 
 class BeerLog():
@@ -260,9 +260,11 @@ class BeerLog():
     """TODO"""
     return self.known_tags_list.get(uid).get('name')
 
-
-if __name__ == '__main__':
+def Main():
+  """Main function"""
   m = BeerLog()
   m.Main()
 
+if __name__ == '__main__':
+  Main()
 # vim: tabstop=2 shiftwidth=2 expandtab

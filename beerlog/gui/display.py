@@ -16,6 +16,56 @@ from PIL import ImageSequence
 from errors import BeerLogError
 
 
+class ScoreBoard():
+  """Implements a sliding window with a selector over the score board."""
+
+  def __init__(self, scoreboard):
+    self._board = scoreboard
+    self._max_lines = 0
+
+    self.index = None
+    self._window_low = 0
+    self._window_high = len(self._board)
+
+  def SetMaxLines(self, lines):
+    """Sets the width of the window.
+
+    Args:
+      lines(int): the number of lines of the window.
+    """
+    self._max_lines = lines
+    self._window_high = self._window_low + lines
+
+  def GetRows(self):
+    """Returns the number of rows to display in the window.
+
+    Returns:
+      enumerate(peewee rows): the scoreboard window.
+    """
+    window = self._board[self._window_low:self._window_high]
+    return enumerate(window, start=self._window_low+1)
+
+  def IncrementIndex(self):
+    """Increments the index. Moves the window bounds if necessary."""
+    if self.index is None:
+      self.index = 0
+    if self.index < len(self._board):
+      self.index += 1
+      if self.index > self._window_high:
+        self._window_low += 1
+        self._window_high += 1
+
+  def DecrementIndex(self):
+    """Decrements the index. Moves the window bounds if necessary."""
+    if self.index is None:
+      self.index = 0
+    elif self.index > 0:
+      if self.index <= self._window_low:
+        self._window_low -= 1
+        self._window_high -= 1
+      self.index -= 1
+
+
 class LumaDisplay():
   """TODO"""
 
@@ -51,7 +101,7 @@ class LumaDisplay():
     self._last_scanned = None
     self._last_error = None
 
-    self._selected_menu_index = None
+    self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
     self.machine = Machine(
         states=list(self.STATES), initial='SPLASH', send_event=True)
@@ -66,10 +116,11 @@ class LumaDisplay():
     self.machine.add_transition('stats', 'SCORE', 'STATS')
     self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
     self.machine.add_transition('error', '*', 'ERROR', before='SetEnv')
+    # TODO: check devie "mode" ?
     self.machine.add_transition(
-        'up', 'SCORE', 'SCORE', after='IncrementScoreIndex')
+        'up', 'SCORE', 'SCORE', after='DecrementScoreIndex')
     self.machine.add_transition(
-        'down', 'SCORE', 'SCORE', after='DecrementScoreIndex')
+        'down', 'SCORE', 'SCORE', after='IncrementScoreIndex')
     self.machine.add_transition('up', 'SPLASH', 'SCORE')
     self.machine.add_transition('down', 'SPLASH', 'SCORE')
 
@@ -87,10 +138,7 @@ class LumaDisplay():
     Args:
       _unused_event(transitions.EventData): the event.
     """
-    if self._selected_menu_index is None:
-      self._selected_menu_index = 1
-    else:
-      self._selected_menu_index += 1
+    self._scoreboard.IncrementIndex()
 
   def _DecrementScoreIndex(self, _unused_event):
     """Helper method to decrement current score board index.
@@ -98,10 +146,7 @@ class LumaDisplay():
     Args:
       _unused_event(transitions.EventData): the event.
     """
-    if self._selected_menu_index is None:
-      self._selected_menu_index = 1
-    else:
-      self._selected_menu_index += 1
+    self._scoreboard.DecrementIndex()
 
   def _SetEnv(self, event):
     """Helper method to change some of our attributes on transiton changes.
@@ -111,7 +156,7 @@ class LumaDisplay():
     """
     self._last_scanned = event.kwargs.get('who', None)
     self._last_error = event.kwargs.get('error', None)
-    self._selected_menu_index = None
+    self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
   def Update(self):
     """TODO"""
@@ -152,43 +197,38 @@ class LumaDisplay():
 
         self.luma_device.display(background.convert(self.luma_device.mode))
 
-  def _IsScoreSelected(self, i, l):
-    """TODO"""
-    if self._selected_menu_index is None:
-      return False
-    if (self._selected_menu_index + 1) % l == i - 1:
-      return True
-    return False
-
   def ShowScores(self):
     """Draws the Scoreboard screen."""
-    scoreboard = self._database.GetScoreBoard()
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
       max_name_width = max_text_width-12
+      self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      Cnt Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+' Cnt Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
-      for i, row in enumerate(scoreboard, start=1):
+      score_enumerated = self._scoreboard.GetRows()
+      draw_row = 0
+      for scoreboard_position, row in score_enumerated:
+        draw_row += 1
         # ie: '1.Fox        12 12h'
         #     '2.Dog        10  5m'
-        text = str(i)+'.'
+        text = str(scoreboard_position)+'.'
         text += ('{0:<'+str(max_name_width)+'}').format(row.character)
         text += ' {0:>3d}'.format(row.count)
         text += ' 12h'
-        if self._IsScoreSelected(i, len(scoreboard)):
+        if self._scoreboard.index == scoreboard_position:
           rectangle_geometry = (
               2,
-              i * char_h,
+              draw_row * char_h,
               self.luma_device.width,
-              ((i+1) * char_h)
+              ((draw_row+1) * char_h)
               )
           drawer.rectangle(
               rectangle_geometry, outline='white', fill='white')
-          drawer.text((2, i*char_h), text, font=self._font, fill='black')
+          drawer.text((2, draw_row*char_h), text, font=self._font, fill='black')
         else:
-          drawer.text((2, i*char_h), text, font=self._font, fill='white')
+          drawer.text((2, draw_row*char_h), text, font=self._font, fill='white')
 
   def ShowSplash(self):
     """Displays the splash screen."""
@@ -199,6 +239,7 @@ class LumaDisplay():
     self.luma_device.display(background)
     time.sleep(1)
     self.machine.back()
+    self.Update()
 
   def ShowError(self):
     """Displays an error message."""

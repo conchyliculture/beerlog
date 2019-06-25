@@ -1,6 +1,7 @@
 """TODO"""
 from __future__ import print_function
 
+from datetime import datetime
 import os
 import time
 from transitions import Machine
@@ -15,6 +16,31 @@ from PIL import ImageSequence
 
 from errors import BeerLogError
 
+
+def GetShortLastBeer(last, now=datetime.now()):
+  """Returns a shortened string for the last scan."""
+  delta = now - last
+  seconds = int(delta.total_seconds())
+  periods = [
+      ('yr', 60*60*24*365),
+      ('mo', 60*60*24*30),
+      ('d', 60*60*24),
+      ('h', 60*60),
+      ('m', 60),
+      ('s', 1)
+  ]
+  result = ''
+  for period_name, period_seconds in periods:
+    if seconds >= period_seconds:
+      period_value, seconds = divmod(seconds, period_seconds)
+      result += '{0:d}{1:s}'.format(period_value, period_name)
+      if period_name not in ['h', 'm']:
+        break
+      if len(result) >= 4:
+        break
+  if result == '':
+    result = 'Unk?'
+  return '{0: >4}'.format(result[0:4])
 
 class ScoreBoard():
   """Implements a sliding window with a selector over the score board."""
@@ -197,11 +223,6 @@ class LumaDisplay():
 
         self.luma_device.display(background.convert(self.luma_device.mode))
 
-  def _GetShortLastBeer(self, last):
-    """Returns a shortened string for the last scan."""
-    print(last)
-    print(type(last))
-    return ' 12h'
 
   def ShowScores(self):
     """Draws the Scoreboard screen."""
@@ -222,7 +243,7 @@ class LumaDisplay():
         text = str(scoreboard_position)+'.'
         text += ('{0:<'+str(max_name_width)+'}').format(row.character)
         text += ' {0:>3d}'.format(row.count)
-        text += self._GetShortLastBeer(row.last)
+        text += GetShortLastBeer(row.last)
         if self._scoreboard.index == scoreboard_position:
           rectangle_geometry = (
               2,

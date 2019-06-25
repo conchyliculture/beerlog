@@ -197,6 +197,12 @@ class LumaDisplay():
 
         self.luma_device.display(background.convert(self.luma_device.mode))
 
+  def _GetShortLastBeer(self, last):
+    """Returns a shortened string for the last scan."""
+    print(last)
+    print(type(last))
+    return ' 12h'
+
   def ShowScores(self):
     """Draws the Scoreboard screen."""
     with LumaCanvas(self.luma_device) as drawer:
@@ -216,7 +222,7 @@ class LumaDisplay():
         text = str(scoreboard_position)+'.'
         text += ('{0:<'+str(max_name_width)+'}').format(row.character)
         text += ' {0:>3d}'.format(row.count)
-        text += ' 12h'
+        text += self._GetShortLastBeer(row.last)
         if self._scoreboard.index == scoreboard_position:
           rectangle_geometry = (
               2,

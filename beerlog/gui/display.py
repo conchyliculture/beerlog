@@ -20,6 +20,8 @@ from beerlog.errors import BeerLogError
 def GetShortLastBeer(last, now=datetime.now()):
   """Returns a shortened string for the last scan."""
   delta = now - last
+  if now == last:
+    return '  0s'
   seconds = int(delta.total_seconds())
   periods = [
       ('yr', 60*60*24*365),

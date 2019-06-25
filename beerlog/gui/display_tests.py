@@ -33,5 +33,8 @@ class TestDisplay(unittest.TestCase):
     last = datetime(2019, 4, 3, 2, 1, 0)
     self.assertEqual(' 10s', display.GetShortLastBeer(last, now=now))
 
+    last = now
+    self.assertEqual('  0s', display.GetShortLastBeer(last, now=now))
+
     last = datetime(2029, 4, 3, 2, 1)
     self.assertEqual('Unk?', display.GetShortLastBeer(last, now=now))

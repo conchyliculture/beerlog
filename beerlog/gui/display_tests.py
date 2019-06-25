@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 from datetime import datetime
 import unittest
 
-from gui import display
+from beerlog.gui import display
 
 
 class TestDisplay(unittest.TestCase):

@@ -7,8 +7,8 @@ from luma.oled.device import sh1106
 
 import RPi.GPIO as GPIO
 
-import constants
-from events import UIEvent
+from beerlog import constants
+from beerlog.events import UIEvent
 
 
 class WaveShareOLEDHat():

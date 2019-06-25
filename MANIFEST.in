@@ -1,0 +1,1 @@
+global-exclude *_tests.py

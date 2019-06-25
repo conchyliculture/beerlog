@@ -14,7 +14,7 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import ImageSequence
 
-from errors import BeerLogError
+from beerlog.errors import BeerLogError
 
 
 def GetShortLastBeer(last, now=datetime.now()):
@@ -284,7 +284,7 @@ class LumaDisplay():
       pass
 
     if is_rpi:
-      from gui import sh1106
+      from beerlog.gui import sh1106
       gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
       raise Exception('Is not a RPI, bailing out ')

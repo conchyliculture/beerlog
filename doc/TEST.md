@@ -1,3 +1,3 @@
-![](doc/cheers_noaudio.mp4)
+![](doc/cheers_noaudio.gif)
 
-![](cheers_noaudio.mp4)
+![](cheers_noaudio.gif)

@@ -2,6 +2,8 @@
 
 Program NFC215 tags with some code, and use that to keep a leaderboard of who is drinking the manyest beers.
 
+![](doc/cheers.gif)
+
 ## Installation
 
 ```

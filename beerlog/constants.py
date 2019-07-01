@@ -1,4 +1,4 @@
-"""TODO"""
+"""Saves constants used for event handling"""
 
 
 class Enum(tuple):

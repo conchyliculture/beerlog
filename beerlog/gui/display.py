@@ -131,6 +131,8 @@ class LumaDisplay():
 
     self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
+  def _InitStateMachine(self):
+    """Initializes the internal state machine."""
     self.machine = Machine(
         states=list(self.STATES), initial='SPLASH', send_event=True)
 
@@ -268,7 +270,7 @@ class LumaDisplay():
     self.luma_device.display(background)
     time.sleep(1)
     self.machine.back()
-    self.Update()
+    self.DrawUI()
 
   def ShowError(self):
     """Displays an error message."""
@@ -277,7 +279,7 @@ class LumaDisplay():
     term.println(self._last_error)
 
   def Setup(self):
-    """TODO"""
+    """Initializes the GUI."""
     is_rpi = False
     try:
       with open('/sys/firmware/devicetree/base/model', 'r') as model:
@@ -297,50 +299,6 @@ class LumaDisplay():
     gui_object.Setup()
     self.luma_device = gui_object.GetDevice()
 
-  def DrawText(self, text, font=None, x=0, y=0, fill='white'):
-    """TODO"""
-    with LumaCanvas(self.luma_device) as drawer:
-      drawer.text((x, y), text, font=(font or self._font), fill=fill)
-
-#  def _DrawMenuItem(self, drawer, number):
-#    selected = self._menu_index == number
-#    rectangle_geometry = (
-#        self.MENU_TEXT_X,
-#        number * self.MENU_TEXT_HEIGHT,
-#        self.luma_device.width,
-#        ((number+1) * self.MENU_TEXT_HEIGHT)
-#        )
-#    text_geometry = (
-#        self.MENU_TEXT_X,
-#        number*self.MENU_TEXT_HEIGHT
-#        )
-#    if selected:
-#      drawer.rectangle(
-#          rectangle_geometry, outline='white', fill='white')
-#      drawer.text(
-#          text_geometry,
-#          self.MENU_ITEMS[number],
-#          font=self._font, fill='black'
-#          )
-#    else:
-#      drawer.text(
-#          text_geometry,
-#          self.MENU_ITEMS[number],
-#          font=self._font, fill='white')
-#
-#  def DrawMenu(self):
-#    with LumaCanvas(self.luma_device) as drawer:
-#      drawer.rectangle(
-#          self.luma_device.bounding_box, outline="white", fill="black")
-#      for i in range(len(self.MENU_ITEMS)):
-#        self._DrawMenuItem(drawer, i)
-#
-#  def MenuDown(self):
-#    self._menu_index = ((self._menu_index + 1)%len(self.MENU_ITEMS))
-#    self.DrawMenu()
-#
-#  def MenuUp(self):
-#    self._menu_index = ((self._menu_index - 1)%len(self.MENU_ITEMS))
-#    self.DrawMenu()
+    self._InitStateMachine()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

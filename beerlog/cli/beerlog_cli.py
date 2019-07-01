@@ -134,20 +134,30 @@ class BeerLog():
     # Only GUI for now
     self.ui = LumaDisplay(events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
-    self.ui.Update()
+    self.ui.DrawUI()
 
   def PushEvent(self, event):
-    """TODO"""
+    """Adds an Event object in the events queue.
+
+    Args:
+      event(events.BaseEvent): the event to push.
+    """
     self._events_queue.put(event)
 
   def AddDelayedEvent(self, event, timeout):
-    """TODO"""
+    """Adds an Event object in the events queue after a delay.
+
+    Args:
+      event(events.BaseEvent): the event to push.
+      timeout(int): the number of seconds after which the event will be pushed.
+    """
     t = Timer(timeout, self.PushEvent, args=(event,))
     t.start()
     self._timers.append(t)
 
   def ResetTimers(self):
-    """TODO"""
+    """Reset all timers set for timed events, cancelling the BaseEvent delivery
+    to the events queue."""
     for timer in self._timers:
       timer.cancel()
 
@@ -161,16 +171,22 @@ class BeerLog():
       if event:
         try:
           self._HandleEvent(event)
-        except Exception as e:
-          print(e)
+        except Exception as e:  #pylint: disable=broad-except
+          logging.error(e)
           err_event = ErrorEvent('{0!s}'.format(e))
           self.PushEvent(err_event)
 
       time.sleep(0.05)
-      self.ui.Update()
+      self.ui.DrawUI()
 
   def _HandleEvent(self, event):
-    """TODO"""
+    """Does something with an Event.
+
+    Args:
+      event(BaseEvent): the event to handle.
+    Raises:
+      BeerLogError: if an error is detected when handling the event.
+    """
     # TODO : have a UI class of events, and let the ui object deal with them
     self.ResetTimers()
     if event.type == constants.EVENTTYPES.NFCSCANNED:
@@ -252,10 +268,6 @@ class BeerLog():
       return None
 
     return tag_object.get('name')
-
-  def TagUidToName(self, uid):
-    """TODO"""
-    return self.known_tags_list.get(uid).get('name')
 
 def Main():
   """Main function"""

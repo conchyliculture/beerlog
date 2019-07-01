@@ -111,9 +111,14 @@ class LumaDisplay():
     if not self._database:
       raise BeerLogError('Display needs a DB object')
 
+    # Internal stuff
     self.luma_device = None
-    self._font = ImageFont.load_default()
+    self.machine = None
+    self._last_scanned = None
+    self._last_error = None
 
+    # UI related defaults
+    self._font = ImageFont.load_default()
     self._splash_pic_path = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -125,9 +130,6 @@ class LumaDisplay():
             os.path.dirname(
                 os.path.dirname(os.path.realpath(__file__)))),
         self.DEFAULT_SCAN_GIF)
-
-    self._last_scanned = None
-    self._last_error = None
 
     self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 

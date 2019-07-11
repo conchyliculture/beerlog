@@ -3,9 +3,10 @@
 from __future__ import unicode_literals
 
 import json
-from peewee import DoesNotExist
 import tempfile
 import unittest
+
+from peewee import DoesNotExist
 
 import beerlogdb
 
@@ -55,6 +56,8 @@ class BeerLogDBTests(unittest.TestCase):
   def testTags(self):
     """Test tags name/hexid operations."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.AddEntry('0x0', '')
+    db.AddEntry('0x2', '')
 
     with tempfile.NamedTemporaryFile(mode='w+') as temp:
       temp.write(json.dumps({
@@ -69,3 +72,6 @@ class BeerLogDBTests(unittest.TestCase):
       self.assertEqual('realname', db.GetNameFromHexID('0x2'))
 
       self.assertEqual(None, db.GetNameFromHexID('0x1'))
+
+      self.assertEqual(db.GetCharacterFromHexID('0x0').name, 'Kikoo')
+      self.assertEqual(db.GetCharacterFromHexID('0x2').name, 'realname')

@@ -247,7 +247,7 @@ class LumaDisplay():
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
         text = str(scoreboard_position)+'.'
-        text += ('{0:<'+str(max_name_width)+'}').format(row.character)
+        text += ('{0:<'+str(max_name_width)+'}').format(row.character.name)
         text += ' {0:>3d} '.format(row.count)
         text += GetShortLastBeer(row.last)
         if self._scoreboard.index == scoreboard_position:

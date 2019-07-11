@@ -32,6 +32,12 @@ class Character(BeerModel):
   hexid = CharField()
   glass = IntegerField(default=constants.DEFAULT_GLASS_SIZE)
 
+  @property
+  def name(self):
+    """Gets the corresponding name from hexid using the parent db object
+    method."""
+    return self._meta.database.GetNameFromHexID(self.hexid)
+
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
   character = ForeignKeyField(Character, backref='entries')
@@ -45,6 +51,9 @@ class BeerLogDB():
     self.database_path = database_path
     sqlite_db = SqliteDatabase(self.database_path)
     database_proxy.initialize(sqlite_db)
+
+    # This is used for the Character.name property
+    sqlite_db.GetNameFromHexID = self.GetNameFromHexID
 
     sqlite_db.create_tables([Character, Entry], safe=True)
 

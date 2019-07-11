@@ -13,6 +13,7 @@ import nfc
 from beerlog.errors import BeerLogError
 from beerlog import constants
 from beerlog.events import BaseEvent
+from beerlog.events import ErrorEvent
 
 
 class NFCEvent(BaseEvent):
@@ -176,10 +177,13 @@ class BeerNFC(BaseNFC):
     """
     if isinstance(tag, nfc.tag.tt2.Type2Tag):
       uid = NFC215.ReadUIDFromTag(tag)
-      if uid:
-        event = NFCEvent(uid=uid)
-        self._AddToQueue(event)
-      return self._should_beep
+      try:
+        if uid:
+          event = NFCEvent(uid=uid)
+          self._AddToQueue(event)
+        return self._should_beep
+      except nfc.tag.tt2.Type2TagCommandError as e:
+        event = ErrorEvent('{0!s}'.format(e))
     return False
 
 class FakeNFC(BaseNFC):

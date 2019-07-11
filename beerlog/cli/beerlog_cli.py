@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import argparse
 import datetime
-import json
 import logging
 import os
 from multiprocessing import SimpleQueue
@@ -34,7 +33,6 @@ class BeerLog():
     self.nfc_reader = None
     self.ui = None
     self.db = None
-    self.known_tags_list = None
     self._capture_command = None
     self._database_path = None
     self._events_queue = SimpleQueue()
@@ -119,12 +117,12 @@ class BeerLog():
   def InitDB(self):
     """Initializes the BeerLogDB object."""
     self.db = BeerLogDB(self._database_path)
+    self.db.LoadTagsDB(self._known_tags)
 
   def Main(self):
     """Runs the script."""
     self.ParseArguments()
     self.InitDB()
-    self.LoadTagsDB()
     self.InitNFC(path="usb")
     self.InitUI()
     self.Loop()
@@ -216,24 +214,6 @@ class BeerLog():
 
     self.db.Close()
 
-  def LoadTagsDB(self):
-    """Loads the external known tags list.
-
-    Raises:
-      BeerLogError: if we couldn't load the file.
-    """
-    try:
-      with open(self._known_tags, 'r') as json_file:
-        self.known_tags_list = json.load(json_file)
-    except IOError as e:
-      raise BeerLogError(
-          'Could not load known tags file {0} with error {1!s}'.format(
-              self._known_tags, e))
-    except ValueError as e:
-      raise BeerLogError(
-          'Known tags file {0} is invalid: {1!s}'.format(
-              self._known_tags, e))
-
   def TakePicture(self, command):
     """Takes a picture.
 
@@ -255,19 +235,6 @@ class BeerLog():
 
     return filepath
 
-  def GetNameFromTag(self, uid):
-    """Returns the corresponding name from a uid
-
-    Args:
-      uid(str): the uid in form 0x0580000000050002
-    Returns:
-      str: the corresponding name for that tag uid, or None if no name is found.
-    """
-    tag_object = self.known_tags_list.get(uid)
-    if not tag_object:
-      return None
-
-    return tag_object.get('name')
 
 def Main():
   """Main function"""

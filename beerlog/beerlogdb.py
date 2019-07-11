@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 from datetime import datetime
+import json
 
 from peewee import CharField
 from peewee import DateTimeField
@@ -11,6 +12,8 @@ from peewee import Model
 from peewee import Proxy
 from peewee import SqliteDatabase
 from peewee import fn
+
+from beerlog.errors import BeerLogError
 
 database_proxy = Proxy()
 # pylint: disable=no-init
@@ -35,6 +38,8 @@ class BeerLogDB():
     database_proxy.initialize(sqlite_db)
 
     sqlite_db.create_tables([Entry], safe=True)
+
+    self.known_tags_list = None
 
   def Connect(self):
     """Connects to the database."""
@@ -98,5 +103,39 @@ class BeerLogDB():
         fn.MAX(Entry.timestamp).desc())
 
     return query
+
+  def LoadTagsDB(self, known_tags_path):
+    """Loads the external known tags list.
+
+    Args:
+      known_tags_path(str): path to the known_tags.json file.
+    Raises:
+      BeerLogError: if we couldn't load the file.
+    """
+    try:
+      with open(known_tags_path, 'r') as json_file:
+        self.known_tags_list = json.load(json_file)
+    except IOError as e:
+      raise BeerLogError(
+          'Could not load known tags file {0} with error {1!s}'.format(
+              known_tags_path, e))
+    except ValueError as e:
+      raise BeerLogError(
+          'Known tags file {0} is invalid: {1!s}'.format(
+              known_tags_path, e))
+
+  def GetNameFromHexID(self, uid):
+    """Returns the corresponding name from a uid
+
+    Args:
+      uid(str): the uid in form 0x0580000000050002
+    Returns:
+      str: the corresponding name for that tag uid, or None if no name is found.
+    """
+    tag_object = self.known_tags_list.get(uid)
+    if not tag_object:
+      return None
+
+    return tag_object.get('realname') or tag_object.get('name')
 
 # vim: tabstop=2 shiftwidth=2 expandtab

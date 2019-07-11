@@ -3,6 +3,7 @@
 from __future__ import unicode_literals
 
 import json
+from peewee import DoesNotExist
 import tempfile
 import unittest
 
@@ -22,6 +23,16 @@ class BeerLogDBTests(unittest.TestCase):
     db.AddEntry('char1', 'pic1')
     self.assertEqual(db.CountAll(), 2)
 
+  def testGetCharacterFromHexID(self):
+    """Tests the CharacterFromHexID() method."""
+    db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.AddEntry('charX', 'picX')
+    with self.assertRaises(DoesNotExist):
+      db.GetCharacterFromHexID('non-ex')
+
+    result = db.GetCharacterFromHexID('charX')
+    self.assertEqual(result.glass, 50)
+
   def testGetScoreBoard(self):
     """Tests the GetScoreBoard method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
@@ -32,10 +43,13 @@ class BeerLogDBTests(unittest.TestCase):
     db.AddEntry('b', 'pic1')
     db.AddEntry('b', 'pic2')
     db.AddEntry('a', 'pic6')
+
+    char_a = db.GetCharacterFromHexID('a')
+    char_b = db.GetCharacterFromHexID('b')
+    expected = [(7, char_a, 5, u'pic6'), (6, char_b, 2, u'pic2')]
     results = [
         (t.id, t.character, t.count, t.pic)
         for t in db.GetScoreBoard().execute()]
-    expected = [(7, u'a', 5, u'pic6'), (6, u'b', 2, u'pic2')]
     self.assertEqual(expected, results)
 
   def testTags(self):

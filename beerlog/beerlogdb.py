@@ -8,12 +8,15 @@ import json
 from peewee import CharField
 from peewee import DateTimeField
 from peewee import DoesNotExist
+from peewee import ForeignKeyField
+from peewee import IntegerField
 from peewee import Model
 from peewee import Proxy
 from peewee import SqliteDatabase
 from peewee import fn
 
 from beerlog.errors import BeerLogError
+from beerlog import constants
 
 database_proxy = Proxy()
 # pylint: disable=no-init
@@ -23,9 +26,15 @@ class BeerModel(Model):
     """Sets Metadata for the database."""
     database = database_proxy
 
+
+class Character(BeerModel):
+  """class for one Character in the BeerLog database."""
+  hexid = CharField()
+  glass = IntegerField(default=constants.DEFAULT_GLASS_SIZE)
+
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
-  character = CharField()
+  character = ForeignKeyField(Character, backref='entries')
   timestamp = DateTimeField(default=datetime.now)
   pic = CharField(null=True)
 
@@ -37,7 +46,7 @@ class BeerLogDB():
     sqlite_db = SqliteDatabase(self.database_path)
     database_proxy.initialize(sqlite_db)
 
-    sqlite_db.create_tables([Entry], safe=True)
+    sqlite_db.create_tables([Character, Entry], safe=True)
 
     self.known_tags_list = None
 
@@ -49,21 +58,32 @@ class BeerLogDB():
     """Closes the database."""
     database_proxy.close()
 
-  def AddEntry(self, character, pic):
+  def AddEntry(self, character_hexid, pic):
     """Inserts an entry in the database.
 
     Args:
-      character(str): the name of the character in the tag.
+      character_hexid(str): the hexid of the character in the tag.
       pic(str): the path to a picture.
 
     Returns:
       Entry: the Entry that was stored in the database.
     """
+    character, _ = Character.get_or_create(hexid=character_hexid)
     entry = Entry.create(
         character=character,
         pic=pic
     )
     return entry
+
+  def GetCharacterFromHexID(self, character_hexid):
+    """Returns a Character from its hexid.
+
+    Args:
+      character_hexid(str): the character's hexid.
+    Returns:
+      Character: a Character object, or None.
+    """
+    return Character.get(hexid=character_hexid)
 
   def GetEntryById(self, entry_id):
     """Returns an Entry by its primary key.

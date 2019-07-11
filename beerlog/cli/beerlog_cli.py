@@ -188,13 +188,13 @@ class BeerLog():
     # TODO : have a UI class of events, and let the ui object deal with them
     self.ResetTimers()
     if event.type == constants.EVENTTYPES.NFCSCANNED:
-      who = self.GetNameFromTag(event.uid)
-      if not who:
+      name = self.db.GetNameFromHexID(event.uid)
+      if not name:
         raise  BeerLogError(
             'Could not find the corresponding name for tag id "{0!s}" '
             'in "{1:s}"'.format(event.uid, self._known_tags))
-      self.ui.machine.scan(who=who)
-      self.db.AddEntry(character=who, pic=self._last_taken_picture)
+      self.ui.machine.scan(who=name)
+      self.db.AddEntry(event.uid, self._last_taken_picture)
       self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
       self.ui.machine.up()

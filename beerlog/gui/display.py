@@ -14,7 +14,17 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import ImageSequence
 
+from beerlog import constants
 from beerlog.errors import BeerLogError
+
+
+def GetShortAmountOfBeer(amount):
+  """Returns a shortened string for an volume in cL."""
+  if amount >= 999.5:
+    return 'DED'
+  if amount >= 99.5:
+    return '{0:>3d}'.format(int(round(amount)))
+  return '{0:3.2g}'.format(amount)
 
 
 def GetShortLastBeer(last, now=datetime.now()):
@@ -237,8 +247,8 @@ class LumaDisplay():
       max_text_width = int(self.luma_device.width / char_w)
       max_name_width = max_text_width-12
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
-      # ie: '  Name      Cnt Last'
-      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+' Cnt Last'
+      # ie: '  Name      L Last'
+      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'   L Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
       score_enumerated = self._scoreboard.GetRows()
       draw_row = 0
@@ -247,9 +257,11 @@ class LumaDisplay():
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
         text = str(scoreboard_position)+'.'
-        text += ('{0:<'+str(max_name_width)+'}').format(row.character.name)
-        text += ' {0:>3d} '.format(row.count)
-        text += GetShortLastBeer(row.last)
+        beer = row.count * row.character.glass / 100.0
+        text += ' '.join([
+            ('{0:<'+str(max_name_width)+'}').format(row.character.name),
+            GetShortAmountOfBeer(beer),
+            GetShortLastBeer(row.last)])
         if self._scoreboard.index == scoreboard_position:
           rectangle_geometry = (
               2,

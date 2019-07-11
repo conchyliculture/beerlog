@@ -132,7 +132,7 @@ class BeerLog():
     # Only GUI for now
     self.ui = LumaDisplay(events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
-    self.ui.DrawUI()
+    self.ui.Update()
 
   def PushEvent(self, event):
     """Adds an Event object in the events queue.
@@ -175,7 +175,7 @@ class BeerLog():
           self.PushEvent(err_event)
 
       time.sleep(0.05)
-      self.ui.DrawUI()
+      self.ui.Update()
 
   def _HandleEvent(self, event):
     """Does something with an Event.

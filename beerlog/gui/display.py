@@ -272,7 +272,7 @@ class LumaDisplay():
     self.luma_device.display(background)
     time.sleep(1)
     self.machine.back()
-    self.DrawUI()
+    self.Update()
 
   def ShowError(self):
     """Displays an error message."""

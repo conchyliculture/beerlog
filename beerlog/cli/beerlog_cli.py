@@ -12,14 +12,12 @@ import sys
 from threading import Timer
 import time
 
-from beerlog.beerlogdb import BeerLogDB
-from beerlog.bnfc.base import BeerNFC
-from beerlog.bnfc.base import FakeNFC
+from beerlog import beerlogdb
+from beerlog.bnfc import base as nfc_base
 from beerlog import constants
-from beerlog.errors import BeerLogError
-from beerlog.events import ErrorEvent
-from beerlog.events import UIEvent
-from beerlog.gui.display import LumaDisplay
+from beerlog import errors
+from beerlog import events
+from beerlog.gui import display
 
 
 class BeerLog():
@@ -51,9 +49,9 @@ class BeerLog():
       path(str): the option path to the device.
     """
     if self._fake_nfc:
-      self.nfc_reader = FakeNFC(events_queue=self._events_queue)
+      self.nfc_reader = nfc_base.FakeNFC(events_queue=self._events_queue)
     else:
-      self.nfc_reader = BeerNFC(
+      self.nfc_reader = nfc_base.BeerNFC(
           events_queue=self._events_queue, should_beep=self._should_beep,
           path=path)
     self.nfc_reader.process.start()
@@ -116,7 +114,7 @@ class BeerLog():
 
   def InitDB(self):
     """Initializes the BeerLogDB object."""
-    self.db = BeerLogDB(self._database_path)
+    self.db = beerlogdb.BeerLogDB(self._database_path)
     self.db.LoadTagsDB(self._known_tags)
 
   def Main(self):
@@ -130,7 +128,8 @@ class BeerLog():
   def InitUI(self):
     """Initialises the user interface."""
     # Only GUI for now
-    self.ui = LumaDisplay(events_queue=self._events_queue, database=self.db)
+    self.ui = display.LumaDisplay(
+        events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
     self.ui.Update()
 
@@ -171,7 +170,7 @@ class BeerLog():
           self._HandleEvent(event)
         except Exception as e:  #pylint: disable=broad-except
           logging.error(e)
-          err_event = ErrorEvent('{0!s}'.format(e))
+          err_event = events.ErrorEvent('{0!s}'.format(e))
           self.PushEvent(err_event)
 
       time.sleep(0.05)
@@ -190,12 +189,12 @@ class BeerLog():
     if event.type == constants.EVENTTYPES.NFCSCANNED:
       name = self.db.GetNameFromHexID(event.uid)
       if not name:
-        raise  BeerLogError(
+        raise errors.BeerLogError(
             'Could not find the corresponding name for tag id "{0!s}" '
             'in "{1:s}"'.format(event.uid, self._known_tags))
       self.ui.machine.scan(who=name)
       self.db.AddEntry(event.uid, self._last_taken_picture)
-      self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 2)
+      self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
       self.ui.machine.up()
     elif event.type == constants.EVENTTYPES.KEYDOWN:
@@ -209,7 +208,7 @@ class BeerLog():
     else:
       err_msg = 'Unknown Event: {0!s}'.format(event)
       print(err_msg)
-      self.PushEvent(ErrorEvent(err_msg))
+      self.PushEvent(events.ErrorEvent(err_msg))
       #self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 3)
 
     self.db.Close()

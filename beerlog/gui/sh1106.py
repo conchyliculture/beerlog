@@ -8,7 +8,7 @@ from luma.oled.device import sh1106
 import RPi.GPIO as GPIO
 
 from beerlog import constants
-from beerlog.events import UIEvent
+from beerlog import events
 
 
 class WaveShareOLEDHat():
@@ -62,7 +62,7 @@ class WaveShareOLEDHat():
       self._SetupOneGPIO(channel)
 
   def _AddEvent(self, channel):
-    """Adds a new UIEvent to the Queue.
+    """Adds a new events.UIEvent to the Queue.
 
     Args:
       channel(int): the pin that was detected.
@@ -70,7 +70,7 @@ class WaveShareOLEDHat():
 
     event_type = self._BUTTON_DICT.get(channel, None)
     if event_type:
-      new_event = UIEvent(event_type)
+      new_event = events.UIEvent(event_type)
       if self._last_event:
         delta = new_event.timestamp - self._last_event.timestamp
         delta_ms = delta.total_seconds() * 1000

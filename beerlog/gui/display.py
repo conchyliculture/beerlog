@@ -9,12 +9,9 @@ from transitions import Machine
 from luma.core.render import canvas as LumaCanvas
 from luma.core.sprite_system import framerate_regulator
 from luma.core.virtual import terminal
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
-from PIL import ImageSequence
+import PIL
 
-from beerlog.errors import BeerLogError
+from beerlog import errors
 
 
 def GetShortAmountOfBeer(amount):
@@ -118,9 +115,9 @@ class LumaDisplay():
     self._events_queue = events_queue
     self._database = database
     if not self._events_queue:
-      raise BeerLogError('Display needs an events_queue')
+      raise errors.BeerLogError('Display needs an events_queue')
     if not self._database:
-      raise BeerLogError('Display needs a DB object')
+      raise errors.BeerLogError('Display needs a DB object')
 
     # Internal stuff
     self.luma_device = None
@@ -129,7 +126,7 @@ class LumaDisplay():
     self._last_error = None
 
     # UI related defaults
-    self._font = ImageFont.load_default()
+    self._font = PIL.ImageFont.load_default()
     self._splash_pic_path = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -215,7 +212,7 @@ class LumaDisplay():
   def ShowScanned(self):
     """Draws the screen showing the last scanned tag."""
     regulator = framerate_regulator(fps=30)
-    beer = Image.open(self._scanned_gif_path)
+    beer = PIL.Image.open(self._scanned_gif_path)
     size = [min(*self.luma_device.size)] * 2
     posn = (
         (self.luma_device.width - size[0]) // 2,
@@ -223,14 +220,15 @@ class LumaDisplay():
     )
     msg = 'Cheers ' + self._last_scanned + '!'
 
-    for gif_frame in ImageSequence.Iterator(beer):
+    for gif_frame in PIL.ImageSequence.Iterator(beer):
       with regulator:
-        background = Image.new('RGB', self.luma_device.size, 'black')
+        background = PIL.Image.new('RGB', self.luma_device.size, 'black')
         # Add a frame from the animation
-        background.paste(gif_frame.resize(size, resample=Image.LANCZOS), posn)
+        background.paste(
+            gif_frame.resize(size, resample=PIL.Image.LANCZOS), posn)
 
         # Add a text layer over the frame
-        text_layer = ImageDraw.Draw(background)
+        text_layer = PIL.ImageDraw.Draw(background)
         text_width, text_height = text_layer.textsize(msg)
         text_pos = (
             (self.luma_device.width - text_width) // 2,
@@ -277,8 +275,9 @@ class LumaDisplay():
 
   def ShowSplash(self):
     """Displays the splash screen."""
-    background = Image.new(self.luma_device.mode, self.luma_device.size)
-    splash = Image.open(self._splash_pic_path).convert(self.luma_device.mode)
+    background = PIL.Image.new(self.luma_device.mode, self.luma_device.size)
+    splash = PIL.Image.open(self._splash_pic_path).convert(
+        self.luma_device.mode)
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
     self.luma_device.display(background)

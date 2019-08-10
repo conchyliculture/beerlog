@@ -10,13 +10,12 @@ import time
 
 import nfc
 
-from beerlog.errors import BeerLogError
+from beerlog import errors
 from beerlog import constants
-from beerlog.events import BaseEvent
-from beerlog.events import ErrorEvent
+from beerlog import events
 
 
-class NFCEvent(BaseEvent):
+class NFCEvent(events.BaseEvent):
   """Event for a NFC tag."""
 
   def __init__(self, uid=None):
@@ -87,7 +86,7 @@ class BaseNFC():
     """Pushes an event on the events Queue.
 
     Args:
-      event(BaseEvent): the event to push.
+      event(events.BaseEvent): the event to push.
     """
     if event:
       if self._last_event:
@@ -105,7 +104,7 @@ class BaseNFC():
     """Initializes the NFC reader.
 
     Raises:
-      BeerLogError: when we couldn't open the device.
+      errors.BeerLogError: when we couldn't open the device.
     """
     self.process = multiprocessing.Process(target=self._Nop, daemon=True)
 
@@ -127,7 +126,7 @@ class BeerNFC(BaseNFC):
       path(str): the path to the NFC reader.
 
     Raises:
-      BeerLogError: if arguments are invalid.
+      errors.BeerLogError: if arguments are invalid.
     """
     self._should_beep = should_beep
     self.path = path
@@ -140,7 +139,7 @@ class BeerNFC(BaseNFC):
     """Initializes the NFC reader.
 
     Raises:
-      BeerLogError: when we couldn't open the device.
+      errors.BeerLogError: when we couldn't open the device.
     """
     self.process = multiprocessing.Process(
         target=self._DoNFC, args=(self.path,), daemon=True)
@@ -158,7 +157,7 @@ class BeerNFC(BaseNFC):
             logging.debug('Could not read NFC tag, or we timedout')
           time.sleep(0.1)
     except IOError as e:
-      raise BeerLogError(
+      raise errors.BeerLogError(
           (
               'Could not load NFC reader (path: {0}) with error: {1!s}\n'
               'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
@@ -183,7 +182,7 @@ class BeerNFC(BaseNFC):
           self._AddToQueue(event)
         return self._should_beep
       except nfc.tag.tt2.Type2TagCommandError as e:
-        event = ErrorEvent('{0!s}'.format(e))
+        event = events.ErrorEvent('{0!s}'.format(e))
     return False
 
 class FakeNFC(BaseNFC):
@@ -195,7 +194,7 @@ class FakeNFC(BaseNFC):
     """Initializes the NFC reader.
 
     Raises:
-      BeerLogError: when we couldn't open the device.
+      errors.BeerLogError: when we couldn't open the device.
     """
     self.process = multiprocessing.Process(target=self._Random, daemon=True)
 

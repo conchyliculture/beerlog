@@ -6,7 +6,7 @@ import json
 import tempfile
 import unittest
 
-from peewee import DoesNotExist
+import peewee
 
 import beerlogdb
 
@@ -28,7 +28,7 @@ class BeerLogDBTests(unittest.TestCase):
     """Tests the CharacterFromHexID() method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.AddEntry('charX', 'picX')
-    with self.assertRaises(DoesNotExist):
+    with self.assertRaises(peewee.DoesNotExist):
       db.GetCharacterFromHexID('non-ex')
 
     result = db.GetCharacterFromHexID('charX')

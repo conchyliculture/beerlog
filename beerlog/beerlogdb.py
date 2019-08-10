@@ -5,23 +5,15 @@ from __future__ import print_function
 from datetime import datetime
 import json
 
-from peewee import CharField
-from peewee import DateTimeField
-from peewee import DoesNotExist
-from peewee import Expression
-from peewee import ForeignKeyField
-from peewee import IntegerField
-from peewee import Model
-from peewee import Proxy
-from peewee import SqliteDatabase
-from peewee import fn
+import peewee
 
-from beerlog.errors import BeerLogError
+from beerlog import errors
 from beerlog import constants
 
-database_proxy = Proxy()
+
+database_proxy = peewee.Proxy()
 # pylint: disable=no-init
-class BeerModel(Model):
+class BeerModel(peewee.Model):
   """Model for the database."""
   class Meta():
     """Sets Metadata for the database."""
@@ -31,13 +23,13 @@ class BeerModel(Model):
 def BeerPerCharacter(character, amount):
   """Helper function to generate the SQL expression for the total amount
   of beer drunk."""
-  return Expression(character.glass, '*', amount)
+  return peewee.Expression(character.glass, '*', amount)
 
 
 class Character(BeerModel):
   """class for one Character in the BeerLog database."""
-  hexid = CharField()
-  glass = IntegerField(default=constants.DEFAULT_GLASS_SIZE)
+  hexid = peewee.CharField()
+  glass = peewee.IntegerField(default=constants.DEFAULT_GLASS_SIZE)
 
   @property
   def name(self):
@@ -47,16 +39,16 @@ class Character(BeerModel):
 
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
-  character = ForeignKeyField(Character, backref='entries')
-  timestamp = DateTimeField(default=datetime.now)
-  pic = CharField(null=True)
+  character = peewee.ForeignKeyField(Character, backref='entries')
+  timestamp = peewee.DateTimeField(default=datetime.now)
+  pic = peewee.CharField(null=True)
 
 class BeerLogDB():
   """Wrapper for the database."""
 
   def __init__(self, database_path):
     self.database_path = database_path
-    sqlite_db = SqliteDatabase(self.database_path)
+    sqlite_db = peewee.SqliteDatabase(self.database_path)
     database_proxy.initialize(sqlite_db)
 
     # This is used for the Character.name property
@@ -120,7 +112,7 @@ class BeerLogDB():
     """
     try:
       entry = Entry.get(Entry.id == entry_id)
-    except DoesNotExist as _:
+    except peewee.DoesNotExist as _:
       return None
     return entry
 
@@ -141,11 +133,11 @@ class BeerLogDB():
     query = Entry.select(
         Entry,
         Character,
-        fn.MAX(Entry.timestamp).alias('last'),
-        BeerPerCharacter(Character, fn.COUNT()).alias('amount')
+        peewee.fn.MAX(Entry.timestamp).alias('last'),
+        BeerPerCharacter(Character, peewee.fn.COUNT()).alias('amount')
     ).join(Character).group_by(Entry.character).order_by(
-        BeerPerCharacter(Character, fn.COUNT()).desc(),
-        (fn.MAX(Entry.timestamp)).desc()
+        BeerPerCharacter(Character, peewee.fn.COUNT()).desc(),
+        (peewee.fn.MAX(Entry.timestamp)).desc()
     )
 
     return query
@@ -156,17 +148,17 @@ class BeerLogDB():
     Args:
       known_tags_path(str): path to the known_tags.json file.
     Raises:
-      BeerLogError: if we couldn't load the file.
+      errors.BeerLogError: if we couldn't load the file.
     """
     try:
       with open(known_tags_path, 'r') as json_file:
         self.known_tags_list = json.load(json_file)
     except IOError as e:
-      raise BeerLogError(
+      raise errors.BeerLogError(
           'Could not load known tags file {0} with error {1!s}'.format(
               known_tags_path, e))
     except ValueError as e:
-      raise BeerLogError(
+      raise errors.BeerLogError(
           'Known tags file {0} is invalid: {1!s}'.format(
               known_tags_path, e))
 

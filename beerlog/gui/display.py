@@ -260,7 +260,7 @@ class LumaDisplay():
         text = str(scoreboard_position)+'.'
         text += ' '.join([
             ('{0:<'+str(max_name_width)+'}').format(row.character.name),
-            GetShortAmountOfBeer(row.amount),
+            GetShortAmountOfBeer(row.amount / 100.0),
             GetShortLastBeer(row.last)])
         if self._scoreboard.index == scoreboard_position:
           rectangle_geometry = (

@@ -14,7 +14,6 @@ from PIL import ImageDraw
 from PIL import ImageFont
 from PIL import ImageSequence
 
-from beerlog import constants
 from beerlog.errors import BeerLogError
 
 
@@ -27,8 +26,10 @@ def GetShortAmountOfBeer(amount):
   return '{0:3.2g}'.format(amount)
 
 
-def GetShortLastBeer(last, now=datetime.now()):
+def GetShortLastBeer(last, now=None):
   """Returns a shortened string for the last scan."""
+  if not now:
+    now = datetime.now()
   delta = now - last
   seconds = int(delta.total_seconds())
   if seconds == 0:

@@ -13,7 +13,6 @@ class TestDisplay(unittest.TestCase):
 
   def testGetShortAmountOfBeer(self):
     """Tests the _GetShortLastBeer() method."""
-    display.GetShortAmountOfBeer(0)
     self.assertEqual(display.GetShortAmountOfBeer(0), '  0')
     self.assertEqual(display.GetShortAmountOfBeer(1.01), '  1')
     self.assertEqual(display.GetShortAmountOfBeer(1.28), '1.3')

@@ -30,9 +30,9 @@ def GetShortAmountOfBeer(amount):
 def GetShortLastBeer(last, now=datetime.now()):
   """Returns a shortened string for the last scan."""
   delta = now - last
-  if now == last:
-    return '  0s'
   seconds = int(delta.total_seconds())
+  if seconds == 0:
+    return '  0s'
   periods = [
       ('yr', 60*60*24*365),
       ('mo', 60*60*24*30),

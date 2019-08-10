@@ -37,6 +37,11 @@ class Character(BeerModel):
     method."""
     return self._meta.database.GetNameFromHexID(self.hexid)
 
+  def GetAmountDrunk(self):
+    """Gets the amount of beer drunk."""
+    self._meta.database.GetAmountFromHexID(self.hexid, self.glass)
+
+
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
   character = peewee.ForeignKeyField(Character, backref='entries')
@@ -164,6 +169,7 @@ class BeerLogDB():
 
   def GetNameFromHexID(self, uid):
     """Returns the corresponding name from a uid
+    Entry.where()
 
     Args:
       uid(str): the uid in form 0x0580000000050002
@@ -175,5 +181,16 @@ class BeerLogDB():
       return None
 
     return tag_object.get('realname') or tag_object.get('name')
+
+  def GetAmountFromHexID(self, hexid, glass_size):
+    """Returns the amount of beer drunk for a Character.
+
+    Args:
+      hexid(str): the hexid of a character.
+      glass_size(int): the size of the character's glass.
+    Returns:
+      int: the amount of beer.
+    """
+    return Entry.where(Entry.character = GetCharacterFromHexID(hexid)).count() * glass_size
 
 # vim: tabstop=2 shiftwidth=2 expandtab

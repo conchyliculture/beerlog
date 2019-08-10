@@ -8,6 +8,7 @@ import json
 from peewee import CharField
 from peewee import DateTimeField
 from peewee import DoesNotExist
+from peewee import Expression
 from peewee import ForeignKeyField
 from peewee import IntegerField
 from peewee import Model
@@ -25,6 +26,12 @@ class BeerModel(Model):
   class Meta():
     """Sets Metadata for the database."""
     database = database_proxy
+
+
+def BeerPerCharacter(character, amount):
+  """Helper function to generate the SQL expression for the total amount
+  of beer drunk."""
+  return Expression(character.glass, '*', amount)
 
 
 class Character(BeerModel):
@@ -133,11 +140,13 @@ class BeerLogDB():
     """
     query = Entry.select(
         Entry,
+        Character,
         fn.MAX(Entry.timestamp).alias('last'),
-        fn.COUNT().alias('count')
-    ).group_by(Entry.character).order_by(
-        fn.COUNT().desc(),
-        fn.MAX(Entry.timestamp).desc())
+        BeerPerCharacter(Character, fn.COUNT()).alias('amount')
+    ).join(Character).group_by(Entry.character).order_by(
+        BeerPerCharacter(Character, fn.COUNT()).desc(),
+        (fn.MAX(Entry.timestamp)).desc()
+    )
 
     return query
 

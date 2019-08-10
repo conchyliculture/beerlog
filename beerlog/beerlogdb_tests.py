@@ -48,9 +48,9 @@ class BeerLogDBTests(unittest.TestCase):
 
     char_a = db.GetCharacterFromHexID('a')
     char_b = db.GetCharacterFromHexID('b')
-    expected = [(7, char_a, 5, u'pic6'), (8, char_b, 3, u'pic2')]
+    expected = [(7, char_a, 5 * 50, u'pic6'), (8, char_b, 3 * 50, u'pic2')]
     results = [
-        (t.id, t.character, t.count, t.pic)
+        (t.id, t.character, t.amount, t.pic)
         for t in db.GetScoreBoard().execute()]
     self.assertEqual(expected, results)
 
@@ -60,9 +60,9 @@ class BeerLogDBTests(unittest.TestCase):
     db.AddEntry('b', 'pic2')
     char_a = db.GetCharacterFromHexID('a')
     char_b = db.GetCharacterFromHexID('b')
-    expected = [(2, char_b, 1, u'pic2'), (1, char_a, 1, u'pic2')]
+    expected = [(2, char_b, 1 * 50, u'pic2'), (1, char_a, 1 * 50, u'pic2')]
     results = [
-        (t.id, t.character, t.count, t.pic)
+        (t.id, t.character, t.amount, t.pic)
         for t in db.GetScoreBoard().execute()]
     self.assertEqual(expected, results)
 

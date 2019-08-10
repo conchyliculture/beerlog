@@ -67,21 +67,29 @@ class BeerLogDB():
     """Closes the database."""
     database_proxy.close()
 
-  def AddEntry(self, character_hexid, pic):
+  def AddEntry(self, character_hexid, pic, time=None):
     """Inserts an entry in the database.
 
     Args:
       character_hexid(str): the hexid of the character in the tag.
       pic(str): the path to a picture.
+      time(datetime): the optional time to set when adding the Entry.
 
     Returns:
       Entry: the Entry that was stored in the database.
     """
     character, _ = Character.get_or_create(hexid=character_hexid)
-    entry = Entry.create(
-        character=character,
-        pic=pic
-    )
+    if time:
+      entry = Entry.create(
+          character=character,
+          timestamp=time,
+          pic=pic
+      )
+    else:
+      entry = Entry.create(
+          character=character,
+          pic=pic
+      )
     return entry
 
   def GetCharacterFromHexID(self, character_hexid):

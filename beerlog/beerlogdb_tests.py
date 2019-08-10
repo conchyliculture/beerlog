@@ -44,10 +44,23 @@ class BeerLogDBTests(unittest.TestCase):
     db.AddEntry('b', 'pic1')
     db.AddEntry('b', 'pic2')
     db.AddEntry('a', 'pic6')
+    db.AddEntry('b', 'pic2')
 
     char_a = db.GetCharacterFromHexID('a')
     char_b = db.GetCharacterFromHexID('b')
-    expected = [(7, char_a, 5, u'pic6'), (6, char_b, 2, u'pic2')]
+    expected = [(7, char_a, 5, u'pic6'), (8, char_b, 3, u'pic2')]
+    results = [
+        (t.id, t.character, t.count, t.pic)
+        for t in db.GetScoreBoard().execute()]
+    self.assertEqual(expected, results)
+
+    db = beerlogdb.BeerLogDB(self.DB_PATH)
+    # Same amount, most recent first
+    db.AddEntry('a', 'pic2')
+    db.AddEntry('b', 'pic2')
+    char_a = db.GetCharacterFromHexID('a')
+    char_b = db.GetCharacterFromHexID('b')
+    expected = [(2, char_b, 1, u'pic2'), (1, char_a, 1, u'pic2')]
     results = [
         (t.id, t.character, t.count, t.pic)
         for t in db.GetScoreBoard().execute()]

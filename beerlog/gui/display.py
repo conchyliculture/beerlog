@@ -220,8 +220,10 @@ class LumaDisplay():
         (self.luma_device.width - size[0]) // 2,
         self.luma_device.height - size[1]
     )
-    msg = 'Cheers ' + self._last_scanned + '!' + '\n'
-    msg += 'Drunk {0:d}'.format(self._last_scanned_character.GetAmountDrunk())
+    msg = 'Cheers ' + self._last_scanned + '!'
+    msg += ' {0:s}L'.format(
+        GetShortAmountOfBeer(
+            self._last_scanned_character.GetAmountDrunk() / 100.0))
 
     for gif_frame in PIL.ImageSequence.Iterator(beer):
       with regulator:

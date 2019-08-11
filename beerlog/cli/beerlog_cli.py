@@ -193,8 +193,8 @@ class BeerLog():
             'Could not find the corresponding name for tag id "{0!s}" '
             'in "{1:s}"'.format(event.uid, self._known_tags))
       character = self.db.GetCharacterFromHexID(event.uid)
-      self.ui.machine.scan(who=name, character=character)
       self.db.AddEntry(event.uid, self._last_taken_picture)
+      self.ui.machine.scan(who=name, character=character)
       self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
       self.ui.machine.up()

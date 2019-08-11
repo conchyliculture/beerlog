@@ -39,7 +39,7 @@ class Character(BeerModel):
 
   def GetAmountDrunk(self):
     """Gets the amount of beer drunk."""
-    self._meta.database.GetAmountFromHexID(self.hexid, self.glass)
+    return self._meta.database.GetAmountFromHexID(self.hexid, self.glass)
 
 
 class Entry(BeerModel):
@@ -58,6 +58,8 @@ class BeerLogDB():
 
     # This is used for the Character.name property
     sqlite_db.GetNameFromHexID = self.GetNameFromHexID
+    # This is used for the Character.GetAmountDrink() method
+    sqlite_db.GetAmountFromHexID = self.GetAmountFromHexID
 
     sqlite_db.create_tables([Character, Entry], safe=True)
 
@@ -104,7 +106,7 @@ class BeerLogDB():
     Returns:
       Character: a Character object, or None.
     """
-    return Character.get(hexid=character_hexid)
+    return Character.get_or_none(hexid==character_hexid)
 
   def GetEntryById(self, entry_id):
     """Returns an Entry by its primary key.
@@ -191,6 +193,11 @@ class BeerLogDB():
     Returns:
       int: the amount of beer.
     """
-    return Entry.where(Entry.character = GetCharacterFromHexID(hexid)).count() * glass_size
+    character = self.GetCharacterFromHexID(hexid)
+    amount_cl = 0
+    if character:
+      entries = Entry.select(Entry).where(Entry.character == character).count()
+      amount_cl = entries * glass_size
+    return amount_cl
 
 # vim: tabstop=2 shiftwidth=2 expandtab

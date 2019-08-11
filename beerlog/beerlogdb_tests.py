@@ -28,8 +28,7 @@ class BeerLogDBTests(unittest.TestCase):
     """Tests the CharacterFromHexID() method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.AddEntry('charX', 'picX')
-    with self.assertRaises(peewee.DoesNotExist):
-      db.GetCharacterFromHexID('non-ex')
+    self.assertEqual(db.GetCharacterFromHexID('non-ex'), None)
 
     result = db.GetCharacterFromHexID('charX')
     self.assertEqual(result.glass, 50)

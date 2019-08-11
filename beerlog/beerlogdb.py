@@ -106,7 +106,7 @@ class BeerLogDB():
     Returns:
       Character: a Character object, or None.
     """
-    return Character.get_or_none(hexid==character_hexid)
+    return Character.get_or_none(Character.hexid == character_hexid)
 
   def GetEntryById(self, entry_id):
     """Returns an Entry by its primary key.

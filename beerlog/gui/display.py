@@ -221,7 +221,8 @@ class LumaDisplay():
         self.luma_device.height - size[1]
     )
     msg = 'Cheers ' + self._last_scanned + '!'
-    msg += ' {0:s}L'.format(
+    if self._last_scanned_character:
+      msg += ' {0:s}L'.format(
         GetShortAmountOfBeer(
             self._last_scanned_character.GetAmountDrunk() / 100.0))
 

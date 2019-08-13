@@ -67,7 +67,7 @@ class BeerLog():
     parser = argparse.ArgumentParser(description='BeerLog')
     parser.add_argument(
         '--nobeep', dest='should_beep', action='store_false',
-        default=False, # TODO Change
+        default=True,
         help='Disable beeping of the NFC reader')
     parser.add_argument(
         '--capture', dest='capture_command', action='store',

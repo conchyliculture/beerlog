@@ -67,7 +67,7 @@ class NFC215():
 class BaseNFC():
   """Base class for a NFC reader."""
 
-  SCAN_TIMEOUT_MS = 3*1000 # 3sec
+  SCAN_TIMEOUT_MS = 3 * 60 * 1000 # 3 minutes
 
   def __init__(self, events_queue):
     """Initializes a BaseNFC object.

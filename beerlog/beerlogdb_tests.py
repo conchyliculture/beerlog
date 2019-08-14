@@ -20,6 +20,9 @@ class BeerLogDBTests(unittest.TestCase):
   def testAddEntry(self):
     """Tests the AddEntry() method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+            'char1': {'name': 'toto', 'glass': 33},
+            }
     db.AddEntry('char1', 'pic1')
     db.AddEntry('char1', 'pic1')
     self.assertEqual(db.CountAll(), 2)
@@ -27,15 +30,23 @@ class BeerLogDBTests(unittest.TestCase):
   def testGetCharacterFromHexID(self):
     """Tests the CharacterFromHexID() method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+            'charX': {'name': 'toto', 'glass': 33},
+            'charY': {'name': 'toto', 'glass': 45}
+            }
     db.AddEntry('charX', 'picX')
     self.assertEqual(db.GetCharacterFromHexID('non-ex'), None)
 
     result = db.GetCharacterFromHexID('charX')
-    self.assertEqual(result.glass, 50)
+    self.assertEqual(result.glass, 33)
 
   def testGetScoreBoard(self):
     """Tests the GetScoreBoard method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+            'a': {'name': 'toto', 'glass': 33},
+            'b': {'name': 'toto', 'glass': 45}
+            }
     db.AddEntry('a', 'pic1')
     db.AddEntry('a', 'pic2')
     db.AddEntry('a', 'pic3')
@@ -47,19 +58,23 @@ class BeerLogDBTests(unittest.TestCase):
 
     char_a = db.GetCharacterFromHexID('a')
     char_b = db.GetCharacterFromHexID('b')
-    expected = [(7, char_a, 5 * 50, u'pic6'), (8, char_b, 3 * 50, u'pic2')]
+    expected = [(7, char_a, 5 * 33, u'pic6'), (8, char_b, 3 * 45, u'pic2')]
     results = [
         (t.id, t.character, t.amount, t.pic)
         for t in db.GetScoreBoard().execute()]
     self.assertEqual(expected, results)
 
     db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+            'a': {'name': 'toto', 'glass': 33},
+            'b': {'name': 'toto', 'glass': 45}
+            }
     # Same amount, most recent first
     db.AddEntry('a', 'pic2')
     db.AddEntry('b', 'pic2')
     char_a = db.GetCharacterFromHexID('a')
     char_b = db.GetCharacterFromHexID('b')
-    expected = [(2, char_b, 1 * 50, u'pic2'), (1, char_a, 1 * 50, u'pic2')]
+    expected = [(2, char_b, 1 * 45, u'pic2'), (1, char_a, 1 * 33, u'pic2')]
     results = [
         (t.id, t.character, t.amount, t.pic)
         for t in db.GetScoreBoard().execute()]
@@ -68,13 +83,17 @@ class BeerLogDBTests(unittest.TestCase):
   def testTags(self):
     """Test tags name/hexid operations."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+            '0x0': {'name': 'toto', 'glass': 33},
+            '0x2': {'name': 'toto', 'glass': 45}
+            }
     db.AddEntry('0x0', '')
     db.AddEntry('0x2', '')
 
     with tempfile.NamedTemporaryFile(mode='w+') as temp:
       temp.write(json.dumps({
-          '0x0':{'name': 'Kikoo'},
-          '0x2':{'name': 'name', 'realname': 'realname'}}))
+          '0x0':{'name': 'Kikoo', 'glass': '30'},
+          '0x2':{'name': 'name', 'realname': 'realname', 'glass': '45'}}))
       temp.flush()
       db.LoadTagsDB(temp.name)
       l = db.known_tags_list

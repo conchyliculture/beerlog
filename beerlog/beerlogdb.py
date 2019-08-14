@@ -84,6 +84,7 @@ class BeerLogDB():
     Returns:
       Entry: the Entry that was stored in the database.
     """
+    glass = self.GetGlassFromHexID(character_hexid)
     character, _ = Character.get_or_create(hexid=character_hexid)
     if time:
       entry = Entry.create(
@@ -148,6 +149,20 @@ class BeerLogDB():
     )
 
     return query
+
+  def GetGlassFromHexID(self, uid):
+    """Returns the corresponding glass from a uid
+
+    Args:
+      uid(str): the uid in form 0x0580000000050002
+    Returns:
+      int: the corresponding glass for that tag uid, or None if no name is found.
+    """
+    tag_object = self.known_tags_list.get(uid)
+    if not tag_object:
+      return None
+
+    return tag_object.get('glass')
 
   def LoadTagsDB(self, known_tags_path):
     """Loads the external known tags list.

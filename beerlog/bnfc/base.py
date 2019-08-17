@@ -198,13 +198,26 @@ class FakeNFC(BaseNFC):
     """
     self.process = multiprocessing.Process(target=self._Random, daemon=True)
 
+  def button_clicked(self, button):
+    event = NFCEvent(uid=self.uuid_widget.get_text())
+    self._events_queue.put(event)
+
   def _Random(self):
     """Randomly add NFCEvent to the queue."""
-    while True:
-      coin = random.randint(1, 40)
-      if coin == 1:
-        event = NFCEvent(uid=self.FIXED_UID)
-        self._events_queue.put(event)
-      time.sleep(1)
+    import gi
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk
+    win = Gtk.Window()
+    box = Gtk.Box(Gtk.Orientation.VERTICAL)
+    win.add(box)
+    self.uuid_widget = Gtk.Entry()
+    self.uuid_widget.set_text(self.FIXED_UID)
+    box.add(self.uuid_widget)
+    button = Gtk.Button(label="Send UUID")
+    box.add(button)
+    button.connect("clicked", self.button_clicked)
+    win.connect("destroy", Gtk.main_quit)
+    win.show_all()
+    Gtk.main()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

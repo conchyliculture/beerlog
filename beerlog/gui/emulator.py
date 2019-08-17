@@ -5,9 +5,8 @@ from __future__ import print_function
 from luma.emulator import device
 import pygame
 import pygame.key
-import constants
-from events import UIEvent
-
+from beerlog import constants
+from beerlog import events
 
 class Emulator():
   """Implements a GUI with luma emulator"""

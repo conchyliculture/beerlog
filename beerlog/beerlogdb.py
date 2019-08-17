@@ -85,7 +85,7 @@ class BeerLogDB():
       Entry: the Entry that was stored in the database.
     """
     glass = self.GetGlassFromHexID(character_hexid)
-    character, _ = Character.get_or_create(hexid=character_hexid)
+    character, _ = Character.get_or_create(hexid=character_hexid, glass=glass)
     if time:
       entry = Entry.create(
           character=character,

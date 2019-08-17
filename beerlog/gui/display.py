@@ -247,13 +247,19 @@ class LumaDisplay():
 
   def ShowScores(self):
     """Draws the Scoreboard screen."""
+    score_enumerated = self._scoreboard.GetRows()
+    total = 0
+    for scoreboard_position, row in score_enumerated:
+      total += row.amount / 100.0
+
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
+      self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
+      char_h - 1
       max_text_width = int(self.luma_device.width / char_w)
       max_name_width = max_text_width-12
-      self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
-      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'   L Last'
+      header = '  '+('{:<'+str(max_name_width)+'}'+('%.1fL' % total)).format('Name')+'   L Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
       score_enumerated = self._scoreboard.GetRows()
       draw_row = 0

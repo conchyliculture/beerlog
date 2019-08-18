@@ -78,6 +78,22 @@ class BeerLogDBTests(unittest.TestCase):
         for t in db.GetScoreBoard().execute()]
     self.assertEqual(expected, results)
 
+  def testGetCharacters(self):
+    """Test tags name/hexid operations."""
+    db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+        '0x0': {'name': 'toto', 'glass': 33},
+        '0x2': {'name': 'tutu', 'glass': 45}
+        }
+    db.AddEntry('0x0', 'pic2')
+    db.AddEntry('0x2', 'pic2')
+
+    char_a = db.GetCharacterFromHexID('0x0')
+    char_b = db.GetCharacterFromHexID('0x2')
+    self.assertEqual(
+        [char_a, char_b],
+        [t for t in db.GetAllCharacters().execute()])
+
   def testTags(self):
     """Test tags name/hexid operations."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)

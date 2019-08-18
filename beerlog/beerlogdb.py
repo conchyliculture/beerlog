@@ -99,6 +99,12 @@ class BeerLogDB():
       )
     return entry
 
+  def GetAllCharacters(self):
+    """Gets all active characters."""
+    query = Character.select(Character).join(Entry).where(
+        Character.id == Entry.character_id).distinct()
+    return query
+
   def GetCharacterFromHexID(self, character_hexid):
     """Returns a Character from its hexid.
 

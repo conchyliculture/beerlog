@@ -37,9 +37,10 @@ class Character(BeerModel):
     method."""
     return self._meta.database.GetNameFromHexID(self.hexid)
 
-  def GetAmountDrunk(self):
+  def GetAmountDrunk(self, at=None):
     """Gets the amount of beer drunk."""
-    return self._meta.database.GetAmountFromHexID(self.hexid, self.glass)
+    return self._meta.database.GetAmountFromHexID(self.hexid, self.glass, at=at)
+
 
 
 class Entry(BeerModel):
@@ -162,7 +163,7 @@ class BeerLogDB():
     Args:
       uid(str): the uid in form 0x0580000000050002
     Returns:
-      int: the corresponding glass for that tag uid, or None if no name is found.
+      int: the corresponding glass for a tag uid, or None if no name is found.
     """
     tag_object = self.known_tags_list.get(uid)
     if not tag_object:
@@ -205,19 +206,34 @@ class BeerLogDB():
 
     return tag_object.get('realname') or tag_object.get('name')
 
-  def GetAmountFromHexID(self, hexid, glass_size):
+  def GetEarliestTimestamp(self):
+    """Returns the timestamp of the first scan."""
+    return Entry.select(peewee.fn.MIN(Entry.timestamp)).scalar() #pylint: disable=no-value-for-parameter
+
+  def GetLatestTimestamp(self):
+    """Returns the timestamp of the last scan."""
+    return Entry.select(peewee.fn.MAX(Entry.timestamp)).scalar() #pylint: disable=no-value-for-parameter
+
+  def GetAmountFromHexID(self, hexid, glass_size, at=None):
     """Returns the amount of beer drunk for a Character.
 
     Args:
       hexid(str): the hexid of a character.
       glass_size(int): the size of the character's glass.
+      at(datetime.datetime): optional maximum date to count scans.
     Returns:
       int: the amount of beer.
     """
     character = self.GetCharacterFromHexID(hexid)
     amount_cl = 0
     if character:
-      entries = Entry.select(Entry).where(Entry.character == character).count()
+      if at:
+        entries = Entry.select(Entry).where(
+            Entry.character == character,
+            Entry.timestamp <= at).count()
+      else:
+        entries = Entry.select(Entry).where(
+            Entry.character == character).count()
       amount_cl = entries * glass_size
     return amount_cl
 

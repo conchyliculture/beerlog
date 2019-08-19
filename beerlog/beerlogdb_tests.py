@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import datetime
 import json
 import tempfile
 import unittest
@@ -93,6 +94,35 @@ class BeerLogDBTests(unittest.TestCase):
     self.assertEqual(
         [char_a, char_b],
         [t for t in db.GetAllCharacters().execute()])
+
+  def testGetAmount(self):
+    """Tests for counting total amount drunk per character"""
+    db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+        '0x0': {'name': 'toto', 'glass': 33},
+        '0x2': {'name': 'toto', 'glass': 45}
+        }
+    db.AddEntry('0x0', '', time=datetime.datetime(2019, 1, 1, 15, 00))
+    db.AddEntry('0x0', '', time=datetime.datetime(2019, 1, 1, 16, 00))
+    db.AddEntry('0x0', '', time=datetime.datetime(2019, 1, 1, 17, 00))
+    db.AddEntry('0x2', '', time=datetime.datetime(2019, 1, 1, 14, 00))
+    db.AddEntry('0x2', '', time=datetime.datetime(2019, 1, 1, 16, 30))
+
+    self.assertEqual(
+        datetime.datetime(2019, 1, 1, 14, 0), db.GetEarliestTimestamp())
+    self.assertEqual(
+        datetime.datetime(2019, 1, 1, 17, 0), db.GetLatestTimestamp())
+
+    # 3 scans
+    self.assertEqual(3*12, db.GetAmountFromHexID('0x0', 12))
+
+    self.assertEqual(0, db.GetAmountFromHexID(
+        '0x0', 12, at=datetime.datetime(2018, 1, 1, 16, 30)))
+    self.assertEqual(2*12, db.GetAmountFromHexID(
+        '0x0', 12, at=datetime.datetime(2019, 1, 1, 16, 30)))
+
+
+
 
   def testTags(self):
     """Test tags name/hexid operations."""

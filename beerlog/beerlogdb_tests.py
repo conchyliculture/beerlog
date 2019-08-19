@@ -6,7 +6,7 @@ import json
 import tempfile
 import unittest
 
-import beerlogdb
+from beerlog import beerlogdb
 
 # pylint: disable=protected-access
 

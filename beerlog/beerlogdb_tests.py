@@ -6,8 +6,6 @@ import json
 import tempfile
 import unittest
 
-import peewee
-
 import beerlogdb
 
 # pylint: disable=protected-access
@@ -21,8 +19,8 @@ class BeerLogDBTests(unittest.TestCase):
     """Tests the AddEntry() method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.known_tags_list = {
-            'char1': {'name': 'toto', 'glass': 33},
-            }
+        'char1': {'name': 'toto', 'glass': 33},
+        }
     db.AddEntry('char1', 'pic1')
     db.AddEntry('char1', 'pic1')
     self.assertEqual(db.CountAll(), 2)
@@ -31,9 +29,9 @@ class BeerLogDBTests(unittest.TestCase):
     """Tests the CharacterFromHexID() method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.known_tags_list = {
-            'charX': {'name': 'toto', 'glass': 33},
-            'charY': {'name': 'toto', 'glass': 45}
-            }
+        'charX': {'name': 'toto', 'glass': 33},
+        'charY': {'name': 'toto', 'glass': 45}
+        }
     db.AddEntry('charX', 'picX')
     self.assertEqual(db.GetCharacterFromHexID('non-ex'), None)
 
@@ -44,9 +42,9 @@ class BeerLogDBTests(unittest.TestCase):
     """Tests the GetScoreBoard method."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.known_tags_list = {
-            'a': {'name': 'toto', 'glass': 33},
-            'b': {'name': 'toto', 'glass': 45}
-            }
+        'a': {'name': 'toto', 'glass': 33},
+        'b': {'name': 'toto', 'glass': 45}
+        }
     db.AddEntry('a', 'pic1')
     db.AddEntry('a', 'pic2')
     db.AddEntry('a', 'pic3')
@@ -66,9 +64,9 @@ class BeerLogDBTests(unittest.TestCase):
 
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.known_tags_list = {
-            'a': {'name': 'toto', 'glass': 33},
-            'b': {'name': 'toto', 'glass': 45}
-            }
+        'a': {'name': 'toto', 'glass': 33},
+        'b': {'name': 'toto', 'glass': 45}
+        }
     # Same amount, most recent first
     db.AddEntry('a', 'pic2')
     db.AddEntry('b', 'pic2')
@@ -80,13 +78,29 @@ class BeerLogDBTests(unittest.TestCase):
         for t in db.GetScoreBoard().execute()]
     self.assertEqual(expected, results)
 
+  def testGetCharacters(self):
+    """Test tags name/hexid operations."""
+    db = beerlogdb.BeerLogDB(self.DB_PATH)
+    db.known_tags_list = {
+        '0x0': {'name': 'toto', 'glass': 33},
+        '0x2': {'name': 'tutu', 'glass': 45}
+        }
+    db.AddEntry('0x0', 'pic2')
+    db.AddEntry('0x2', 'pic2')
+
+    char_a = db.GetCharacterFromHexID('0x0')
+    char_b = db.GetCharacterFromHexID('0x2')
+    self.assertEqual(
+        [char_a, char_b],
+        [t for t in db.GetAllCharacters().execute()])
+
   def testTags(self):
     """Test tags name/hexid operations."""
     db = beerlogdb.BeerLogDB(self.DB_PATH)
     db.known_tags_list = {
-            '0x0': {'name': 'toto', 'glass': 33},
-            '0x2': {'name': 'toto', 'glass': 45}
-            }
+        '0x0': {'name': 'toto', 'glass': 33},
+        '0x2': {'name': 'toto', 'glass': 45}
+        }
     db.AddEntry('0x0', '')
     db.AddEntry('0x2', '')
 

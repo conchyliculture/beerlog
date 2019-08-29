@@ -52,6 +52,8 @@ class Entry(BeerModel):
 class BeerLogDB():
   """Wrapper for the database."""
 
+  _DEFAULT_GLASS_SIZE = 50
+
   def __init__(self, database_path):
     self.database_path = database_path
     sqlite_db = peewee.SqliteDatabase(self.database_path)
@@ -163,11 +165,11 @@ class BeerLogDB():
     Args:
       uid(str): the uid in form 0x0580000000050002
     Returns:
-      int: the corresponding glass for a tag uid, or None if no name is found.
+      int: the glass size for a tag uid, or the default value if not found.
     """
     tag_object = self.known_tags_list.get(uid)
     if not tag_object:
-      return None
+      return self._DEFAULT_GLASS_SIZE
 
     return tag_object.get('glass')
 

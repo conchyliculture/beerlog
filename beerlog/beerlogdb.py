@@ -171,7 +171,7 @@ class BeerLogDB():
     if not tag_object:
       return self._DEFAULT_GLASS_SIZE
 
-    return tag_object.get('glass')
+    return tag_object.get('glass', self._DEFAULT_GLASS_SIZE)
 
   def LoadTagsDB(self, known_tags_path):
     """Loads the external known tags list.

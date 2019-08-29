@@ -34,7 +34,7 @@ class BeerLog():
     self._capture_command = None
     self._database_path = None
     self._events_queue = SimpleQueue()
-    self._fake_nfc = False
+    self._disable_nfc = False
     self._known_tags = None
     self._last_taken_picture = None
     self._picture_dir = None
@@ -48,14 +48,12 @@ class BeerLog():
     Args:
       path(str): the option path to the device.
     """
-    if self._fake_nfc:
-      self.nfc_reader = nfc_base.FakeNFC(events_queue=self._events_queue)
-    else:
+    if not self._disable_nfc:
       self.nfc_reader = nfc_base.BeerNFC(
           events_queue=self._events_queue, should_beep=self._should_beep,
           path=path)
-    self.nfc_reader.process.start()
-    logging.debug('Started NFC {0!s}'.format(self.nfc_reader))
+      self.nfc_reader.process.start()
+      logging.debug('Started NFC {0!s}'.format(self.nfc_reader))
 
   def ParseArguments(self):
     """Parses arguments.
@@ -91,8 +89,8 @@ class BeerLog():
         default='pics',
         help='Where to store the pictures')
     parser.add_argument(
-        '--fake_nfc', dest='fake_nfc', action='store_true',
-        help='Uses a fake NFC reader that will sometimes tag things')
+        '--disable_nfc', dest='disable_nfc', action='store_true',
+        help='Disables the NFC reader (useful in emulator mode)')
 
     args = parser.parse_args()
 
@@ -101,7 +99,7 @@ class BeerLog():
     self._known_tags = args.known_tags
     self._picture_dir = args.picture_dir
     self._should_beep = args.should_beep
-    self._fake_nfc = args.fake_nfc
+    self._disable_nfc = args.disable_nfc
 
     if args.debug:
       logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)

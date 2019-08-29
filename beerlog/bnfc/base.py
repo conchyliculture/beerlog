@@ -5,7 +5,6 @@ from __future__ import print_function
 import binascii
 import logging
 import multiprocessing
-import random
 import time
 
 import nfc
@@ -184,27 +183,5 @@ class BeerNFC(BaseNFC):
       except nfc.tag.tt2.Type2TagCommandError as e:
         event = events.ErrorEvent('{0!s}'.format(e))
     return False
-
-class FakeNFC(BaseNFC):
-  """Fake NFC reader"""
-
-  FIXED_UID = "0x0580000000050002"
-
-  def OpenNFC(self):
-    """Initializes the NFC reader.
-
-    Raises:
-      errors.BeerLogError: when we couldn't open the device.
-    """
-    self.process = multiprocessing.Process(target=self._Random, daemon=True)
-
-  def _Random(self):
-    """Randomly add NFCEvent to the queue."""
-    while True:
-      coin = random.randint(1, 40)
-      if coin == 1:
-        event = NFCEvent(uid=self.FIXED_UID)
-        self._events_queue.put(event)
-      time.sleep(1)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

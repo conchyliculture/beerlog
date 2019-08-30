@@ -50,3 +50,11 @@ I have some!
 ```
 python run_tests.py
 ```
+
+## Development
+
+For development purposes, you can run the code with an emulated interface.
+
+```
+apt install python3-gi
+```

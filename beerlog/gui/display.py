@@ -310,7 +310,8 @@ class LumaDisplay():
       from beerlog.gui import sh1106
       gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
-      raise Exception('Is not a RPI, bailing out ')
+      from beerlog.gui import emulator
+      gui_object = emulator.Emulator(self._events_queue)
 
     if not gui_object:
       raise Exception('Could not initialize a GUI object')

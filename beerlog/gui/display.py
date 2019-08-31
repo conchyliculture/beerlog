@@ -139,6 +139,7 @@ class LumaDisplay():
     self.machine = None
     self._last_scanned_name = None
     self._last_error = None
+    self._too_soon = False
 
     # UI related defaults
     self._font = PIL.ImageFont.load_default()
@@ -210,6 +211,7 @@ class LumaDisplay():
       event(transitions.EventData): the event.
     """
     self._last_scanned_name = event.kwargs.get('who', None)
+    self._too_soon = event.kwargs.get('too_soon', False)
     self._last_error = event.kwargs.get('error', None)
     self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
@@ -222,7 +224,25 @@ class LumaDisplay():
     elif self.machine.state == 'SCORE':
       self.ShowScores()
     elif self.machine.state == 'SCANNED':
-      self.ShowScanned()
+      if self._too_soon:
+        self.ShowScannedTooSoon()
+      else:
+        self.ShowScanned()
+
+  def ShowScannedTooSoon(self):
+    """Draws the screen showing we're scanning too fast."""
+    msg = 'Already scanned\n cheater :3'
+    # Add a text layer over the frame
+    background = PIL.Image.new('RGB', self.luma_device.size, 'black')
+    text_layer = PIL.ImageDraw.Draw(background)
+    text_width, text_height = text_layer.textsize(msg)
+    text_pos = (
+        (self.luma_device.width - text_width) // 2,
+        (self.luma_device.height - text_height) // 2
+    )
+    text_layer.text(text_pos, msg, (255, 255, 255), font=self._font)
+
+    self.luma_device.display(background.convert(self.luma_device.mode))
 
   def ShowScanned(self):
     """Draws the screen showing the last scanned tag."""

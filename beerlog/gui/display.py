@@ -24,10 +24,10 @@ def GetShortAmountOfBeer(amount):
     str: the human readable string.
   """
   if amount >= 999.5:
-    return 'DED'
+    return 'DEAD'
   if amount >= 99.5:
-    return '{0:>3d}'.format(int(round(amount)))
-  return '{0:3.2g}'.format(amount)
+    return '{0:>4d}'.format(int(round(amount)))
+  return '{0:4.3g}'.format(amount)
 
 
 def GetShortLastBeer(last, now=None):
@@ -282,10 +282,10 @@ class LumaDisplay():
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
-      max_name_width = max_text_width-12
+      max_name_width = max_text_width-13
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
-      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'   L Last'
+      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
       score_enumerated = self._scoreboard.GetRows()
       draw_row = 0

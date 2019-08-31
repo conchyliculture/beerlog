@@ -15,7 +15,6 @@ import time
 from beerlog import beerlogdb
 from beerlog.bnfc import base as nfc_base
 from beerlog import constants
-from beerlog import errors
 from beerlog import events
 from beerlog.gui import display
 
@@ -185,14 +184,9 @@ class BeerLog():
     # TODO : have a UI class of events, and let the ui object deal with them
     self.ResetTimers()
     if event.type == constants.EVENTTYPES.NFCSCANNED:
-      name = self.db.GetNameFromHexID(event.uid)
-      if not name:
-        raise errors.BeerLogError(
-            'Could not find the corresponding name for tag id "{0!s}" '
-            'in "{1:s}"'.format(event.uid, self._known_tags))
-      character = self.db.GetCharacterFromHexID(event.uid)
       self.db.AddEntry(event.uid, self._last_taken_picture)
-      self.ui.machine.scan(who=name, character=character)
+      name = self.db.GetNameFromHexID(event.uid)
+      self.ui.machine.scan(who=name)
       self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
       self.ui.machine.up()

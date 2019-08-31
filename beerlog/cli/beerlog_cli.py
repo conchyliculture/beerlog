@@ -36,6 +36,7 @@ class BeerLog():
     self._disable_nfc = False
     self._known_tags = None
     self._last_taken_picture = None
+    self._last_scanned_names = {}
     self._picture_dir = None
     self._should_beep = None
 
@@ -184,9 +185,19 @@ class BeerLog():
     # TODO : have a UI class of events, and let the ui object deal with them
     self.ResetTimers()
     if event.type == constants.EVENTTYPES.NFCSCANNED:
-      self.db.AddEntry(event.uid, self._last_taken_picture)
+      too_soon = False
       name = self.db.GetNameFromHexID(event.uid)
-      self.ui.machine.scan(who=name)
+      delta = constants.SCAN_RATE_LIMIT * 2
+      if name in self._last_scanned_names:
+        delta = (datetime.datetime.now() - self._last_scanned_names.get(name))
+        delta = delta.total_seconds()
+      self._last_scanned_names[name] = datetime.datetime.now()
+
+      if delta < constants.SCAN_RATE_LIMIT:
+        too_soon = True
+      else:
+        self.db.AddEntry(event.uid, self._last_taken_picture)
+      self.ui.machine.scan(who=name, too_soon=too_soon)
       self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
       self.ui.machine.up()

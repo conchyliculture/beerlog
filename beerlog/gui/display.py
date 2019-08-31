@@ -305,7 +305,7 @@ class LumaDisplay():
 
   def ShowError(self):
     """Displays an error message."""
-    term = terminal(self.luma_device, self._font)
+    term = terminal(self.luma_device, self._font, animate=False)
     print(self._last_error)
     term.println(self._last_error)
 

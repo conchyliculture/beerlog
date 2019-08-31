@@ -106,7 +106,7 @@ class WaveShareOLEDHat():
     self._oled_hat = sh1106(self._serial, rotate=0)
 
   def GetDevice(self):
-    """Returns the """
+    """Returns the luma device"""
     return self._oled_hat
 
 # vim: tabstop=2 shiftwidth=2 expandtab

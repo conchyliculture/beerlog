@@ -73,10 +73,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
     db.LoadTagsDB('/home/renzokuken/known_tags.json')
 
     first_scan = db.GetEarliestTimestamp()
-    first_scan = first_scan.replace(hour=16, minute=0, second=0)
+    first_scan = first_scan.replace(hour=16, minute=0, second=0) # Clean up hack
     last_scan = db.GetLatestTimestamp()
     delta = last_scan - first_scan
-    print(last_scan)
     total_hours = int((delta.total_seconds() / 3600) + 2)
     fields = []
     datasets = {} # {'alcoolique': ['L cummulés']}
@@ -84,12 +83,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
       timestamp = (first_scan + datetime.timedelta(seconds=hour * 3600))
       timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
       fields.append(timestamp.astimezone().strftime('%Y%m%d %Hh%M'))
-      for alcoolique in db.GetAllCharacters():
-        cl = alcoolique.GetAmountDrunk(at=timestamp)
-        if alcoolique.name in datasets:
-          datasets[alcoolique.name].append(cl)
+      for alcoolique in db.GetAllCharacterNames():
+        cl = db.GetAmountFromName(alcoolique, at=timestamp)
+        if alcoolique in datasets:
+          datasets[alcoolique].append(cl)
         else:
-          datasets[alcoolique.name] = [cl]
+          datasets[alcoolique] = [cl]
 
     output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
     for k, v in datasets.items():

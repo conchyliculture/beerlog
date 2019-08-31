@@ -1,4 +1,5 @@
-"""TODO"""
+"""Module for managing the display."""
+
 from __future__ import print_function
 
 from datetime import datetime
@@ -15,7 +16,13 @@ from beerlog import errors
 
 
 def GetShortAmountOfBeer(amount):
-  """Returns a shortened string for an volume in cL."""
+  """Returns a shortened string for an volume in cL
+
+  Args:
+    amount(float): quantity, in L.
+  Returns:
+    str: the human readable string.
+  """
   if amount >= 999.5:
     return 'DED'
   if amount >= 99.5:
@@ -24,7 +31,15 @@ def GetShortAmountOfBeer(amount):
 
 
 def GetShortLastBeer(last, now=None):
-  """Returns a shortened string for the last scan."""
+  """Returns a shortened string for the delta between now and last scan.
+
+  Args:
+    last(datetime.datetime): timestamp of the last scan.
+    now(datetime.datetime): an optional time reference.
+      The current datetime if None.
+  Returns:
+    str: the time delta since the last scan and now.
+  """
   if not now:
     now = datetime.now()
   delta = now - last
@@ -51,6 +66,7 @@ def GetShortLastBeer(last, now=None):
   if result == '':
     result = 'Unk?'
   return '{0: >4}'.format(result[0:4])
+
 
 class ScoreBoard():
   """Implements a sliding window with a selector over the score board."""
@@ -103,15 +119,14 @@ class ScoreBoard():
 
 
 class LumaDisplay():
-  """TODO"""
+  """Class managing the display."""
 
   STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
   DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
 
-  # TODO: remove the default None here
-  def __init__(self, events_queue=None, database=None):
+  def __init__(self, events_queue, database):
     self._events_queue = events_queue
     self._database = database
     if not self._events_queue:
@@ -122,8 +137,7 @@ class LumaDisplay():
     # Internal stuff
     self.luma_device = None
     self.machine = None
-    self._last_scanned = None
-    self._last_scanned_character = None
+    self._last_scanned_name = None
     self._last_error = None
 
     # UI related defaults
@@ -195,8 +209,7 @@ class LumaDisplay():
     Args:
       event(transitions.EventData): the event.
     """
-    self._last_scanned = event.kwargs.get('who', None)
-    self._last_scanned_character = event.kwargs.get('character', None)
+    self._last_scanned_name = event.kwargs.get('who', None)
     self._last_error = event.kwargs.get('error', None)
     self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
@@ -220,11 +233,10 @@ class LumaDisplay():
         (self.luma_device.width - size[0]) // 2,
         self.luma_device.height - size[1]
     )
-    msg = 'Cheers ' + self._last_scanned + '!'
-    if self._last_scanned_character:
-      msg += ' {0:s}L'.format(
-          GetShortAmountOfBeer(
-              self._last_scanned_character.GetAmountDrunk() / 100.0))
+    msg = 'Cheers ' + self._last_scanned_name + '!'
+    msg += ' {0:s}L'.format(
+        GetShortAmountOfBeer(
+            self._database.GetAmountFromName(self._last_scanned_name) / 100.0))
 
     for gif_frame in PIL.ImageSequence.Iterator(beer):
       with regulator:
@@ -263,8 +275,8 @@ class LumaDisplay():
         #     '2.Dog        10   5m'
         text = str(scoreboard_position)+'.'
         text += ' '.join([
-            ('{0:<'+str(max_name_width)+'}').format(row.character.name),
-            GetShortAmountOfBeer(row.amount / 100.0),
+            ('{0:<'+str(max_name_width)+'}').format(row.character_name),
+            GetShortAmountOfBeer(row.total / 100.0),
             GetShortLastBeer(row.last)])
         if self._scoreboard.index == scoreboard_position:
           rectangle_geometry = (

@@ -206,7 +206,9 @@ class BeerLog():
     elif event.type == constants.EVENTTYPES.ESCAPE:
       self.ui.machine.back()
     elif event.type == constants.EVENTTYPES.KEYMENU1:
-      self.ui.machine.back()
+      self.ui.machine.menu1()
+    elif event.type == constants.EVENTTYPES.KEYMENU2:
+      self.ui.machine.menu2()
     elif event.type == constants.EVENTTYPES.ERROR:
       self.ui.machine.error(error=str(event))
     else:

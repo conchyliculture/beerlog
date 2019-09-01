@@ -122,7 +122,7 @@ class Scroller():
 class LumaDisplay():
   """Class managing the display."""
 
-  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
+  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
   DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
@@ -170,10 +170,9 @@ class LumaDisplay():
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE', before='SetEnv')
-    self.machine.add_transition('stats', 'SCORE', 'STATS')
     self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
     self.machine.add_transition('error', '*', 'ERROR', before='SetEnv')
-    # TODO: check devie "mode" ?
+    # TODO: check device "mode" ?
     self.machine.add_transition(
         'up', 'SCORE', 'SCORE', after='DecrementScoreIndex')
     self.machine.add_transition(
@@ -181,10 +180,22 @@ class LumaDisplay():
     self.machine.add_transition('up', 'SPLASH', 'SCORE')
     self.machine.add_transition('down', 'SPLASH', 'SCORE')
 
+    self.machine.add_transition('menu1', '*', 'MENUGLOBAL')
+    self.machine.add_transition(
+        'up', 'MENUGLOBAL', 'MENUGLOBAL', after='DecrementScoreIndex')
+    self.machine.add_transition(
+        'down', 'MENUGLOBAL', 'MENUGLOBAL', after='IncrementScoreIndex')
+    self.machine.add_transition('up', 'SPLASH', 'SCORE')
+    self.machine.add_transition('down', 'SPLASH', 'SCORE')
+
+
     self.machine.add_transition('up', 'ERROR', 'SCORE')
     self.machine.add_transition('down', 'ERROR', 'SCORE')
     self.machine.add_transition('left', 'ERROR', 'SCORE')
     self.machine.add_transition('right', 'ERROR', 'SCORE')
+
+    self.machine.add_transition('menu1', 'MENUGLOBAL', 'SCORE')
+    self.machine.add_transition('menu2', '*', 'SCORE')
 
     self.machine.add_transition('up', '*', '=')
     self.machine.add_transition('down', '*', '=')
@@ -229,6 +240,23 @@ class LumaDisplay():
         self.ShowScannedTooSoon()
       else:
         self.ShowScanned()
+    elif self.machine.state == 'MENUGLOBAL':
+      self.ShowMenuGlobal()
+
+  def ShowMenuGlobal(self):
+    """TODO"""
+    msg = 'Kkkk scanned\n cheater :3'
+    # Add a text layer over the frame
+    background = PIL.Image.new('RGB', self.luma_device.size, 'black')
+    text_layer = PIL.ImageDraw.Draw(background)
+    text_width, text_height = text_layer.textsize(msg)
+    text_pos = (
+        (self.luma_device.width - text_width) // 2,
+        (self.luma_device.height - text_height) // 2
+    )
+    text_layer.text(text_pos, msg, (255, 255, 255), font=self._font)
+
+    self.luma_device.display(background.convert(self.luma_device.mode))
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""

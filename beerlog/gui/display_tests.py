@@ -13,18 +13,18 @@ class TestDisplay(unittest.TestCase):
 
   def testGetShortAmountOfBeer(self):
     """Tests the _GetShortLastBeer() method."""
-    self.assertEqual(display.GetShortAmountOfBeer(0), '  0')
-    self.assertEqual(display.GetShortAmountOfBeer(1.01), '  1')
-    self.assertEqual(display.GetShortAmountOfBeer(1.28), '1.3')
-    self.assertEqual(display.GetShortAmountOfBeer(1.88), '1.9')
-    self.assertEqual(display.GetShortAmountOfBeer(10.21), ' 10')
-    self.assertEqual(display.GetShortAmountOfBeer(10.91), ' 11')
-    self.assertEqual(display.GetShortAmountOfBeer(99.11), ' 99')
-    self.assertEqual(display.GetShortAmountOfBeer(99.91), '100')
-    self.assertEqual(display.GetShortAmountOfBeer(999), '999')
-    self.assertEqual(display.GetShortAmountOfBeer(999.5), 'DED')
-    self.assertEqual(display.GetShortAmountOfBeer(1000), 'DED')
-    self.assertEqual(display.GetShortAmountOfBeer(9999), 'DED')
+    self.assertEqual(display.GetShortAmountOfBeer(0), '   0')
+    self.assertEqual(display.GetShortAmountOfBeer(1.01), '1.01')
+    self.assertEqual(display.GetShortAmountOfBeer(1.28), '1.28')
+    self.assertEqual(display.GetShortAmountOfBeer(1.88), '1.88')
+    self.assertEqual(display.GetShortAmountOfBeer(10.21), '10.2')
+    self.assertEqual(display.GetShortAmountOfBeer(10.91), '10.9')
+    self.assertEqual(display.GetShortAmountOfBeer(99.11), '99.1')
+    self.assertEqual(display.GetShortAmountOfBeer(99.91), ' 100')
+    self.assertEqual(display.GetShortAmountOfBeer(999), ' 999')
+    self.assertEqual(display.GetShortAmountOfBeer(999.5), 'DEAD')
+    self.assertEqual(display.GetShortAmountOfBeer(1000), 'DEAD')
+    self.assertEqual(display.GetShortAmountOfBeer(9999), 'DEAD')
 
   def testGetShortLastBeer(self):
     """Tests the _GetShortLastBeer() method."""
@@ -53,3 +53,7 @@ class TestDisplay(unittest.TestCase):
 
     last = datetime(2029, 4, 3, 2, 1)
     self.assertEqual('Unk?', display.GetShortLastBeer(last, now=now))
+
+
+if __name__ == "__main__":
+  unittest.main()

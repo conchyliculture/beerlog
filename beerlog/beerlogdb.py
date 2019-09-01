@@ -214,4 +214,22 @@ class BeerLogDB():
       amount_cl = amount
     return amount_cl
 
+  def GetTotalAmount(self, since=None):
+    """Returns the total of beer drunk, in cL.
+
+    Args:
+      since(datetime.datetime): since when.
+
+    Returns:
+      int: the total amount, in cL.
+
+    """
+    if since:
+      query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
+          Entry.timestamp >= since)
+    else:
+      query = Entry.select(peewee.fn.SUM(Entry.amount))
+    return query.scalar() or 0 # pylint: disable=no-value-for-parameter
+
+
 # vim: tabstop=2 shiftwidth=2 expandtab

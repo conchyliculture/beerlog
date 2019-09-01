@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from datetime import datetime
+import datetime
 import os
 import time
 from transitions import Machine
@@ -13,6 +13,7 @@ from luma.core.virtual import terminal
 import PIL
 
 from beerlog import errors
+from beerlog import system
 
 
 def GetShortAmountOfBeer(amount):
@@ -41,7 +42,7 @@ def GetShortLastBeer(last, now=None):
     str: the time delta since the last scan and now.
   """
   if not now:
-    now = datetime.now()
+    now = datetime.datetime.now()
   delta = now - last
   seconds = int(delta.total_seconds())
   if seconds == 0:
@@ -263,8 +264,14 @@ class LumaDisplay():
     """
     rows = []
 
-    rows.append('Total drunk')
-    rows.append('123456789012345678901234567890')
+    total_l = GetShortAmountOfBeer(self._database.GetTotalAmount() / 100.0)
+    last_h = datetime.datetime.now() - datetime.timedelta(hours=1)
+    l_per_h = GetShortAmountOfBeer(
+        self._database.GetTotalAmount(since=last_h) / 100.0)
+
+    rows.append('WiFi: '+system.GetWifiStatus())
+    rows.append('Total drunk: {0:s}L'.format(total_l))
+    rows.append('Last h: {0:s}L/h'.format(l_per_h))
 
     return rows
 

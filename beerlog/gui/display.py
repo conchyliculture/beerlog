@@ -68,16 +68,26 @@ def GetShortLastBeer(last, now=None):
   return '{0: >4}'.format(result[0:4])
 
 
-class ScoreBoard():
-  """Implements a sliding window with a selector over the score board."""
+class Scroller():
+  """Implements a scroller object."""
 
-  def __init__(self, scoreboard):
-    self._board = scoreboard
+  def __init__(self):
+    self._array = []
     self._max_lines = 0
 
     self.index = None
     self._window_low = 0
-    self._window_high = len(self._board)
+    self._array_size = 0
+    self._window_high = 0
+
+  def UpdateData(self, data):
+    """Sets the data for the scoller object.
+
+    Args:
+      data(list): the list of rows to display/scroll through.
+    """
+    self._array = data
+    self._array_size = len(self._array)
 
   def SetMaxLines(self, lines):
     """Sets the width of the window.
@@ -94,14 +104,14 @@ class ScoreBoard():
     Returns:
       enumerate(peewee rows): the scoreboard window.
     """
-    window = self._board[self._window_low:self._window_high]
-    return enumerate(window, start=self._window_low+1)
+    window = self._array[self._window_low:self._window_high]
+    return window
 
   def IncrementIndex(self):
     """Increments the index. Moves the window bounds if necessary."""
     if self.index is None:
       self.index = 0
-    if self.index < len(self._board):
+    elif self.index < self._array_size - 1:
       self.index += 1
       if self.index > self._window_high:
         self._window_low += 1
@@ -155,7 +165,7 @@ class LumaDisplay():
                 os.path.dirname(os.path.realpath(__file__)))),
         self.DEFAULT_SCAN_GIF)
 
-    self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
+    self._scoreboard = Scroller()
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
@@ -213,10 +223,10 @@ class LumaDisplay():
     self._last_scanned_name = event.kwargs.get('who', None)
     self._too_soon = event.kwargs.get('too_soon', False)
     self._last_error = event.kwargs.get('error', None)
-    self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
   def Update(self):
     """TODO"""
+    self._scoreboard.UpdateData(self._database.GetScoreBoard())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
     elif self.machine.state == 'ERROR':
@@ -287,13 +297,13 @@ class LumaDisplay():
       # ie: '  Name      L Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
-      score_enumerated = self._scoreboard.GetRows()
+      score_enumerated = enumerate(self._scoreboard.GetRows())
       draw_row = 0
       for scoreboard_position, row in score_enumerated:
         draw_row += 1
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
-        text = str(scoreboard_position)+'.'
+        text = '{0:d}.'.format(scoreboard_position+1)
         text += ' '.join([
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
             GetShortAmountOfBeer(row.total / 100.0),

@@ -5,8 +5,9 @@ from __future__ import print_function
 import argparse
 import datetime
 import logging
+import multiprocessing
 import os
-from multiprocessing import SimpleQueue
+import queue
 import subprocess
 import sys
 from threading import Timer
@@ -18,13 +19,6 @@ from beerlog import constants
 from beerlog import events
 from beerlog.gui import display
 
-
-class RepeatTimer(Timer):
-  """Timer that keeps on timing."""
-
-  def run(self):
-    while not self.finished.wait(self.interval):
-      self.function(*self.args, **self.kwargs)
 
 class BeerLog():
   """BeerLog main class.
@@ -39,7 +33,7 @@ class BeerLog():
     self.db = None
     self._capture_command = None
     self._database_path = None
-    self._events_queue = SimpleQueue()
+    self._events_queue = multiprocessing.Queue()
     self._disable_nfc = False
     self._known_tags = None
     self._last_taken_picture = None
@@ -48,8 +42,6 @@ class BeerLog():
     self._should_beep = None
 
     self._timers = []
-    self._updater = RepeatTimer(1, self.PushEvent, args=(events.NopEvent(),))
-    self._updater.start()
 
   def InitNFC(self, path=None):
     """Initializes the NFC reader.
@@ -134,7 +126,6 @@ class BeerLog():
       self.Loop()
     finally:
       self.ResetTimers()
-      self._updater.cancel()
 
   def InitUI(self):
     """Initialises the user interface."""
@@ -175,15 +166,16 @@ class BeerLog():
     Looks for any new event in the main progrem Queue and processes them.
     """
     while True:
-      event = self._events_queue.get()
-      if event:
+      try:
+        event = self._events_queue.get(timeout=1)
         try:
           self._HandleEvent(event)
         except Exception as e:  #pylint: disable=broad-except
           logging.error(e)
           err_event = events.ErrorEvent('{0!s}'.format(e))
           self.PushEvent(err_event)
-
+      except queue.Empty:
+        pass
       time.sleep(0.05)
       self.ui.Update()
 

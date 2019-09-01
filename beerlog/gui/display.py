@@ -166,6 +166,7 @@ class LumaDisplay():
         self.DEFAULT_SCAN_GIF)
 
     self._scoreboard = Scroller()
+    self._global_menu = Scroller()
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
@@ -236,8 +237,9 @@ class LumaDisplay():
     self._last_error = event.kwargs.get('error', None)
 
   def Update(self):
-    """TODO"""
+    """Draws the display depending on the state of the StateMachine."""
     self._scoreboard.UpdateData(self._database.GetScoreBoard())
+    self._global_menu.UpdateData(self._GetGlobalMenuRows())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
     elif self.machine.state == 'ERROR':
@@ -252,20 +254,58 @@ class LumaDisplay():
     elif self.machine.state == 'MENUGLOBAL':
       self.ShowMenuGlobal()
 
-  def ShowMenuGlobal(self):
-    """TODO"""
-    msg = 'Kkkk scanned\n cheater :3'
-    # Add a text layer over the frame
-    background = PIL.Image.new('RGB', self.luma_device.size, 'black')
-    text_layer = PIL.ImageDraw.Draw(background)
-    text_width, text_height = text_layer.textsize(msg)
-    text_pos = (
-        (self.luma_device.width - text_width) // 2,
-        (self.luma_device.height - text_height) // 2
-    )
-    text_layer.text(text_pos, msg, (255, 255, 255), font=self._font)
 
-    self.luma_device.display(background.convert(self.luma_device.mode))
+  def _GetGlobalMenuRows(self):
+    """Builds the information to display in the global menu.
+
+    Returns:
+      list(str): the list of rows to display.
+    """
+    rows = []
+
+    rows.append('Total drunk')
+    rows.append('123456789012345678901234567890')
+
+    return rows
+
+  def _DrawTextRow(self, drawer, text, line_num, char_height, selected=False):
+    """Helper method to draw a row of text.
+
+    Args:
+      drawer(LumaCanvas): the canvas to draw into.
+      text(str): the text to display.
+      line_num(int): which line number to draw.
+      char_height(int): height of a character in pixels.
+      selected(bool): whether to draw the line as selected.
+    """
+    if selected:
+      rectangle_geometry = (
+          2,
+          line_num * char_height,
+          self.luma_device.width,
+          ((line_num+1) * char_height)
+          )
+      drawer.rectangle(
+          rectangle_geometry, outline='white', fill='white')
+      drawer.text(
+          (2, line_num*char_height), text, font=self._font, fill='black')
+    else:
+      drawer.text(
+          (2, line_num*char_height), text, font=self._font, fill='white')
+
+  def ShowMenuGlobal(self):
+    """Displays the global menu"""
+    with LumaCanvas(self.luma_device) as drawer:
+      _, char_h = drawer.textsize(' ', font=self._font)
+      self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
+      menu_enumerated = enumerate(self._global_menu.GetRows())
+      draw_row = 0
+      for menu_position, row in menu_enumerated:
+        text = row
+        self._DrawTextRow(
+            drawer, text, draw_row, char_h,
+            selected=(self._global_menu.index == menu_position))
+        draw_row += 1
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
@@ -336,18 +376,9 @@ class LumaDisplay():
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
             GetShortAmountOfBeer(row.total / 100.0),
             GetShortLastBeer(row.last)])
-        if self._scoreboard.index == scoreboard_position:
-          rectangle_geometry = (
-              2,
-              draw_row * char_h,
-              self.luma_device.width,
-              ((draw_row+1) * char_h)
-              )
-          drawer.rectangle(
-              rectangle_geometry, outline='white', fill='white')
-          drawer.text((2, draw_row*char_h), text, font=self._font, fill='black')
-        else:
-          drawer.text((2, draw_row*char_h), text, font=self._font, fill='white')
+        self._DrawTextRow(
+            drawer, text, draw_row, char_h,
+            selected=(self._scoreboard.index == scoreboard_position))
 
   def ShowSplash(self):
     """Displays the splash screen."""

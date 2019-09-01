@@ -126,11 +126,15 @@ class BeerLog():
 
   def Main(self):
     """Runs the script."""
-    self.ParseArguments()
-    self.InitDB()
-    self.InitNFC(path="usb")
-    self.InitUI()
-    self.Loop()
+    try:
+      self.ParseArguments()
+      self.InitDB()
+      self.InitNFC(path="usb")
+      self.InitUI()
+      self.Loop()
+    finally:
+      self.ResetTimers()
+      self._updater.cancel()
 
   def InitUI(self):
     """Initialises the user interface."""

@@ -19,6 +19,13 @@ from beerlog import events
 from beerlog.gui import display
 
 
+class RepeatTimer(Timer):
+  """Timer that keeps on timing."""
+
+  def run(self):
+    while not self.finished.wait(self.interval):
+      self.function(*self.args, **self.kwargs)
+
 class BeerLog():
   """BeerLog main class.
 
@@ -41,6 +48,8 @@ class BeerLog():
     self._should_beep = None
 
     self._timers = []
+    self._updater = RepeatTimer(1, self.PushEvent, args=(events.NopEvent(),))
+    self._updater.start()
 
   def InitNFC(self, path=None):
     """Initializes the NFC reader.
@@ -209,6 +218,8 @@ class BeerLog():
       self.ui.machine.back()
     elif event.type == constants.EVENTTYPES.ERROR:
       self.ui.machine.error(error=str(event))
+    elif event.type == constants.EVENTTYPES.NOEVENT:
+      self.ui.Update()
     else:
       err_msg = 'Unknown Event: {0!s}'.format(event)
       print(err_msg)

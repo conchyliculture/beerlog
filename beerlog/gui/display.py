@@ -24,10 +24,10 @@ def GetShortAmountOfBeer(amount):
     str: the human readable string.
   """
   if amount >= 999.5:
-    return 'DED'
+    return 'DEAD'
   if amount >= 99.5:
-    return '{0:>3d}'.format(int(round(amount)))
-  return '{0:3.2g}'.format(amount)
+    return '{0:>4d}'.format(int(round(amount)))
+  return '{0:4.3g}'.format(amount)
 
 
 def GetShortLastBeer(last, now=None):
@@ -71,14 +71,23 @@ def GetShortLastBeer(last, now=None):
 class Scroller():
   """Implements a scroller object."""
 
-  def __init__(self, array):
-    self._array = array
+  def __init__(self):
+    self._array = []
     self._max_lines = 0
 
     self.index = None
     self._window_low = 0
-    self._array_size = len(self._array) - 1
-    self._window_high = self._array_size
+    self._array_size = 0
+    self._window_high = 0
+
+  def UpdateData(self, data):
+    """Sets the data for the scoller object.
+
+    Args:
+      data(list): the list of rows to display/scroll through.
+    """
+    self._array = data
+    self._array_size = len(self._array)
 
   def SetMaxLines(self, lines):
     """Sets the width of the window.
@@ -102,7 +111,7 @@ class Scroller():
     """Increments the index. Moves the window bounds if necessary."""
     if self.index is None:
       self.index = 0
-    if self.index < self._array_size:
+    elif self.index < self._array_size - 1:
       self.index += 1
       if self.index > self._window_high:
         self._window_low += 1
@@ -156,7 +165,7 @@ class LumaDisplay():
                 os.path.dirname(os.path.realpath(__file__)))),
         self.DEFAULT_SCAN_GIF)
 
-    self._scoreboard = Scroller(self._database.GetScoreBoard())
+    self._scoreboard = Scroller()
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
@@ -225,10 +234,10 @@ class LumaDisplay():
     self._last_scanned_name = event.kwargs.get('who', None)
     self._too_soon = event.kwargs.get('too_soon', False)
     self._last_error = event.kwargs.get('error', None)
-#    self._scoreboard = ScoreBoard(self._database.GetScoreBoard())
 
   def Update(self):
     """TODO"""
+    self._scoreboard.UpdateData(self._database.GetScoreBoard())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
     elif self.machine.state == 'ERROR':
@@ -311,10 +320,10 @@ class LumaDisplay():
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
-      max_name_width = max_text_width-12
+      max_name_width = max_text_width-13
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
-      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'   L Last'
+      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
       drawer.text((2, 0), header, font=self._font, fill='white')
       score_enumerated = enumerate(self._scoreboard.GetRows())
       draw_row = 0

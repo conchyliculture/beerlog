@@ -17,6 +17,9 @@ class BaseEvent():
     self.timestamp = datetime.now()
     self.type = event_type
 
+  def __str__(self):
+    return self.type
+
 class ErrorEvent(BaseEvent):
   """Event to carry error messages."""
 
@@ -26,6 +29,13 @@ class ErrorEvent(BaseEvent):
 
   def __str__(self):
     return '{0:s}'.format(self.message)
+
+
+class NopEvent(BaseEvent):
+  """An Event that does nothing."""
+
+  def __init__(self):
+    super(NopEvent, self).__init__(constants.EVENTTYPES.NOEVENT)
 
 
 class UIEvent(BaseEvent):

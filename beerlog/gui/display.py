@@ -17,7 +17,7 @@ from beerlog import system
 
 
 def GetShortAmountOfBeer(amount):
-  """Returns a shortened string for an volume in cL
+  """Returns a shortened string for an volume in Litre
 
   Args:
     amount(float): quantity, in L.
@@ -260,20 +260,21 @@ class LumaDisplay():
     """Builds the information to display in the global menu.
 
     Returns:
-      list(str): the list of rows to display.
+      list(dict): the data to display
     """
-    rows = []
+    data = []
 
     total_l = GetShortAmountOfBeer(self._database.GetTotalAmount() / 100.0)
     last_h = datetime.datetime.now() - datetime.timedelta(hours=1)
     l_per_h = GetShortAmountOfBeer(
         self._database.GetTotalAmount(since=last_h) / 100.0)
 
-    rows.append('WiFi: '+system.GetWifiStatus())
-    rows.append('Total drunk: {0:s}L'.format(total_l))
-    rows.append('Last h: {0:s}L/h'.format(l_per_h))
-
-    return rows
+    data.append({'name': 'WiFi', 'val': system.GetWifiStatus()})
+    data.append({'name':'Total L', 'val': total_l})
+    data.append({'name':'L/h (last h)', 'val': l_per_h})
+    data.append(
+        {'name':'Number of scans', 'val': self._database.GetEntriesCount()})
+    return data
 
   def _DrawTextRow(self, drawer, text, line_num, char_height, selected=False):
     """Helper method to draw a row of text.
@@ -303,12 +304,18 @@ class LumaDisplay():
   def ShowMenuGlobal(self):
     """Displays the global menu"""
     with LumaCanvas(self.luma_device) as drawer:
-      _, char_h = drawer.textsize(' ', font=self._font)
+      char_w, char_h = drawer.textsize(' ', font=self._font)
+      max_text_width = int(self.luma_device.width / char_w)
       self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
       menu_enumerated = enumerate(self._global_menu.GetRows())
       draw_row = 0
       for menu_position, row in menu_enumerated:
-        text = row
+        key = row['name']
+        value = str(row['val'])
+        val_len = str(max_text_width - len(key) - 2)
+        text_format = '{0:s}: {1:>'+val_len+'s}'
+        text = text_format.format(key, value)
+
         self._DrawTextRow(
             drawer, text, draw_row, char_h,
             selected=(self._global_menu.index == menu_position))

@@ -79,6 +79,11 @@ class BeerLogDB():
     query = Entry.select(Entry.character_name).distinct()
     return [entry.character_name for entry in query.execute()]
 
+  def GetEntriesCount(self):
+    """Returns the number of entries."""
+    count = Entry.select().count() #pylint: disable=no-value-for-parameter
+    return count
+
   def GetEntryById(self, entry_id):
     """Returns an Entry by its primary key.
 

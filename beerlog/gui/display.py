@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from collections import namedtuple
 import datetime
 import os
 import time
@@ -15,6 +16,8 @@ import PIL
 from beerlog import errors
 from beerlog import system
 
+
+DataPoint = namedtuple('DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
 
 def GetShortAmountOfBeer(amount):
   """Returns a shortened string for an volume in Litre
@@ -269,11 +272,10 @@ class LumaDisplay():
     l_per_h = GetShortAmountOfBeer(
         self._database.GetTotalAmount(since=last_h) / 100.0)
 
-    data.append({'name': 'WiFi', 'val': system.GetWifiStatus()})
-    data.append({'name':'Total L', 'val': total_l})
-    data.append({'name':'L/h (last h)', 'val': l_per_h})
-    data.append(
-        {'name':'Number of scans', 'val': self._database.GetEntriesCount()})
+    data.append(DataPoint('WiFi', system.GetWifiStatus()))
+    data.append(DataPoint('Total', total_l, 'L'))
+    data.append(DataPoint('Last h', l_per_h, 'L/h'))
+    data.append(DataPoint('Number of scans', self._database.GetEntriesCount()))
     return data
 
   def _DrawTextRow(self, drawer, text, line_num, char_height, selected=False):
@@ -309,12 +311,12 @@ class LumaDisplay():
       self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
       menu_enumerated = enumerate(self._global_menu.GetRows())
       draw_row = 0
-      for menu_position, row in menu_enumerated:
-        key = row['name']
-        value = str(row['val'])
+      for menu_position, data_point in menu_enumerated:
+        key = data_point.key
+        value = str(data_point.value)
         val_len = str(max_text_width - len(key) - 2)
         text_format = '{0:s}: {1:>'+val_len+'s}'
-        text = text_format.format(key, value)
+        text = text_format.format(key, value+data_point.unit)
 
         self._DrawTextRow(
             drawer, text, draw_row, char_h,

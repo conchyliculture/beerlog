@@ -1,6 +1,5 @@
 """Helper methods for collecting some system data."""
 
-import logging
 import re
 import subprocess
 
@@ -17,7 +16,6 @@ def GetWifiStatus():
     if match:
       _, essid = match.groups()
       result = essid
-  except Exception: # pylint: disable=broad-except
+  except subprocess.SubprocessError:
     pass
-#    logging.warning(e)
   return result

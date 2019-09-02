@@ -112,8 +112,12 @@ class Scroller():
     window = self._array[self._window_low:self._window_high]
     return window
 
-  def IncrementIndex(self):
-    """Increments the index. Moves the window bounds if necessary."""
+  def IncrementIndex(self, unused_event):
+    """Increments the index. Moves the window bounds if necessary.
+
+    This is called by the transitioning state machine, this is why we
+    get an extra 'event' parameter.
+    """
     if self.index is None:
       self.index = 0
     elif self.index < self._array_size - 1:
@@ -122,8 +126,12 @@ class Scroller():
         self._window_low += 1
         self._window_high += 1
 
-  def DecrementIndex(self):
-    """Decrements the index. Moves the window bounds if necessary."""
+  def DecrementIndex(self, unused_event):
+    """Decrements the index. Moves the window bounds if necessary.
+
+    This is called by the transitioning state machine, this is why we
+    get an extra 'event' parameter.
+    """
     if self.index is None:
       self.index = 0
     elif self.index > 0:
@@ -180,8 +188,10 @@ class LumaDisplay():
 
     # Used to set our attributes from the Machine object
     self.machine.SetEnv = self._SetEnv
-    self.machine.IncrementScoreIndex = self._IncrementScoreIndex
-    self.machine.DecrementScoreIndex = self._DecrementScoreIndex
+    self.machine.IncrementScoreIndex = self._scoreboard.IncrementIndex
+    self.machine.DecrementScoreIndex = self._scoreboard.DecrementIndex
+    self.machine.IncrementGlobalMenuIndex = self._global_menu.IncrementIndex
+    self.machine.DecrementGlobalMenuIndex = self._global_menu.DecrementIndex
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE', before='SetEnv')
@@ -197,9 +207,9 @@ class LumaDisplay():
 
     self.machine.add_transition('menu1', '*', 'MENUGLOBAL')
     self.machine.add_transition(
-        'up', 'MENUGLOBAL', 'MENUGLOBAL', after='DecrementScoreIndex')
+        'up', 'MENUGLOBAL', 'MENUGLOBAL', after='DecrementGlobalMenuIndex')
     self.machine.add_transition(
-        'down', 'MENUGLOBAL', 'MENUGLOBAL', after='IncrementScoreIndex')
+        'down', 'MENUGLOBAL', 'MENUGLOBAL', after='IncrementGlobalMenuIndex')
     self.machine.add_transition('up', 'SPLASH', 'SCORE')
     self.machine.add_transition('down', 'SPLASH', 'SCORE')
 
@@ -214,22 +224,6 @@ class LumaDisplay():
 
     self.machine.add_transition('up', '*', '=')
     self.machine.add_transition('down', '*', '=')
-
-  def _IncrementScoreIndex(self, _unused_event):
-    """Helper method to increment current score board index.
-
-    Args:
-      _unused_event(transitions.EventData): the event.
-    """
-    self._scoreboard.IncrementIndex()
-
-  def _DecrementScoreIndex(self, _unused_event):
-    """Helper method to decrement current score board index.
-
-    Args:
-      _unused_event(transitions.EventData): the event.
-    """
-    self._scoreboard.DecrementIndex()
 
   def _SetEnv(self, event):
     """Helper method to change some of our attributes on transiton changes.
@@ -259,12 +253,11 @@ class LumaDisplay():
     elif self.machine.state == 'MENUGLOBAL':
       self.ShowMenuGlobal()
 
-
   def _GetGlobalMenuRows(self):
     """Builds the information to display in the global menu.
 
     Returns:
-      list(dict): the data to display
+      list(DataPoint): the data to display
     """
     data = []
 
@@ -272,7 +265,6 @@ class LumaDisplay():
     last_h = datetime.datetime.now() - datetime.timedelta(hours=1)
     l_per_h = GetShortAmountOfBeer(
         self._database.GetTotalAmount(since=last_h) / 100.0)
-
 
     now = datetime.datetime.now()
     today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)

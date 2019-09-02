@@ -6,7 +6,7 @@ from collections import namedtuple
 import datetime
 import os
 import time
-from transitions import Machine
+import transitions
 
 from luma.core.render import canvas as LumaCanvas
 from luma.core.sprite_system import framerate_regulator
@@ -142,6 +142,19 @@ class LumaDisplay():
   DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
 
   def __init__(self, events_queue, database):
+    """Initializes a Display backed by luma.
+
+    Attributes:
+      _events_queue(Queue): the shared queue for events.
+      _database(beerlog.BeerlogDB): the application database.
+      gui_object(beerlog.gui.base.BaseGUI):
+        the GUI object (ie: Oled hat, Emulator, etc).
+      luma_device(luma.core.device.device): The luma_device inside the
+        gui_object. Used for actual drawing things.
+      machine(transitions.Machine): the state machine.
+      _last_scanned_name(str): Name of the character who just scanned.
+
+    """
     self._events_queue = events_queue
     self._database = database
     if not self._events_queue:
@@ -149,7 +162,9 @@ class LumaDisplay():
     if not self._database:
       raise errors.BeerLogError('Display needs a DB object')
 
-    # Internal stuff
+    # This is the object for different implementations
+    self.gui_object = None
+    # This is a pointer to the luma_device, which draws stuff
     self.luma_device = None
     self.machine = None
     self._last_scanned_name = None
@@ -175,7 +190,7 @@ class LumaDisplay():
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
-    self.machine = Machine(
+    self.machine = transitions.Machine(
         states=list(self.STATES), initial='SPLASH', send_event=True)
 
     # Used to set our attributes from the Machine object
@@ -433,17 +448,21 @@ class LumaDisplay():
 
     if is_rpi:
       from beerlog.gui import sh1106
-      gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
+      self.gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
       from beerlog.gui import emulator
-      gui_object = emulator.Emulator(self._events_queue)
+      self.gui_object = emulator.Emulator(self._events_queue)
 
-    if not gui_object:
+    if not self.gui_object:
       raise Exception('Could not initialize a GUI object')
 
-    gui_object.Setup()
-    self.luma_device = gui_object.GetDevice()
+    self.gui_object.Setup()
+    self.luma_device = self.gui_object.GetDevice()
 
     self._InitStateMachine()
+
+  def Terminate(self):
+    """Kills the display."""
+    self.gui_object.Terminate()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

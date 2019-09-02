@@ -125,7 +125,16 @@ class BeerLog():
       self.InitUI()
       self.Loop()
     finally:
-      self.ResetTimers()
+      self.Terminate()
+
+  def Terminate(self):
+    """End all processes & threads."""
+    # TODO: make sure DB is saved
+    self.ResetTimers()
+    if self.nfc_reader:
+      if self.nfc_reader.process.is_alive():
+        self.nfc_reader.process.kill()
+    self.ui.Terminate()
 
   def InitUI(self):
     """Initialises the user interface."""

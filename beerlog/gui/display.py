@@ -5,7 +5,7 @@ from __future__ import print_function
 from datetime import datetime
 import os
 import time
-from transitions import Machine
+import transitions
 
 from luma.core.render import canvas as LumaCanvas
 from luma.core.sprite_system import framerate_regulator
@@ -184,7 +184,7 @@ class LumaDisplay():
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
-    self.machine = Machine(
+    self.machine = transitions.Machine(
         states=list(self.STATES), initial='SPLASH', send_event=True)
 
     # Used to set our attributes from the Machine object
@@ -377,5 +377,9 @@ class LumaDisplay():
     self.luma_device = self.gui_object.GetDevice()
 
     self._InitStateMachine()
+
+  def Terminate(self):
+    """Kills the display."""
+    self.gui_object.Terminate()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -17,6 +17,7 @@ def GetWifiStatus():
     if match:
       _, essid = match.groups()
       result = essid
-  except Exception as e: # pylint: disable=broad-except
-    logging.warning(e)
+  except Exception: # pylint: disable=broad-except
+    pass
+#    logging.warning(e)
   return result

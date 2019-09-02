@@ -46,7 +46,6 @@ class WaveShareOLEDHat(gui_base.BaseGUI):
 
   def __init__(self, queue):
     super().__init__(queue)
-    self._device = None
     self._last_event = None
     self._serial = None
 

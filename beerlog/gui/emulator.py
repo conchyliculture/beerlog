@@ -15,9 +15,10 @@ from luma.emulator import device
 from beerlog import constants
 from beerlog import events
 from beerlog.bnfc import base as nfc_base
+from beerlog.gui import base as gui_base
 
 
-class Emulator():
+class Emulator(gui_base.BaseGUI):
   """Implements a GUI with luma emulator"""
 
   _BUTTON_DICT = {
@@ -32,15 +33,15 @@ class Emulator():
   }
 
   def __init__(self, queue):
-    self._emulator = None
-    self.queue = queue
+    super().__init__(queue)
     self.uuid_entry = None
+    self.process = None
 
-  def Setup(self): # pylint: disable=arguments-differ
+  def Setup(self):
     """Sets up the device."""
-    self._emulator = device.pygame()
-    process = multiprocessing.Process(target=self._SetupUI, daemon=True)
-    process.start()
+    self._device = device.pygame()
+    self.process = multiprocessing.Process(target=self._SetupUI, daemon=True)
+    self.process.start()
 
   def _SetupUI(self):
     """TODO"""
@@ -126,8 +127,7 @@ class Emulator():
     event = nfc_base.NFCEvent(uid=self.uuid_entry.get_text())
     self.queue.put(event)
 
-  def GetDevice(self):
-    """TODO"""
-    return self._emulator
+  def Terminate(self):
+    self.process.kill()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -178,12 +178,35 @@ class BeerLogDB():
     return tag_object.get('realname') or tag_object.get('name')
 
   def GetEarliestTimestamp(self):
-    """Returns the timestamp of the first scan."""
-    return Entry.select(peewee.fn.MIN(Entry.timestamp)).scalar() #pylint: disable=no-value-for-parameter
+    """Returns the earliest timestamp."""
+    query = Entry.select(peewee.fn.MIN(Entry.timestamp))
+    return query.scalar() #pylint: disable=no-value-for-parameter
+
+  def GetEarliestEntry(self, after=None):
+    """Returns the earliest Entry.
+
+    Args:
+      after(datetime.datetime): an optional timestamp from which to start
+        searching.
+    Returns:
+      Entry: the first entry.
+    """
+    if after:
+      query = Entry.select(Entry).where(
+          Entry.timestamp >= after).group_by(Entry.timestamp).order_by(
+              Entry.timestamp.asc())
+    else:
+      query = Entry.select(Entry).group_by(Entry.timestamp).having(
+          Entry.timestamp == peewee.fn.MIN(Entry.timestamp))
+    try:
+      return query.get()
+    except Exception: # pylint: disable=broad-except
+      return None
 
   def GetLatestTimestamp(self):
     """Returns the timestamp of the last scan."""
-    return Entry.select(peewee.fn.MAX(Entry.timestamp)).scalar() #pylint: disable=no-value-for-parameter
+    query = Entry.select(peewee.fn.MAX(Entry.timestamp))
+    return query.scalar() #pylint: disable=no-value-for-parameter
 
   def GetAmountFromHexID(self, hexid, at=None):
     """Returns the amount of beer drunk for a Character.

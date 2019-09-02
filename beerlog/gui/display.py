@@ -17,7 +17,8 @@ from beerlog import errors
 from beerlog import system
 
 
-DataPoint = namedtuple('DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
+DataPoint = namedtuple(
+    'DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
 
 def GetShortAmountOfBeer(amount):
   """Returns a shortened string for an volume in Litre
@@ -272,10 +273,17 @@ class LumaDisplay():
     l_per_h = GetShortAmountOfBeer(
         self._database.GetTotalAmount(since=last_h) / 100.0)
 
+
+    now = datetime.datetime.now()
+    today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+    first_scan_today = self._database.GetEarliestEntry(after=today)
+
     data.append(DataPoint('WiFi', system.GetWifiStatus()))
     data.append(DataPoint('Total', total_l, 'L'))
     data.append(DataPoint('Last h', l_per_h, 'L/h'))
     data.append(DataPoint('Number of scans', self._database.GetEntriesCount()))
+    if first_scan_today:
+      data.append(DataPoint('1st today', first_scan_today.character_name))
     return data
 
   def _DrawTextRow(self, drawer, text, line_num, char_height, selected=False):

@@ -9,10 +9,14 @@ import RPi.GPIO as GPIO
 
 from beerlog import constants
 from beerlog import events
+from beerlog.gui import base as gui_base
 
 
-class WaveShareOLEDHat():
+class WaveShareOLEDHat(gui_base.BaseGUI):
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
+
+  # How do we connect to the OLED hat
+  CONNECTION = 'spi'
 
   # How long to wait, in ms before accepting a new event of the same type
   BOUNCE_MS = 100
@@ -41,9 +45,8 @@ class WaveShareOLEDHat():
   }
 
   def __init__(self, queue):
-    self._oled_hat = None
+    super().__init__(queue)
     self._last_event = None
-    self.queue = queue
     self._serial = None
 
   def _SetupOneGPIO(self, channel):
@@ -80,21 +83,19 @@ class WaveShareOLEDHat():
         self.queue.put(new_event)
       self._last_event = new_event
 
-  def Setup(self, connection='spi'): # pylint: disable=arguments-differ
+  def Setup(self):
     """Sets up the device.
 
-    Args:
-      connection(str): how do we connect to the WaveShare Hat.
     Raises:
       Exception: if we didn't specify the connection parameter correctly.
     """
-    if connection == 'spi':
+    if self.CONNECTION == 'spi':
       self._serial = spi(
           device=0, port=0, bus_speed_hz=8000000,
           transfer_size=4096,
           gpio_DC=self.DC_PIN,
           gpio_RST=self.RST_PIN)
-    elif connection == 'i2c':
+    elif self.CONNECTION == 'i2c':
       GPIO.setup(self.RST_PIN, GPIO.OUT)
       GPIO.output(self.RST_PIN, GPIO.HIGH)
       self._serial = i2c(port=1, address=0x3c)
@@ -103,10 +104,6 @@ class WaveShareOLEDHat():
 
     self._SetupGPIO()
 
-    self._oled_hat = sh1106(self._serial, rotate=0)
-
-  def GetDevice(self):
-    """Returns the luma device"""
-    return self._oled_hat
+    self._device = sh1106(self._serial, rotate=0)
 
 # vim: tabstop=2 shiftwidth=2 expandtab

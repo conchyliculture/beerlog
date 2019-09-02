@@ -79,6 +79,11 @@ class BeerLogDB():
     query = Entry.select(Entry.character_name).distinct()
     return [entry.character_name for entry in query.execute()]
 
+  def GetEntriesCount(self):
+    """Returns the number of entries."""
+    count = Entry.select().count() #pylint: disable=no-value-for-parameter
+    return count
+
   def GetEntryById(self, entry_id):
     """Returns an Entry by its primary key.
 
@@ -173,12 +178,35 @@ class BeerLogDB():
     return tag_object.get('realname') or tag_object.get('name')
 
   def GetEarliestTimestamp(self):
-    """Returns the timestamp of the first scan."""
-    return Entry.select(peewee.fn.MIN(Entry.timestamp)).scalar() #pylint: disable=no-value-for-parameter
+    """Returns the earliest timestamp."""
+    query = Entry.select(peewee.fn.MIN(Entry.timestamp))
+    return query.scalar() #pylint: disable=no-value-for-parameter
+
+  def GetEarliestEntry(self, after=None):
+    """Returns the earliest Entry.
+
+    Args:
+      after(datetime.datetime): an optional timestamp from which to start
+        searching.
+    Returns:
+      Entry: the first entry.
+    """
+    if after:
+      query = Entry.select(Entry).where(
+          Entry.timestamp >= after).group_by(Entry.timestamp).order_by(
+              Entry.timestamp.asc())
+    else:
+      query = Entry.select(Entry).group_by(Entry.timestamp).having(
+          Entry.timestamp == peewee.fn.MIN(Entry.timestamp))
+    try:
+      return query.get()
+    except Exception: # pylint: disable=broad-except
+      return None
 
   def GetLatestTimestamp(self):
     """Returns the timestamp of the last scan."""
-    return Entry.select(peewee.fn.MAX(Entry.timestamp)).scalar() #pylint: disable=no-value-for-parameter
+    query = Entry.select(peewee.fn.MAX(Entry.timestamp))
+    return query.scalar() #pylint: disable=no-value-for-parameter
 
   def GetAmountFromHexID(self, hexid, at=None):
     """Returns the amount of beer drunk for a Character.
@@ -213,5 +241,23 @@ class BeerLogDB():
     if amount:
       amount_cl = amount
     return amount_cl
+
+  def GetTotalAmount(self, since=None):
+    """Returns the total of beer drunk, in cL.
+
+    Args:
+      since(datetime.datetime): since when.
+
+    Returns:
+      int: the total amount, in cL.
+
+    """
+    if since:
+      query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
+          Entry.timestamp >= since)
+    else:
+      query = Entry.select(peewee.fn.SUM(Entry.amount))
+    return query.scalar() or 0 # pylint: disable=no-value-for-parameter
+
 
 # vim: tabstop=2 shiftwidth=2 expandtab

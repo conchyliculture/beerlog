@@ -78,16 +78,23 @@ class BeerLogDBTests(unittest.TestCase):
 
   def testGetAmount(self):
     """Tests for counting total amount drunk per character"""
+    self.db.AddEntry('0x2', time=datetime.datetime(2019, 1, 1, 14, 00))
     self.db.AddEntry('0x0', time=datetime.datetime(2019, 1, 1, 15, 00))
     self.db.AddEntry('0x0', time=datetime.datetime(2019, 1, 1, 16, 00))
-    self.db.AddEntry('0x1', time=datetime.datetime(2019, 1, 1, 17, 00))
-    self.db.AddEntry('0x2', time=datetime.datetime(2019, 1, 1, 14, 00))
     self.db.AddEntry('0x2', time=datetime.datetime(2019, 1, 1, 16, 30))
+    self.db.AddEntry('0x1', time=datetime.datetime(2019, 1, 1, 17, 00))
 
     self.assertEqual(
         datetime.datetime(2019, 1, 1, 14, 0), self.db.GetEarliestTimestamp())
     self.assertEqual(
         datetime.datetime(2019, 1, 1, 17, 0), self.db.GetLatestTimestamp())
+
+    expected_entry = self.db.GetEntryById(1)
+    self.assertEqual(expected_entry, self.db.GetEarliestEntry())
+    expected_entry = self.db.GetEntryById(4)
+    self.assertEqual(
+        expected_entry, self.db.GetEarliestEntry(
+            after=datetime.datetime(2019, 1, 1, 16, 30)))
 
     # 3 scans: 2 with 33 & 1 with 45
     self.assertEqual(2 * 33 + 1 * 45, self.db.GetAmountFromHexID('0x0'))

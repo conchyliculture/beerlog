@@ -2,7 +2,8 @@
 
 from __future__ import print_function
 
-from datetime import datetime
+from collections import namedtuple
+import datetime
 import os
 import time
 import transitions
@@ -13,10 +14,14 @@ from luma.core.virtual import terminal
 import PIL
 
 from beerlog import errors
+from beerlog import system
 
+
+DataPoint = namedtuple(
+    'DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
 
 def GetShortAmountOfBeer(amount):
-  """Returns a shortened string for an volume in cL
+  """Returns a shortened string for an volume in Litre
 
   Args:
     amount(float): quantity, in L.
@@ -41,7 +46,7 @@ def GetShortLastBeer(last, now=None):
     str: the time delta since the last scan and now.
   """
   if not now:
-    now = datetime.now()
+    now = datetime.datetime.now()
   delta = now - last
   seconds = int(delta.total_seconds())
   if seconds == 0:
@@ -107,8 +112,12 @@ class Scroller():
     window = self._array[self._window_low:self._window_high]
     return window
 
-  def IncrementIndex(self):
-    """Increments the index. Moves the window bounds if necessary."""
+  def IncrementIndex(self, unused_event):
+    """Increments the index. Moves the window bounds if necessary.
+
+    This is called by the transitioning state machine, this is why we
+    get an extra 'event' parameter.
+    """
     if self.index is None:
       self.index = 0
     elif self.index < self._array_size - 1:
@@ -117,8 +126,12 @@ class Scroller():
         self._window_low += 1
         self._window_high += 1
 
-  def DecrementIndex(self):
-    """Decrements the index. Moves the window bounds if necessary."""
+  def DecrementIndex(self, unused_event):
+    """Decrements the index. Moves the window bounds if necessary.
+
+    This is called by the transitioning state machine, this is why we
+    get an extra 'event' parameter.
+    """
     if self.index is None:
       self.index = 0
     elif self.index > 0:
@@ -131,7 +144,7 @@ class Scroller():
 class LumaDisplay():
   """Class managing the display."""
 
-  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR']
+  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
   DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
@@ -181,6 +194,7 @@ class LumaDisplay():
         self.DEFAULT_SCAN_GIF)
 
     self._scoreboard = Scroller()
+    self._global_menu = Scroller()
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
@@ -189,15 +203,16 @@ class LumaDisplay():
 
     # Used to set our attributes from the Machine object
     self.machine.SetEnv = self._SetEnv
-    self.machine.IncrementScoreIndex = self._IncrementScoreIndex
-    self.machine.DecrementScoreIndex = self._DecrementScoreIndex
+    self.machine.IncrementScoreIndex = self._scoreboard.IncrementIndex
+    self.machine.DecrementScoreIndex = self._scoreboard.DecrementIndex
+    self.machine.IncrementGlobalMenuIndex = self._global_menu.IncrementIndex
+    self.machine.DecrementGlobalMenuIndex = self._global_menu.DecrementIndex
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE', before='SetEnv')
-    self.machine.add_transition('stats', 'SCORE', 'STATS')
     self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
     self.machine.add_transition('error', '*', 'ERROR', before='SetEnv')
-    # TODO: check devie "mode" ?
+    # TODO: check device "mode" ?
     self.machine.add_transition(
         'up', 'SCORE', 'SCORE', after='DecrementScoreIndex')
     self.machine.add_transition(
@@ -205,29 +220,25 @@ class LumaDisplay():
     self.machine.add_transition('up', 'SPLASH', 'SCORE')
     self.machine.add_transition('down', 'SPLASH', 'SCORE')
 
+    self.machine.add_transition('menu1', '*', 'MENUGLOBAL')
+    self.machine.add_transition(
+        'up', 'MENUGLOBAL', 'MENUGLOBAL', after='DecrementGlobalMenuIndex')
+    self.machine.add_transition(
+        'down', 'MENUGLOBAL', 'MENUGLOBAL', after='IncrementGlobalMenuIndex')
+    self.machine.add_transition('up', 'SPLASH', 'SCORE')
+    self.machine.add_transition('down', 'SPLASH', 'SCORE')
+
+
     self.machine.add_transition('up', 'ERROR', 'SCORE')
     self.machine.add_transition('down', 'ERROR', 'SCORE')
     self.machine.add_transition('left', 'ERROR', 'SCORE')
     self.machine.add_transition('right', 'ERROR', 'SCORE')
 
+    self.machine.add_transition('menu1', 'MENUGLOBAL', 'SCORE')
+    self.machine.add_transition('menu2', '*', 'SCORE')
+
     self.machine.add_transition('up', '*', '=')
     self.machine.add_transition('down', '*', '=')
-
-  def _IncrementScoreIndex(self, _unused_event):
-    """Helper method to increment current score board index.
-
-    Args:
-      _unused_event(transitions.EventData): the event.
-    """
-    self._scoreboard.IncrementIndex()
-
-  def _DecrementScoreIndex(self, _unused_event):
-    """Helper method to decrement current score board index.
-
-    Args:
-      _unused_event(transitions.EventData): the event.
-    """
-    self._scoreboard.DecrementIndex()
 
   def _SetEnv(self, event):
     """Helper method to change some of our attributes on transiton changes.
@@ -240,8 +251,9 @@ class LumaDisplay():
     self._last_error = event.kwargs.get('error', None)
 
   def Update(self):
-    """TODO"""
+    """Draws the display depending on the state of the StateMachine."""
     self._scoreboard.UpdateData(self._database.GetScoreBoard())
+    self._global_menu.UpdateData(self._GetGlobalMenuRows())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
     elif self.machine.state == 'ERROR':
@@ -253,6 +265,78 @@ class LumaDisplay():
         self.ShowScannedTooSoon()
       else:
         self.ShowScanned()
+    elif self.machine.state == 'MENUGLOBAL':
+      self.ShowMenuGlobal()
+
+  def _GetGlobalMenuRows(self):
+    """Builds the information to display in the global menu.
+
+    Returns:
+      list(DataPoint): the data to display
+    """
+    data = []
+
+    total_l = GetShortAmountOfBeer(self._database.GetTotalAmount() / 100.0)
+    last_h = datetime.datetime.now() - datetime.timedelta(hours=1)
+    l_per_h = GetShortAmountOfBeer(
+        self._database.GetTotalAmount(since=last_h) / 100.0)
+
+    now = datetime.datetime.now()
+    today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
+    first_scan_today = self._database.GetEarliestEntry(after=today)
+
+    data.append(DataPoint('WiFi', system.GetWifiStatus()))
+    data.append(DataPoint('Total', total_l, 'L'))
+    data.append(DataPoint('Last h', l_per_h, 'L/h'))
+    data.append(DataPoint('Number of scans', self._database.GetEntriesCount()))
+    if first_scan_today:
+      data.append(DataPoint('1st today', first_scan_today.character_name))
+    return data
+
+  def _DrawTextRow(self, drawer, text, line_num, char_height, selected=False):
+    """Helper method to draw a row of text.
+
+    Args:
+      drawer(LumaCanvas): the canvas to draw into.
+      text(str): the text to display.
+      line_num(int): which line number to draw.
+      char_height(int): height of a character in pixels.
+      selected(bool): whether to draw the line as selected.
+    """
+    if selected:
+      rectangle_geometry = (
+          2,
+          line_num * char_height,
+          self.luma_device.width,
+          ((line_num+1) * char_height)
+          )
+      drawer.rectangle(
+          rectangle_geometry, outline='white', fill='white')
+      drawer.text(
+          (2, line_num*char_height), text, font=self._font, fill='black')
+    else:
+      drawer.text(
+          (2, line_num*char_height), text, font=self._font, fill='white')
+
+  def ShowMenuGlobal(self):
+    """Displays the global menu"""
+    with LumaCanvas(self.luma_device) as drawer:
+      char_w, char_h = drawer.textsize(' ', font=self._font)
+      max_text_width = int(self.luma_device.width / char_w)
+      self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
+      menu_enumerated = enumerate(self._global_menu.GetRows())
+      draw_row = 0
+      for menu_position, data_point in menu_enumerated:
+        key = data_point.key
+        value = str(data_point.value)
+        val_len = str(max_text_width - len(key) - 2)
+        text_format = '{0:s}: {1:>'+val_len+'s}'
+        text = text_format.format(key, value+data_point.unit)
+
+        self._DrawTextRow(
+            drawer, text, draw_row, char_h,
+            selected=(self._global_menu.index == menu_position))
+        draw_row += 1
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
@@ -323,18 +407,9 @@ class LumaDisplay():
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
             GetShortAmountOfBeer(row.total / 100.0),
             GetShortLastBeer(row.last)])
-        if self._scoreboard.index == scoreboard_position:
-          rectangle_geometry = (
-              2,
-              draw_row * char_h,
-              self.luma_device.width,
-              ((draw_row+1) * char_h)
-              )
-          drawer.rectangle(
-              rectangle_geometry, outline='white', fill='white')
-          drawer.text((2, draw_row*char_h), text, font=self._font, fill='black')
-        else:
-          drawer.text((2, draw_row*char_h), text, font=self._font, fill='white')
+        self._DrawTextRow(
+            drawer, text, draw_row, char_h,
+            selected=(self._scoreboard.index == scoreboard_position))
 
   def ShowSplash(self):
     """Displays the splash screen."""

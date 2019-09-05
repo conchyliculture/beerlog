@@ -9,6 +9,8 @@ Tested with [these NFC215 stickers](https://www.aliexpress.com/item/32817199724.
 
 NFC reader is [this one](https://www.aliexpress.com/item/32548770388.html).
 
+Other recommended hardware, especially if the device you're setting up doesn't have access to the internet is a I2C RTC such as [this one](https://www.aliexpress.com/item/32881077060.html) which has its own battery and is pretty small.
+
 ## Installation
 
 ```
@@ -41,6 +43,22 @@ This way, `Raymond` will be displayed in the UI instead of `Marius`, and we'll c
 
 
 PYTHONPATH="." python beerlog/cli/beerlog_cli.py
+```
+
+If you need hardware clock, here are some helpful links:
+
+  * [https://thepihut.com/blogs/raspberry-pi-tutorials/17209332-adding-a-real-time-clock-to-your-raspberry-pi](https://thepihut.com/blogs/raspberry-pi-tutorials/17209332-adding-a-real-time-clock-to-your-raspberry-pi)
+  * Put this in `/etc/systemd/system/hwclock.service`, then enable & start the service
+
+```
+[Unit]
+Description=hwclock
+[Service]
+Type=oneshot
+ExecStart=/sbin/hwclock --hctosys
+ExecStop=
+[Install]
+WantedBy=multi-user.target
 ```
 
 ## Tests

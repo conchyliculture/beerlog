@@ -227,11 +227,6 @@ class BeerLog():
       self.ui.machine.error(error=str(event))
     elif event.type == constants.EVENTTYPES.NOEVENT:
       self.ui.Update()
-    else:
-      err_msg = 'Unknown Event: {0!s}'.format(event)
-      print(err_msg)
-      self.PushEvent(events.ErrorEvent(err_msg))
-      #self.AddDelayedEvent(UIEvent(constants.EVENTTYPES.ESCAPE), 3)
 
     self.db.Close()
 

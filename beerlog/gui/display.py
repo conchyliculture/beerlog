@@ -440,9 +440,11 @@ class LumaDisplay():
       pass
 
     if is_rpi:
+      # pylint: disable=import-outside-toplevel
       from beerlog.gui import sh1106
       self.gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
+      # pylint: disable=import-outside-toplevel
       from beerlog.gui import emulator
       self.gui_object = emulator.Emulator(self._events_queue)
 

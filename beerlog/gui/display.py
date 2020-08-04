@@ -285,6 +285,7 @@ class LumaDisplay():
     today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
     first_scan_today = self._database.GetEarliestEntry(after=today)
 
+    data.append(DataPoint('Time', system.GetTime()))
     data.append(DataPoint('WiFi', system.GetWifiStatus()))
     data.append(DataPoint('Total', total_l, 'L'))
     data.append(DataPoint('Last h', l_per_h, 'L/h'))

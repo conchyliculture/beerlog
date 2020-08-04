@@ -1,5 +1,6 @@
 """Helper methods for collecting some system data."""
 
+import datetime
 import re
 import subprocess
 
@@ -19,3 +20,11 @@ def GetWifiStatus():
   except subprocess.SubprocessError:
     pass
   return result
+
+def GetTime():
+  """Return a short string to display time.
+
+  Returns:
+    str: the time.
+  """
+  return datetime.datetime.now().strftime('%H:%M:%S')

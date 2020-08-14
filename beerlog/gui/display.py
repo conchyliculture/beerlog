@@ -80,7 +80,7 @@ class Scroller():
     self._array = []
     self._max_lines = 0
 
-    self.index = None
+    self.index = 0
     self._window_low = 0
     self._array_size = 0
     self._window_high = 0
@@ -122,7 +122,7 @@ class Scroller():
       self.index = 0
     elif self.index < self._array_size - 1:
       self.index += 1
-      if self.index > self._window_high:
+      if self.index == self._window_high:
         self._window_low += 1
         self._window_high += 1
 
@@ -135,7 +135,7 @@ class Scroller():
     if self.index is None:
       self.index = 0
     elif self.index > 0:
-      if self.index <= self._window_low:
+      if self.index == self._window_low:
         self._window_low -= 1
         self._window_high -= 1
       self.index -= 1
@@ -410,7 +410,7 @@ class LumaDisplay():
             GetShortLastBeer(row.last)])
         self._DrawTextRow(
             drawer, text, draw_row, char_h,
-            selected=(self._scoreboard.index == scoreboard_position))
+            selected=(self._scoreboard.index  == scoreboard_position+self._scoreboard._window_low))
 
   def ShowSplash(self):
     """Displays the splash screen."""

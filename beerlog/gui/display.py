@@ -403,7 +403,7 @@ class LumaDisplay():
         draw_row += 1
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
-        text = '{0:d}.'.format(scoreboard_position+1)
+        text = '{0:d}.'.format(scoreboard_position+1+self._scoreboard._window_low)
         text += ' '.join([
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
             GetShortAmountOfBeer(row.total / 100.0),

@@ -217,6 +217,10 @@ class BeerLog():
       self.ui.machine.up()
     elif event.type == constants.EVENTTYPES.KEYDOWN:
       self.ui.machine.down()
+    elif event.type == constants.EVENTTYPES.KEYLEFT:
+      self.ui.machine.left()
+    elif event.type == constants.EVENTTYPES.KEYRIGHT:
+      self.ui.machine.right()
     elif event.type == constants.EVENTTYPES.ESCAPE:
       self.ui.machine.back()
     elif event.type == constants.EVENTTYPES.KEYMENU1:

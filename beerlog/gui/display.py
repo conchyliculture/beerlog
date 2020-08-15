@@ -4,6 +4,7 @@ from __future__ import print_function
 
 from collections import namedtuple
 import datetime
+import io
 import os
 import time
 import transitions
@@ -11,6 +12,7 @@ import transitions
 from luma.core.render import canvas as LumaCanvas
 from luma.core.sprite_system import framerate_regulator
 from luma.core.virtual import terminal
+import matplotlib.pyplot as plt
 import PIL
 
 from beerlog import errors
@@ -144,7 +146,7 @@ class Scroller():
 class LumaDisplay():
   """Class managing the display."""
 
-  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL']
+  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL', 'GRAPH']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
   DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
@@ -178,6 +180,7 @@ class LumaDisplay():
     self._last_scanned_name = None
     self._last_error = None
     self._too_soon = False
+    self._current_character_name = None
 
     # UI related defaults
     self._font = PIL.ImageFont.load_default()
@@ -229,6 +232,11 @@ class LumaDisplay():
     self.machine.add_transition('down', 'SPLASH', 'SCORE')
 
 
+    # Graphs
+    self.machine.add_transition('right', 'SCORE', 'GRAPH')
+    self.machine.add_transition('right', 'GRAPH', 'GRAPH')
+    self.machine.add_transition('left', 'GRAPH', 'SCORE')
+
     self.machine.add_transition('up', 'ERROR', 'SCORE')
     self.machine.add_transition('down', 'ERROR', 'SCORE')
     self.machine.add_transition('left', 'ERROR', 'SCORE')
@@ -267,6 +275,8 @@ class LumaDisplay():
         self.ShowScanned()
     elif self.machine.state == 'MENUGLOBAL':
       self.ShowMenuGlobal()
+    elif self.machine.state == 'GRAPH':
+      self.ShowGraph()
 
   def _GetGlobalMenuRows(self):
     """Builds the information to display in the global menu.
@@ -400,6 +410,10 @@ class LumaDisplay():
       score_enumerated = enumerate(self._scoreboard.GetRows())
       draw_row = 0
       for scoreboard_position, row in score_enumerated:
+        selected = (self._scoreboard.index ==
+                    scoreboard_position + self._scoreboard.window_low)
+        if selected:
+          self._current_character_name = row.character_name
         draw_row += 1
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
@@ -409,11 +423,7 @@ class LumaDisplay():
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
             GetShortAmountOfBeer(row.total / 100.0),
             GetShortLastBeer(row.last)])
-        self._DrawTextRow(
-            drawer, text, draw_row, char_h,
-            selected=(
-                self._scoreboard.index == scoreboard_position +
-                self._scoreboard.window_low))
+        self._DrawTextRow(drawer, text, draw_row, char_h, selected=selected)
 
   def ShowSplash(self):
     """Displays the splash screen."""
@@ -432,6 +442,23 @@ class LumaDisplay():
     term = terminal(self.luma_device, self._font, animate=False)
     print(self._last_error)
     term.println(self._last_error)
+
+  def ShowGraph(self):
+    """Displays a person graph"""
+    fig, ax = plt.subplots(figsize=(2, 1), dpi=64, facecolor='black')
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    plt.figtext(0.5, 0.2, 'race', color='w', fontsize='large')
+
+    point_data = self._database.GetDataFromName('Fox')
+    ax.plot([e.timestamp for e in point_data], [e.sum for e in point_data], 'w')
+    ax.set_frame_on(False)
+
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=fig.dpi, facecolor='black')
+    background = PIL.Image.open(buf)
+    self.luma_device.display(background.convert(self.luma_device.mode))
+
+    plt.close()
 
   def Setup(self):
     """Initializes the GUI."""

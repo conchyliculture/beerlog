@@ -80,10 +80,10 @@ class Scroller():
     self._array = []
     self._max_lines = 0
 
-    self.index = None
-    self._window_low = 0
+    self.index = 0
+    self.window_low = 0
     self._array_size = 0
-    self._window_high = 0
+    self.window_high = 0
 
   def UpdateData(self, data):
     """Sets the data for the scoller object.
@@ -101,7 +101,7 @@ class Scroller():
       lines(int): the number of lines of the window.
     """
     self._max_lines = lines
-    self._window_high = self._window_low + lines
+    self.window_high = self.window_low + lines
 
   def GetRows(self):
     """Returns the number of rows to display in the window.
@@ -109,7 +109,7 @@ class Scroller():
     Returns:
       enumerate(peewee rows): the scoreboard window.
     """
-    window = self._array[self._window_low:self._window_high]
+    window = self._array[self.window_low:self.window_high]
     return window
 
   def IncrementIndex(self, unused_event):
@@ -122,9 +122,9 @@ class Scroller():
       self.index = 0
     elif self.index < self._array_size - 1:
       self.index += 1
-      if self.index > self._window_high:
-        self._window_low += 1
-        self._window_high += 1
+      if self.index == self.window_high:
+        self.window_low += 1
+        self.window_high += 1
 
   def DecrementIndex(self, unused_event):
     """Decrements the index. Moves the window bounds if necessary.
@@ -135,9 +135,9 @@ class Scroller():
     if self.index is None:
       self.index = 0
     elif self.index > 0:
-      if self.index <= self._window_low:
-        self._window_low -= 1
-        self._window_high -= 1
+      if self.index == self.window_low:
+        self.window_low -= 1
+        self.window_high -= 1
       self.index -= 1
 
 
@@ -403,14 +403,17 @@ class LumaDisplay():
         draw_row += 1
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
-        text = '{0:d}.'.format(scoreboard_position+1)
+        text = '{0:d}.'.format(
+            scoreboard_position + 1 + self._scoreboard.window_low)
         text += ' '.join([
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
             GetShortAmountOfBeer(row.total / 100.0),
             GetShortLastBeer(row.last)])
         self._DrawTextRow(
             drawer, text, draw_row, char_h,
-            selected=(self._scoreboard.index == scoreboard_position))
+            selected=(
+                self._scoreboard.index == scoreboard_position +
+                self._scoreboard.window_low))
 
   def ShowSplash(self):
     """Displays the splash screen."""

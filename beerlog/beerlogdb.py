@@ -259,5 +259,23 @@ class BeerLogDB():
       query = Entry.select(peewee.fn.SUM(Entry.amount))
     return query.scalar() or 0 # pylint: disable=no-value-for-parameter
 
+  def GetDataFromName(self, name):
+    """Returns the accumulated amount for a character name.
 
+    Example:
+      (timestamp1, 50)
+      (timestamp2, 100)
+      (timestamp3, 150)
+      ....
+
+    Args:
+      name(str): the name to search for.
+    Returns:
+      peewee.ModelSelect: the query.
+    """
+    query = Entry.select(
+        Entry.timestamp, peewee.fn.SUM(Entry.amount).over(
+            order_by=[Entry.timestamp]).alias('sum')).where(
+                Entry.character_name == name)
+    return query
 # vim: tabstop=2 shiftwidth=2 expandtab

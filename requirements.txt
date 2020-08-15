@@ -1,5 +1,6 @@
 luma.core
 luma.oled
+matplotlib
 nfcpy
 peewee
 RPi.GPIO

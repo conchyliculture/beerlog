@@ -146,7 +146,8 @@ class Scroller():
 class LumaDisplay():
   """Class managing the display."""
 
-  STATES = ['SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL', 'GRAPH']
+  STATES = [
+      'SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL', 'GRAPH']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
   DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'

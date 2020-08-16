@@ -11,7 +11,8 @@ from beerlog import beerlogdb
 
 socketserver.TCPServer.allow_reuse_address = True
 
-SOURCEDB = os.path.join('.', 'beerlog.sqlite')
+SOURCEDB = os.path.join('beerlog.sqlite')
+TAGS_FILE = os.path.join('known_tags.json')
 
 if len(sys.argv) == 2:
   SOURCEDB = sys.argv[1]
@@ -70,10 +71,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
   def GetData(self):
     """Builds a dict to use with Chart.js."""
     db = beerlogdb.BeerLogDB(SOURCEDB)
-    db.LoadTagsDB('/home/renzokuken/known_tags.json')
+    db.LoadTagsDB(TAGS_FILE)
 
     first_scan = db.GetEarliestTimestamp()
-    first_scan = first_scan.replace(hour=16, minute=0, second=0) # Clean up hack
     last_scan = db.GetLatestTimestamp()
     delta = last_scan - first_scan
     total_hours = int((delta.total_seconds() / 3600) + 2)

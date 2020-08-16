@@ -448,9 +448,10 @@ class LumaDisplay():
     """Displays a person graph"""
     fig, ax = plt.subplots(figsize=(2, 1), dpi=64, facecolor='black')
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    plt.figtext(0.5, 0.2, 'race', color='w', fontsize='large')
+    plt.figtext(
+        0.5, 0.2, self._current_character_name, color='w', fontsize='large')
 
-    point_data = self._database.GetDataFromName('Fox')
+    point_data = self._database.GetDataFromName(self._current_character_name)
     ax.plot([e.timestamp for e in point_data], [e.sum for e in point_data], 'w')
     ax.set_frame_on(False)
 

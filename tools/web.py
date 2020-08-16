@@ -99,7 +99,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
     return json.dumps(
         {'data':{
             'labels':fields,
-            'datasets':output_datasets}}
+            'datasets':output_datasets,
+            'drinkers': db.GetAllCharacterNames(),}}
         ).encode()
 
 

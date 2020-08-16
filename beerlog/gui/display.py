@@ -452,6 +452,7 @@ class LumaDisplay():
         0.5, 0.2, self._current_character_name, color='w', fontsize='large')
 
     point_data = self._database.GetDataFromName(self._current_character_name)
+
     ax.plot([e.timestamp for e in point_data], [e.sum for e in point_data], 'w')
     ax.set_frame_on(False)
 

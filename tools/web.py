@@ -74,7 +74,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
     db.LoadTagsDB(TAGS_FILE)
 
     first_scan = db.GetEarliestTimestamp()
-#    first_scan = first_scan.replace(hour=16, minute=0, second=0) # Clean up hack
     last_scan = db.GetLatestTimestamp()
     delta = last_scan - first_scan
     total_hours = int((delta.total_seconds() / 3600) + 2)

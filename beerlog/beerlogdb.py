@@ -125,6 +125,22 @@ class BeerLogDB():
     )
     return query
 
+  def GetGlassFromName(self, name):
+    """Returns the corresponding glass from a uid
+
+    Args:
+      name(str): the character name.
+    Returns:
+      int: the glass size for a character, or the default value if not found.
+    """
+
+    entry = Entry.select(Entry.amount).where(
+        Entry.character_name == name).order_by(Entry.timestamp.desc()).first()
+    if not entry:
+      return constants.DEFAULT_GLASS_SIZE
+    return entry.amount
+
+
   def GetGlassFromHexID(self, uid):
     """Returns the corresponding glass from a uid
 

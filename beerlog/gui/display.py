@@ -330,14 +330,32 @@ class LumaDisplay():
     """
     achievements = []
 
+    total_drunk = self._database.GetAmountFromName(name)
+
+    prev_total_drink = total_drunk - self._database.GetGlassFromName(name)
+
+    # Achievement for a big amount of L drunk
+
+    if prev_total_drink == 0:
+      msg = 'First beer, enjoy the run!'
+
+      achievements.append(Achievement(
+          message=msg, animated=True, image=DEFAULT_SCAN_GIF))
+
+    for cool_amount in [1, 5, 10, 15, 20, 25, 30]:
+      if total_drunk > cool_amount*100 > prev_total_drink:
+        msg = 'Congrats on the {0:d}L {1:s}, keep it up!'.format(
+            cool_amount, name)
+
+        achievements.append(Achievement(
+            message=msg, animated=True, image=DEFAULT_SCAN_GIF))
+
 
     if not achievements:
 
       default_msg = 'Cheers ' + name + '!'
       default_msg += ' {0:s}L'.format(
-          utils.GetShortAmountOfBeer(
-              self._database.GetAmountFromName(
-                  self._last_scanned_name) / 100.0))
+          utils.GetShortAmountOfBeer(total_drunk / 100.0))
 
       a = Achievement(
           message=default_msg, animated=True, image=DEFAULT_SCAN_GIF)

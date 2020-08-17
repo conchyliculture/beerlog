@@ -35,6 +35,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
   <script src="chart.js"></script>
 </head>
 <body>
+  <div id="total">
+  </div>
   <div style="width:80%; height:50%">
     <canvas id="myChart"></canvas>
   </div>
@@ -90,8 +92,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
         else:
           datasets[alcoolique] = [cl]
 
+    total = 0
+    totals = {} # {'alcoolique': total }
+    for alcoolique in db.GetAllCharacterNames():
+      cl = db.GetAmountFromName(alcoolique, at=last_scan)
+      total += cl
+      totals[alcoolique] = cl
+
+    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+
     output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
-    for k, v in datasets.items():
+    for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
       output_datasets.append({
           'label': k,
           'data':v
@@ -99,7 +110,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
     return json.dumps(
         {'data':{
             'labels':fields,
-            'datasets':output_datasets}}
+            'datasets':output_datasets,
+            'drinkers': db.GetAllCharacterNames(),
+            'total': total}}
         ).encode()
 
 

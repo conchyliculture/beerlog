@@ -17,62 +17,23 @@ import PIL
 
 from beerlog import errors
 from beerlog import system
+from beerlog import utils
 
 
 DataPoint = namedtuple(
     'DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
 
-def GetShortAmountOfBeer(amount):
-  """Returns a shortened string for an volume in Litre
+DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
 
-  Args:
-    amount(float): quantity, in L.
-  Returns:
-    str: the human readable string.
-  """
-  if amount >= 999.5:
-    return 'DEAD'
-  if amount >= 99.5:
-    return '{0:>4d}'.format(int(round(amount)))
-  return '{0:4.3g}'.format(amount)
+class Achievement():
+  """Class for an achievement"""
 
+  def __init__(self, image=None, message=None, animated=False):
+    """Initializes an Achievement."""
 
-def GetShortLastBeer(last, now=None):
-  """Returns a shortened string for the delta between now and last scan.
-
-  Args:
-    last(datetime.datetime): timestamp of the last scan.
-    now(datetime.datetime): an optional time reference.
-      The current datetime if None.
-  Returns:
-    str: the time delta since the last scan and now.
-  """
-  if not now:
-    now = datetime.datetime.now()
-  delta = now - last
-  seconds = int(delta.total_seconds())
-  if seconds == 0:
-    return '  0s'
-  periods = [
-      ('yr', 60*60*24*365),
-      ('mo', 60*60*24*30),
-      ('d', 60*60*24),
-      ('h', 60*60),
-      ('m', 60),
-      ('s', 1)
-  ]
-  result = ''
-  for period_name, period_seconds in periods:
-    if seconds >= period_seconds:
-      period_value, seconds = divmod(seconds, period_seconds)
-      result += '{0:d}{1:s}'.format(period_value, period_name)
-      if period_name not in ['h', 'm']:
-        break
-      if len(result) >= 4:
-        break
-  if result == '':
-    result = 'Unk?'
-  return '{0: >4}'.format(result[0:4])
+    self.image = image
+    self.message = message
+    self.animated = animated
 
 
 class Scroller():
@@ -150,7 +111,6 @@ class LumaDisplay():
       'SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL', 'GRAPH']
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
-  DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
 
   def __init__(self, events_queue, database):
     """Initializes a Display backed by luma.
@@ -190,12 +150,6 @@ class LumaDisplay():
             os.path.dirname(
                 os.path.dirname(os.path.realpath(__file__)))),
         self.DEFAULT_SPLASH_PIC)
-
-    self._scanned_gif_path = os.path.join(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(os.path.realpath(__file__)))),
-        self.DEFAULT_SCAN_GIF)
 
     self._scoreboard = Scroller()
     self._global_menu = Scroller()
@@ -287,9 +241,10 @@ class LumaDisplay():
     """
     data = []
 
-    total_l = GetShortAmountOfBeer(self._database.GetTotalAmount() / 100.0)
+    total_l = utils.GetShortAmountOfBeer(
+        self._database.GetTotalAmount() / 100.0)
     last_h = datetime.datetime.now() - datetime.timedelta(hours=1)
-    l_per_h = GetShortAmountOfBeer(
+    l_per_h = utils.GetShortAmountOfBeer(
         self._database.GetTotalAmount(since=last_h) / 100.0)
 
     now = datetime.datetime.now()
@@ -365,37 +320,65 @@ class LumaDisplay():
 
     self.luma_device.display(background.convert(self.luma_device.mode))
 
+  def GetAchievements(self, name):
+    """Checks whether a character deserves achievements.
+
+    Args:
+        name(str): the character_name.
+    Returns:
+        list(Achievement): a list of Achievement.
+    """
+    achievements = []
+
+
+    if not achievements:
+
+      default_msg = 'Cheers ' + name + '!'
+      default_msg += ' {0:s}L'.format(
+          utils.GetShortAmountOfBeer(
+              self._database.GetAmountFromName(
+                  self._last_scanned_name) / 100.0))
+
+      a = Achievement(
+          message=default_msg, animated=True, image=DEFAULT_SCAN_GIF)
+      achievements = [a]
+
+    return achievements
+
   def ShowScanned(self):
-    """Draws the screen showing the last scanned tag."""
-    regulator = framerate_regulator(fps=30)
-    beer = PIL.Image.open(self._scanned_gif_path)
+    """Draws the screen showing the last scanned tag.
+
+    Will display achievements if relevant."""
     size = [min(*self.luma_device.size)] * 2
     posn = (
         (self.luma_device.width - size[0]) // 2,
         self.luma_device.height - size[1]
     )
-    msg = 'Cheers ' + self._last_scanned_name + '!'
-    msg += ' {0:s}L'.format(
-        GetShortAmountOfBeer(
-            self._database.GetAmountFromName(self._last_scanned_name) / 100.0))
 
-    for gif_frame in PIL.ImageSequence.Iterator(beer):
-      with regulator:
-        background = PIL.Image.new('RGB', self.luma_device.size, 'black')
-        # Add a frame from the animation
-        background.paste(
-            gif_frame.resize(size, resample=PIL.Image.LANCZOS), posn)
+    rewards = self.GetAchievements(self._last_scanned_name)
+    for r in rewards:
+      if r.animated:
+        regulator = framerate_regulator(fps=30)
+        image = PIL.Image.open(r.image)
 
-        # Add a text layer over the frame
-        text_layer = PIL.ImageDraw.Draw(background)
-        text_width, text_height = text_layer.textsize(msg)
-        text_pos = (
-            (self.luma_device.width - text_width) // 2,
-            self.luma_device.height - text_height
-        )
-        text_layer.text(text_pos, msg, (255, 255, 255), font=self._font)
+        for gif_frame in PIL.ImageSequence.Iterator(image):
+          with regulator:
+            background = PIL.Image.new('RGB', self.luma_device.size, 'black')
+            # Add a frame from the animation
+            background.paste(
+                gif_frame.resize(size, resample=PIL.Image.LANCZOS), posn)
 
-        self.luma_device.display(background.convert(self.luma_device.mode))
+            # Add a text layer over the frame
+            text_layer = PIL.ImageDraw.Draw(background)
+            text_width, text_height = text_layer.textsize(r.message)
+            text_pos = (
+                (self.luma_device.width - text_width) // 2,
+                self.luma_device.height - text_height
+            )
+            text_layer.text(
+                text_pos, r.message, (255, 255, 255), font=self._font)
+
+            self.luma_device.display(background.convert(self.luma_device.mode))
 
 
   def ShowScores(self):
@@ -422,8 +405,8 @@ class LumaDisplay():
             scoreboard_position + 1 + self._scoreboard.window_low)
         text += ' '.join([
             ('{0:<'+str(max_name_width)+'}').format(row.character_name),
-            GetShortAmountOfBeer(row.total / 100.0),
-            GetShortLastBeer(row.last)])
+            utils.GetShortAmountOfBeer(row.total / 100.0),
+            utils.GetShortLastBeer(row.last)])
         self._DrawTextRow(drawer, text, draw_row, char_h, selected=selected)
 
   def ShowSplash(self):

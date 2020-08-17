@@ -137,7 +137,7 @@ class BeerLogDB():
     entry = Entry.select(Entry.amount).where(
         Entry.character_name == name).order_by(Entry.timestamp.desc()).first()
     if not entry:
-        return constants.DEFAULT_GLASS_SIZE
+      return constants.DEFAULT_GLASS_SIZE
     return entry.amount
 
 

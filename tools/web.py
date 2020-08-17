@@ -91,7 +91,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
           datasets[alcoolique] = [cl]
 
     output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
-    for k, v in datasets.items():
+    for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
       output_datasets.append({
           'label': k,
           'data':v

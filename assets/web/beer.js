@@ -29,6 +29,8 @@ function drawChart(le_data) {
     datasets.forEach(function (item) {
         item.backgroundColor = nameToColor[item.label];
         item.borderColor = nameToColor[item.label];
+        item.hoverBackgroundColor = nameToColor[item.label];
+        item.hoverBorderColor = nameToColor[item.label];
     });
 
     var chart = new Chart(ctx, {

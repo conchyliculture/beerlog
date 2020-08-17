@@ -12,17 +12,26 @@ function update_graph(path, func) {
 function drawChart(le_data) {
     console.log(le_data);
     var labels = le_data['labels'];
-    var datasets = le_data['datasets']
+    var datasets = le_data['datasets'];
+    var drinkers = le_data['drinkers'];
     console.log(datasets);
 
-    datasets.forEach(function (item, index) {
-        var color = "hsl(" + (360.0 * index / datasets.length) + ", 50%, 50%)";
-        item.fill = false;
-        item.backgroundColor = color;
-        item.borderColor = color;
-    });
+    document.getElementById('total').innerHTML = 'Total bu: ' + le_data['total']
+
+    // Assign a color for each name.
+    var nameToColor = {};
+    for (var idx in drinkers) {
+      nameToColor[drinkers[idx]] = "hsl(" + (360.0 * idx / drinkers.length) + ", 50%, 50%)";
+    }
 
     var ctx = document.getElementById('myChart').getContext('2d');
+
+    datasets.forEach(function (item) {
+        item.backgroundColor = nameToColor[item.label];
+        item.borderColor = nameToColor[item.label];
+        item.hoverBackgroundColor = nameToColor[item.label];
+        item.hoverBorderColor = nameToColor[item.label];
+    });
 
     var chart = new Chart(ctx, {
         // The type of chart we want to create
@@ -35,6 +44,32 @@ function drawChart(le_data) {
         },
 
         // Configuration options go here
-        options: {}
+        options: {
+            elements: {
+                line: {
+                    fill: false,
+                },
+            },
+            tooltips: {
+                callbacks: {
+                    afterFooter: function(tooltip) {
+                        // Datasets are sorted by amount. First index
+                        // is the winner.
+                        var prices = [
+                            '\uD83E\uDD47', // gold
+                            '\uD83E\uDD48', // silver
+                            '\uD83E\uDD49', // bronze
+                        ];
+                        var text = '';
+                        for (var i in tooltip) {
+                            if (tooltip[i].datasetIndex < 3)
+                                text += prices[tooltip[i].datasetIndex];
+                        }
+                        return text;
+                    },
+                },
+                footerFontSize: 40,
+            },
+        },
     });
 }

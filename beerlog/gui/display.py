@@ -343,7 +343,7 @@ class LumaDisplay():
           message=msg, animated=True, image=DEFAULT_SCAN_GIF))
 
     for cool_amount in [1, 5, 10, 15, 20, 25, 30]:
-      if total_drunk > cool_amount*100 > prev_total_drink:
+      if total_drunk >= cool_amount*100 > prev_total_drink:
         msg = 'Congrats on the {0:d}L {1:s}, keep it up!'.format(
             cool_amount, name)
 

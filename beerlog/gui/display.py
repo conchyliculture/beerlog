@@ -217,7 +217,7 @@ class LumaDisplay():
 
   def Update(self):
     """Draws the display depending on the state of the StateMachine."""
-    self._scoreboard.UpdateData(self._database.GetScoreBoard().namedtuples())
+    self._scoreboard.UpdateData(self._database.GetScoreBoard())
     self._global_menu.UpdateData(self._GetGlobalMenuRows())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
@@ -335,7 +335,7 @@ class LumaDisplay():
     total_drunk = self._database.GetAmountFromName(name)
     glass = self._database.GetGlassFromName(name)
 
-    prev_total_drink = total_drunk - glass
+    prev_total_drunk = total_drunk - glass
 
     # Achievement for beating someone
     i = 0
@@ -362,67 +362,71 @@ class LumaDisplay():
 
     # Achievement for a big amount of L drunk
 
-    if prev_total_drink == 0:
+    if prev_total_drunk == 0:
       msg = 'First beer, enjoy the run!'
 
       achievements.append(Achievement(
           message=msg, animated=True, image=DEFAULT_SCAN_GIF))
 
     for cool_amount in [1, 5, 10, 15, 20, 25, 30]:
-      if total_drunk >= cool_amount*100 > prev_total_drink:
+      if total_drunk >= cool_amount*100 > prev_total_drunk:
         msg = 'Congrats on the {0:d}L {1:s}, keep it up!'.format(
             cool_amount, name)
 
         achievements.append(Achievement(
             message=msg, animated=True, image=DEFAULT_SCAN_GIF))
 
-
-    if not achievements:
-
-      default_msg = 'Cheers ' + name + '!'
-      default_msg += ' {0:s}L'.format(
-          utils.GetShortAmountOfBeer(total_drunk / 100.0))
-
-      a = Achievement(
-          message=default_msg, animated=True, image=DEFAULT_SCAN_GIF)
-      achievements = [a]
-
     return achievements
 
-  def ShowScanned(self):
-    """Draws the screen showing the last scanned tag.
+  def _ShowAchievement(self, achievement):
+    """TODO"""
 
-    Will display achievements if relevant."""
+  def _ShowDefaultScan(self, name):
+    """TODO"""
     size = [min(*self.luma_device.size)] * 2
     posn = (
         (self.luma_device.width - size[0]) // 2,
         self.luma_device.height - size[1]
     )
+    regulator = framerate_regulator(fps=30)
+    image = PIL.Image.open(DEFAULT_SCAN_GIF)
+
+    total_drunk = self._database.GetAmountFromName(name)
+
+    default_msg = 'Cheers ' + name + '!'
+    default_msg += ' {0:s}L'.format(
+        utils.GetShortAmountOfBeer(total_drunk / 100.0))
+
+    for gif_frame in PIL.ImageSequence.Iterator(image):
+      with regulator:
+        background = PIL.Image.new('RGB', self.luma_device.size, 'black')
+        # Add a frame from the animation
+        background.paste(
+            gif_frame.resize(size, resample=PIL.Image.LANCZOS), posn)
+
+        # Add a text layer over the frame
+        text_layer = PIL.ImageDraw.Draw(background)
+        text_width, text_height = text_layer.textsize(default_msg)
+        text_pos = (
+            (self.luma_device.width - text_width) // 2,
+            self.luma_device.height - text_height
+        )
+        text_layer.text(text_pos, default_msg, (255, 255, 255), font=self._font)
+
+        self.luma_device.display(background.convert(self.luma_device.mode))
+
+  def ShowScanned(self):
+    """Draws the screen showing the last scanned tag.
+
+    Will display achievements if relevant."""
 
     rewards = self.GetAchievements(self._last_scanned_name)
+    if not rewards:
+      self._ShowDefaultScan(self._last_scanned_name)
+
     for r in rewards:
-      if r.animated:
-        regulator = framerate_regulator(fps=30)
-        image = PIL.Image.open(r.image)
+      self._ShowAchievement(r)
 
-        for gif_frame in PIL.ImageSequence.Iterator(image):
-          with regulator:
-            background = PIL.Image.new('RGB', self.luma_device.size, 'black')
-            # Add a frame from the animation
-            background.paste(
-                gif_frame.resize(size, resample=PIL.Image.LANCZOS), posn)
-
-            # Add a text layer over the frame
-            text_layer = PIL.ImageDraw.Draw(background)
-            text_width, text_height = text_layer.textsize(r.message)
-            text_pos = (
-                (self.luma_device.width - text_width) // 2,
-                self.luma_device.height - text_height
-            )
-            text_layer.text(
-                text_pos, r.message, (255, 255, 255), font=self._font)
-
-            self.luma_device.display(background.convert(self.luma_device.mode))
 
 
   def ShowScores(self):

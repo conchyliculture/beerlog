@@ -123,7 +123,7 @@ class BeerLogDB():
         peewee.SQL('total').desc(),
         (peewee.fn.MAX(Entry.timestamp)).asc(),
     )
-    return query
+    return query.execute()
 
   def GetGlassFromName(self, name):
     """Returns the corresponding glass from a uid

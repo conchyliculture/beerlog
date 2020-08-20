@@ -40,7 +40,8 @@ class Scroller():
   """Implements a scroller object."""
 
   def __init__(self):
-    self._array = []
+    self.data = []
+    self.old_data = []
     self._max_lines = 0
 
     self.index = 0
@@ -54,8 +55,9 @@ class Scroller():
     Args:
       data(list): the list of rows to display/scroll through.
     """
-    self._array = data
-    self._array_size = len(self._array)
+    self.old_data = self.data
+    self.data = data
+    self._array_size = len(self.data)
 
   def SetMaxLines(self, lines):
     """Sets the width of the window.
@@ -72,7 +74,7 @@ class Scroller():
     Returns:
       enumerate(peewee rows): the scoreboard window.
     """
-    window = self._array[self.window_low:self.window_high]
+    window = self.data[self.window_low:self.window_high]
     return window
 
   def IncrementIndex(self, unused_event):
@@ -215,7 +217,7 @@ class LumaDisplay():
 
   def Update(self):
     """Draws the display depending on the state of the StateMachine."""
-    self._scoreboard.UpdateData(self._database.GetScoreBoard())
+    self._scoreboard.UpdateData(self._database.GetScoreBoard().namedtuples())
     self._global_menu.UpdateData(self._GetGlobalMenuRows())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
@@ -331,8 +333,32 @@ class LumaDisplay():
     achievements = []
 
     total_drunk = self._database.GetAmountFromName(name)
+    glass = self._database.GetGlassFromName(name)
 
-    prev_total_drink = total_drunk - self._database.GetGlassFromName(name)
+    prev_total_drink = total_drunk - glass
+
+    # Achievement for beating someone
+    i = 0
+    current_spot = 0
+    prev_spot = 0
+    for e in self._scoreboard.data:
+      i += 1
+      if e.character_name == name:
+        current_spot = i
+        break
+
+    i = 0
+    for e in self._scoreboard.old_data:
+      i += 1
+      if e.character_name == name:
+        prev_spot = i
+
+    if prev_spot > current_spot:
+      msg = 'Congrats on taking rank {0:d}!'.format(current_spot)
+      if current_spot == 1:
+        msg = 'You have taken the lead!'
+      achievements.append(Achievement(
+          message=msg, animated=True, image=DEFAULT_SCAN_GIF))
 
     # Achievement for a big amount of L drunk
 

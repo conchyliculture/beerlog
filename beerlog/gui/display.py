@@ -217,7 +217,7 @@ class LumaDisplay():
 
   def Update(self):
     """Draws the display depending on the state of the StateMachine."""
-    self._scoreboard.UpdateData(self._database.GetScoreBoard().namedtuples())
+    self._scoreboard.UpdateData(self._database.GetScoreBoard())
     self._global_menu.UpdateData(self._GetGlobalMenuRows())
     if self.machine.state == 'SPLASH':
       self.ShowSplash()

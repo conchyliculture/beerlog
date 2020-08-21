@@ -15,6 +15,7 @@ from luma.core.virtual import terminal
 import matplotlib.pyplot as plt
 import PIL
 
+from beerlog.gui import achievements
 from beerlog import errors
 from beerlog import system
 from beerlog import utils
@@ -24,9 +25,6 @@ DataPoint = namedtuple(
     'DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
 
 DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
-DEFAULT_ACHIEVEMENT_FRAME = 'assets/pics/achievement.png'
-
-Achievement = namedtuple('Achievement', 'image, message, big_message, emoji')
 
 
 class Scroller():
@@ -321,9 +319,9 @@ class LumaDisplay():
     Args:
         name(str): the character_name.
     Returns:
-        list(Achievement): a list of Achievement.
+        list(BaseAchievement): a list of BaseAchievement.
     """
-    achievements = []
+    all_achievements = []
 
     total_drunk = self._database.GetAmountFromName(name)
     glass = self._database.GetGlassFromName(name)
@@ -347,33 +345,22 @@ class LumaDisplay():
         prev_spot = i
 
     if prev_spot > current_spot:
-      msg = 'Congrats on taking rank {0:d}!'.format(current_spot)
-      if current_spot == 1:
-        msg = 'You have taken the lead!'
-      achievements.append(Achievement(
-          message=msg, animated=True, image=DEFAULT_SCAN_GIF))
+      all_achievements.append(achievements.BeatSomeoneAchievement(current_spot))
 
     # Achievement for a big amount of L drunk
-
     if prev_total_drunk == 0:
-      msg = 'First beer, enjoy the run!'
-
-      achievements.append(Achievement(
-          message=msg, animated=True, image=DEFAULT_SCAN_GIF))
+      all_achievements.append(achievements.FirstBeerAchievement(name))
 
     for cool_amount in [1, 5, 10, 15, 20, 25, 30]:
       if total_drunk >= cool_amount*100 > prev_total_drunk:
-        msg = 'Congrats on the {0:d}L {1:s}, keep it up!'.format(
-            cool_amount, name)
+        all_achievements.append(
+            achievements.SelfVolumeAchievement(cool_amount, name))
 
-        achievements.append(Achievement(
-            message=msg, animated=True, image=DEFAULT_SCAN_GIF))
-
-    return achievements
+    return all_achievements
 
   def _ShowAchievement(self, achievement):
-    """TODO"""
-    img_path = os.path.abspath(DEFAULT_ACHIEVEMENT_FRAME)
+    """Displays an achievement"""
+    img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
     background = PIL.Image.new('RGB', self.luma_device.size, 'black')
     logo = PIL.Image.open(img_path).convert('RGB')
     background.paste(logo)
@@ -382,14 +369,15 @@ class LumaDisplay():
     _font = PIL.ImageFont.load_default()
 
     _, text_height = text_layer.textsize(achievement.message)
+    split_message = achievement.Splitted()
     text_layer.text(
-        (44, 4), achievement.message[0:13],
+        (44, 4), split_message[0],
         (255, 255, 255), font=_font)
     text_layer.text(
-        (44, 4 + text_height), achievement.message[14:26],
+        (44, 4 + text_height), split_message[1],
         (255, 255, 255), font=_font)
     text_layer.text(
-        (44, 4 + text_height*2), achievement.message[27:39],
+        (44, 4 + text_height*2), split_message[2],
         (255, 255, 255), font=_font)
 
     _font = PIL.ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
@@ -400,8 +388,13 @@ class LumaDisplay():
     _font = PIL.ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
     text_layer.text((4, 4), achievement.emoji, (255, 255, 255), font=_font)
 
+    regulator = framerate_regulator(fps=5)
+    for _ in range(15): # 15 frames at 5fps
+      with regulator:
+        self.luma_device.display(background.convert(self.luma_device.mode))
+
   def _ShowDefaultScan(self, name):
-    """TODO"""
+    """Show the default scan animation"""
     size = [min(*self.luma_device.size)] * 2
     posn = (
         (self.luma_device.width - size[0]) // 2,
@@ -445,8 +438,6 @@ class LumaDisplay():
 
     for r in rewards:
       self._ShowAchievement(r)
-
-
 
   def ShowScores(self):
     """Draws the Scoreboard screen."""

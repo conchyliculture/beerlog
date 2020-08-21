@@ -24,16 +24,9 @@ DataPoint = namedtuple(
     'DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
 
 DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
+DEFAULT_ACHIEVEMENT_FRAME = 'assets/pics/achievement.png'
 
-class Achievement():
-  """Class for an achievement"""
-
-  def __init__(self, image=None, message=None, animated=False):
-    """Initializes an Achievement."""
-
-    self.image = image
-    self.message = message
-    self.animated = animated
+Achievement = namedtuple('Achievement', 'image, message, big_message, emoji')
 
 
 class Scroller():
@@ -380,6 +373,32 @@ class LumaDisplay():
 
   def _ShowAchievement(self, achievement):
     """TODO"""
+    img_path = os.path.abspath(DEFAULT_ACHIEVEMENT_FRAME)
+    background = PIL.Image.new('RGB', self.luma_device.size, 'black')
+    logo = PIL.Image.open(img_path).convert('RGB')
+    background.paste(logo)
+
+    text_layer = PIL.ImageDraw.Draw(background)
+    _font = PIL.ImageFont.load_default()
+
+    _, text_height = text_layer.textsize(achievement.message)
+    text_layer.text(
+        (44, 4), achievement.message[0:13],
+        (255, 255, 255), font=_font)
+    text_layer.text(
+        (44, 4 + text_height), achievement.message[14:26],
+        (255, 255, 255), font=_font)
+    text_layer.text(
+        (44, 4 + text_height*2), achievement.message[27:39],
+        (255, 255, 255), font=_font)
+
+    _font = PIL.ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
+    text_layer.text(
+        (5, 8 + text_height*3), achievement.big_message,
+        (255, 255, 255), font=_font)
+
+    _font = PIL.ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
+    text_layer.text((4, 4), achievement.emoji, (255, 255, 255), font=_font)
 
   def _ShowDefaultScan(self, name):
     """TODO"""

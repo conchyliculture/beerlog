@@ -1,6 +1,5 @@
 """Module for managing achievements."""
 
-from collections import namedtuple
 import textwrap
 
 DEFAULT_ACHIEVEMENT_FRAME = 'assets/pics/achievement.png'

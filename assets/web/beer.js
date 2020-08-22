@@ -54,9 +54,12 @@ function drawChart(le_data) {
             scales: {
                 xAxes: [{
                     type: 'time',
-                       time: {
+                    time: {
                         tooltipFormat: 'ddd DD @ HH:mm',
-                        unit: 'day'
+                        unit: 'hour',
+                        displayFormats: {
+                            'hour': "ddd HH:MM"
+                        },
                     }
                 }],
             },

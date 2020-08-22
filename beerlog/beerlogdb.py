@@ -223,7 +223,7 @@ class BeerLogDB():
     """Returns the timestamp of the last scan."""
     query = Entry.select(peewee.fn.MAX(Entry.timestamp))
     if name:
-        query = query.where(Entry.character_name == name)
+      query = query.where(Entry.character_name == name)
     return query.scalar() #pylint: disable=no-value-for-parameter
 
   def GetAmountFromHexID(self, hexid, at=None):

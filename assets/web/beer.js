@@ -1,13 +1,13 @@
 function update_graph(path, func) {
-	var xhttp = new XMLHttpRequest(), method = "GET", url=path;
-	xhttp.onreadystatechange = function() {
-    	if (this.readyState == 4 && this.status == 200) {
+    var xhttp = new XMLHttpRequest(), method = "GET", url=path;
+    xhttp.onreadystatechange = function() {
+        if (this.readyState == 4 && this.status == 200) {
             info = JSON.parse(xhttp.responseText);
             func(info['data']);
-		}
-	};
-	xhttp.open(method, url, true);
-	xhttp.send();
+        }
+    };
+    xhttp.open(method, url, true);
+    xhttp.send();
 }
 function drawChart(le_data) {
     console.log(le_data);
@@ -16,7 +16,7 @@ function drawChart(le_data) {
     var drinkers = le_data['drinkers'];
     console.log(datasets);
 
-    document.getElementById('total').innerHTML = 'Total bu: ' + le_data['total']
+    document.getElementById('total').innerHTML = 'Total drunk: ' + le_data['total'] + 'L'
 
     // Assign a color for each name.
     var nameToColor = {};
@@ -40,7 +40,7 @@ function drawChart(le_data) {
         // The data for our dataset
         data: {
             labels: labels,
-            datasets: datasets
+            datasets: datasets,
         },
 
         // Configuration options go here
@@ -48,8 +48,19 @@ function drawChart(le_data) {
             elements: {
                 line: {
                     fill: false,
+                    tension: 0,
                 },
             },
+            scales: {
+                xAxes: [{
+                    type: 'time',
+                       time: {
+                        tooltipFormat: 'ddd DD @ HH:mm',
+                        unit: 'day'
+                    }
+                }],
+            },
+            monotone: 'monotone',
             tooltips: {
                 callbacks: {
                     afterFooter: function(tooltip) {

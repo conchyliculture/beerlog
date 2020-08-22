@@ -219,9 +219,11 @@ class BeerLogDB():
     except Exception: # pylint: disable=broad-except
       return None
 
-  def GetLatestTimestamp(self):
+  def GetLatestTimestamp(self, name=None):
     """Returns the timestamp of the last scan."""
     query = Entry.select(peewee.fn.MAX(Entry.timestamp))
+    if name:
+      query = query.where(Entry.character_name == name)
     return query.scalar() #pylint: disable=no-value-for-parameter
 
   def GetAmountFromHexID(self, hexid, at=None):
@@ -293,5 +295,5 @@ class BeerLogDB():
         Entry.timestamp, peewee.fn.SUM(Entry.amount).over(
             order_by=[Entry.timestamp]).alias('sum')).where(
                 Entry.character_name == name)
-    return query
+    return query.execute()
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -37,11 +37,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <body>
   <div id="total">
   </div>
-  <div style="width:80%; height:50%">
+  <div style="width:90%; height:80%">
     <canvas id="myChart"></canvas>
   </div>
   <script>update_graph("/data", drawChart);</script>
 </body></html> """
+
+  def __init__(self, *args):
+    self._characters = None
+    self._datasets = None
+    self._db = None
+    super().__init__(*args)
 
   def do_GET(self): #pylint: disable=invalid-name
     """Handles all GET requests."""
@@ -70,49 +76,73 @@ class Handler(http.server.BaseHTTPRequestHandler):
     else:
       self.send_error(404, 'error')
 
+  def _UpdateDatasets(self, character, new_amount):
+    # [
+    #    {'label': 'alcoolique1', 'data': ['total at tick1', 'total at tick2']}
+    #    {'label': 'alcoolique2', 'data': ['total at tick1', 'total at tick2']}
+    # ]
+    if not self._datasets:
+      self._datasets = []
+      for char in self._characters:
+        self._datasets.append({
+            'label': char,
+            'data': [0],
+            'steppedLine': True,
+            'spanGaps': True}) # Draw 'null' values
+    for dataset in self._datasets:
+      if dataset['label'] == character:
+        dataset['data'].append(new_amount)
+      else:
+        dataset['data'].append(None)
+
+  def _SetUpDB(self):
+    if not self._db:
+      self._db = beerlogdb.BeerLogDB(SOURCEDB)
+      self._db.LoadTagsDB(TAGS_FILE)
+      self._characters = self._db.GetAllCharacterNames()
+
   def GetData(self):
     """Builds a dict to use with Chart.js."""
-    db = beerlogdb.BeerLogDB(SOURCEDB)
-    db.LoadTagsDB(TAGS_FILE)
+    self._SetUpDB()
 
-    first_scan = db.GetEarliestTimestamp()
-    last_scan = db.GetLatestTimestamp()
-    delta = last_scan - first_scan
-    total_hours = int((delta.total_seconds() / 3600) + 2)
-    fields = []
-    datasets = {} # {'alcoolique': ['L cummulés']}
-    for hour in range(total_hours):
-      timestamp = (first_scan + datetime.timedelta(seconds=hour * 3600))
-      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
-      fields.append(timestamp.astimezone().strftime('%Y%m%d %Hh%M'))
-      for alcoolique in db.GetAllCharacterNames():
-        cl = db.GetAmountFromName(alcoolique, at=timestamp)
-        if alcoolique in datasets:
-          datasets[alcoolique].append(cl)
-        else:
-          datasets[alcoolique] = [cl]
+    data = {}
+    for character in self._characters:
+      for row in self._db.GetDataFromName(character):
+        data[row.timestamp.strftime('%Y-%m-%d %H:%M:%S')] = (character, row.sum)
 
-    total = 0
-    totals = {} # {'alcoolique': total }
-    for alcoolique in db.GetAllCharacterNames():
-      cl = db.GetAmountFromName(alcoolique, at=last_scan)
-      total += cl
-      totals[alcoolique] = cl
+    # {
+    #    time1: (char_1, cummulated),
+    #    time2: (char_2, cummulated),
+    #    time3: (char_1, cummulated),
+    #    ....
+    # }
 
-    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+    # First, add a data point before the first scan
+    labels = [(
+        self._db.GetEarliestTimestamp()-datetime.timedelta(hours=1)
+        ).strftime('%Y-%m-%d %H:%M:%S')]
+    for time in sorted(data):
+      labels.append(time)
+      character, amount = data[time]
+      self._UpdateDatasets(character, amount)
 
-    output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
-    for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
-      output_datasets.append({
-          'label': k,
-          'data':v
-          })
+    # We need one last datapoint to draw all the way to the end of times
+    labels.append((
+        self._db.GetLatestTimestamp()+datetime.timedelta(hours=1)
+        ).strftime('%Y-%m-%d %H:%M:%S'))
+    for dataset in self._datasets:
+      i = -1
+      # Search for the last non empty entry
+      while dataset['data'][i] is None:
+        i -= 1
+      dataset['data'].append(dataset['data'][i])
+
     return json.dumps(
         {'data':{
-            'labels':fields,
-            'datasets':output_datasets,
-            'drinkers': db.GetAllCharacterNames(),
-            'total': total}}
+            'labels': labels,
+            'datasets': self._datasets,
+            'drinkers': self._characters,
+            'total': self._db.GetTotalAmount() / 100.0}}
         ).encode()
 
 

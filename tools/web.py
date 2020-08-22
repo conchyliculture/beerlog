@@ -37,7 +37,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <body>
   <div id="total">
   </div>
-  <div style="width:80%; height:50%">
+  <div style="width:100%; height:100%">
     <canvas id="myChart"></canvas>
   </div>
   <script>update_graph("/data", drawChart);</script>

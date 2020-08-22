@@ -50,6 +50,7 @@ function drawChart(le_data) {
                     fill: false,
                 },
             },
+            monotone: 'monotone',
             tooltips: {
                 callbacks: {
                     afterFooter: function(tooltip) {

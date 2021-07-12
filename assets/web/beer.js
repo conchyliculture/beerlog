@@ -16,6 +16,18 @@ function drawChart(le_data) {
     var drinkers = le_data['drinkers'];
     console.log(datasets);
 
+    var newLabels = [];
+    var reg = /([0-9][0-9][0-9][0-9])([0-9][0-9])([0-9][0-9]) ([0-9]+)h([0-9]+)/;
+    for (var l in labels) {
+        var m = labels[l].match(reg)
+        var d = new Date(parseInt(m[1]),
+                         parseInt(m[2]),
+                         parseInt(m[3]));
+        d.setHours(parseInt(m[4]));
+        d.setMinutes(parseInt(m[5]));
+        newLabels.push(d.toISOString());
+    }
+    labels = newLabels;
     document.getElementById('total').innerHTML = 'Total drunk: ' + le_data['total'] + 'L'
 
     // Assign a color for each name.

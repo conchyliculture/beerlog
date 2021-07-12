@@ -28,12 +28,13 @@ function drawChart(le_data) {
         newLabels.push(d.toISOString());
     }
     labels = newLabels;
+
     document.getElementById('total').innerHTML = 'Total drunk: ' + le_data['total'] + 'L'
 
     // Assign a color for each name.
     var nameToColor = {};
     for (var idx in drinkers) {
-      nameToColor[drinkers[idx]] = "hsl(" + (360.0 * idx / drinkers.length) + ", 50%, 50%)";
+      nameToColor[drinkers[idx]] = "hsl(" + (360.0 * idx / drinkers.length).toFixed() + ", 50%, 50%)";
     }
 
     var ctx = document.getElementById('myChart').getContext('2d');

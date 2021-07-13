@@ -23,10 +23,10 @@ git clone https://github.com/conchyliculture/beerlog
 pip install -r requirements.txt
 
 sudo apt install jq
-wget  https://goto.ninja/beertags -O - | jq ".[keys[1]]" | jq "del(.|.[].release)" > known_tags.json
+wget  https://goto.rip/beertags -O - | jq ".[keys[1]]" | jq "del(.|.[].release)" > known_tags.json
 ```
 
-In `known_tags.json`, add the optional characteristics `realname` or `glass` to each entry:
+In `known_tags.json`, add the optional characteristics `realname` or `glass`volume to each entry:
 ```
 {
   "0x0000000000000002": {
@@ -36,7 +36,7 @@ In `known_tags.json`, add the optional characteristics `realname` or `glass` to 
 }
 ```
 
-This way, `Raymond` will be displayed in the UI instead of `Marius`, and we'll count 0.8 beers (1 beer == 50cL).
+This way, `Raymond` will be displayed in the UI instead of `Marius`, and we'll count 40cL for earch scan.
 
 
 ```

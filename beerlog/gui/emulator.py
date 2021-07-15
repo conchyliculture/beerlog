@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 
 try:
-  import gi
+    import gi  # pylint: disable=import-error
 except Exception as import_error:
   raise Exception (
           'Consider running from a virtualenv built with --system-site-packages'
@@ -14,7 +14,7 @@ except Exception as import_error:
 
 try:
   gi.require_version('Gtk', '3.0')
-  from gi.repository import Gtk
+  from gi.repository import Gtk  # pylint: disable=import-error
 except Exception as import_error:
   raise Exception('Need at least version 3.0 pf pygtk') from import_error
 

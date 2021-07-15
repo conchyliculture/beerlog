@@ -62,6 +62,9 @@ function drawChart(le_data) {
                         },
                     }
                 }],
+                y: {
+                    position: 'right',
+                },
             },
             monotone: 'monotone',
             tooltips: {

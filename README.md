@@ -20,8 +20,20 @@ cd beerlog
 source bin/activate
 
 git clone https://github.com/conchyliculture/beerlog
+```
+
+On a Raspberry Pi:
+```
 pip install -r requirements.txt
 
+```
+On a Desktop, do this instead:
+```
+export CFLAGS=-fcommon
+pip install -r requirements-desktop.txt
+```
+
+```
 sudo apt install jq
 wget  https://goto.rip/beertags -O - | jq ".[keys[1]]" | jq "del(.|.[].release)" > known_tags.json
 ```
@@ -40,8 +52,6 @@ This way, `Raymond` will be displayed in the UI instead of `Marius`, and we'll c
 
 
 ```
-
-
 PYTHONPATH="." python beerlog/cli/beerlog_cli.py
 ```
 

@@ -5,7 +5,7 @@ from __future__ import print_function
 from luma.core.interface.serial import i2c, spi
 from luma.oled.device import sh1106
 
-import RPi.GPIO as GPIO
+from RPi import GPIO
 
 from beerlog import constants
 from beerlog import events

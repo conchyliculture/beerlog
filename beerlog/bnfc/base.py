@@ -18,7 +18,7 @@ class NFCEvent(events.BaseEvent):
   """Event for a NFC tag."""
 
   def __init__(self, uid=None):
-    super(NFCEvent, self).__init__(constants.EVENTTYPES.NFCSCANNED)
+    super().__init__(constants.EVENTTYPES.NFCSCANNED)
     self.uid = uid
 
   def __str__(self):
@@ -129,7 +129,7 @@ class BeerNFC(BaseNFC):
     """
     self._should_beep = should_beep
     self.path = path
-    super(BeerNFC, self).__init__(events_queue=events_queue)
+    super().__init__(events_queue=events_queue)
 
 #    self._last_taken_picture = None
 #    self._picture_dir = None

@@ -24,7 +24,7 @@ class ErrorEvent(BaseEvent):
   """Event to carry error messages."""
 
   def __init__(self, message):
-    super(ErrorEvent, self).__init__(constants.EVENTTYPES.ERROR)
+    super().__init__(constants.EVENTTYPES.ERROR)
     self.message = message
 
   def __str__(self):
@@ -35,7 +35,7 @@ class NopEvent(BaseEvent):
   """An Event that does nothing."""
 
   def __init__(self):
-    super(NopEvent, self).__init__(constants.EVENTTYPES.NOEVENT)
+    super().__init__(constants.EVENTTYPES.NOEVENT)
 
 
 class UIEvent(BaseEvent):

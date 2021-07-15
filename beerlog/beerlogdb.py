@@ -15,6 +15,7 @@ database_proxy = peewee.Proxy()
 # pylint: disable=no-init
 class BeerModel(peewee.Model):
   """Model for the database."""
+  id = None
   class Meta():
     """Sets Metadata for the database."""
     database = database_proxy

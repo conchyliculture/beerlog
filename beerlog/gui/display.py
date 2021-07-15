@@ -358,7 +358,7 @@ class LumaDisplay():
 
     return all_achievements
 
-  def _ShowAchievement(self, achievement):
+  def _ShowAchievement(self, achievement, picture=None):
     """Displays an achievement"""
     img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
     background = PIL.Image.new('RGB', self.luma_device.size, 'black')
@@ -373,12 +373,14 @@ class LumaDisplay():
     text_layer.text(
         (44, 4), split_message[0],
         (255, 255, 255), font=_font)
-    text_layer.text(
-        (44, 4 + text_height), split_message[1],
-        (255, 255, 255), font=_font)
-    text_layer.text(
-        (44, 4 + text_height*2), split_message[2],
-        (255, 255, 255), font=_font)
+    if len(split_message) >= 2:
+      text_layer.text(
+          (44, 4 + text_height), split_message[1],
+          (255, 255, 255), font=_font)
+    if len(split_message) >= 3:
+      text_layer.text(
+          (44, 4 + text_height*2), split_message[2],
+          (255, 255, 255), font=_font)
 
     _font = PIL.ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
     text_layer.text(
@@ -388,10 +390,13 @@ class LumaDisplay():
     _font = PIL.ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
     text_layer.text((4, 4), achievement.emoji, (255, 255, 255), font=_font)
 
-    regulator = framerate_regulator(fps=5)
-    for _ in range(15): # 15 frames at 5fps
-      with regulator:
-        self.luma_device.display(background.convert(self.luma_device.mode))
+    if picture:
+      background.save(picture)
+    else:
+      regulator = framerate_regulator(fps=5)
+      for _ in range(15): # 15 frames at 5fps
+        with regulator:
+          self.luma_device.display(background.convert(self.luma_device.mode))
 
   def _ShowDefaultScan(self, name):
     """Show the default scan animation"""

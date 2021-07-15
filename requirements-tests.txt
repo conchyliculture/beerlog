@@ -1,2 +1,3 @@
+-r requirements.txt
 -r requirements-common.txt
-luma.oled
+pylint

@@ -1,7 +1,2 @@
-luma.core
+-r requirements-common.txt
 luma.emulator
-matplotlib
-nfcpy
-peewee
-RPi.GPIO
-transitions

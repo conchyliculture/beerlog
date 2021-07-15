@@ -444,7 +444,7 @@ class LumaDisplay():
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
-      max_name_width = max_text_width-13
+      max_name_width = max_text_width-12
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
@@ -459,12 +459,19 @@ class LumaDisplay():
         draw_row += 1
         # ie: '1.Fox        12  12h'
         #     '2.Dog        10   5m'
+        real_pos = scoreboard_position + 1 + self._scoreboard.window_low
+        real_pos_len = len(str(real_pos)) # 1 or 2
         text = '{0:d}.'.format(
             scoreboard_position + 1 + self._scoreboard.window_low)
-        text += ' '.join([
-            ('{0:<'+str(max_name_width)+'}').format(row.character_name),
-            utils.GetShortAmountOfBeer(row.total / 100.0),
-            utils.GetShortLastBeer(row.last)])
+        to_format = (
+                '{0:d}. {1:<'+str(max_name_width-real_pos_len)+'}|{2:s}|{3:s}'
+        )
+        text = to_format.format(
+            real_pos,
+                row.character_name,
+                utils.GetShortAmountOfBeer(row.total / 100.0),
+                utils.GetShortLastBeer(row.last)
+        )
         self._DrawTextRow(drawer, text, draw_row, char_h, selected=selected)
 
   def ShowSplash(self):

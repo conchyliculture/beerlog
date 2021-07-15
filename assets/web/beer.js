@@ -16,7 +16,7 @@ function drawChart(le_data) {
     var drinkers = le_data['drinkers'];
     console.log(datasets);
 
-    document.getElementById('total').innerHTML = 'Total drunk: ' + le_data['total'] + 'L'
+    document.getElementById('total').innerHTML = 'Total drunk: ' + le_data['total']/100.0 + 'L'
 
     // Assign a color for each name.
     var nameToColor = {};

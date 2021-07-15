@@ -31,6 +31,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <html>
 <head>
   <title>Beer</title>
+  <link rel="icon" href="data:;base64,=">
   <script src="beer.js"></script>
   <script src="chart.js"></script>
 </head>

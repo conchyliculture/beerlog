@@ -530,6 +530,7 @@ class LumaDisplay():
 
   def Terminate(self):
     """Kills the display."""
-    self.gui_object.Terminate()
+    if self.gui_object:
+      self.gui_object.Terminate()
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -4,12 +4,18 @@ from __future__ import print_function
 
 import logging
 import multiprocessing
-import gi
+
+try:
+  import gi
+except Exception as import_error:
+  raise Exception('Consider running from a virtualenv built with --system-site-packages') from import_error
+
 try:
   gi.require_version('Gtk', '3.0')
   from gi.repository import Gtk
 except:
   raise Exception('Need at least version 3.0 pf pygtk')
+
 from luma.emulator import device
 
 from beerlog import constants

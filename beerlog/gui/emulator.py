@@ -8,13 +8,15 @@ import multiprocessing
 try:
   import gi
 except Exception as import_error:
-  raise Exception('Consider running from a virtualenv built with --system-site-packages') from import_error
+  raise Exception (
+          'Consider running from a virtualenv built with --system-site-packages'
+          )from import_error
 
 try:
   gi.require_version('Gtk', '3.0')
   from gi.repository import Gtk
-except:
-  raise Exception('Need at least version 3.0 pf pygtk')
+except Exception as import_error:
+  raise Exception('Need at least version 3.0 pf pygtk') from import_error
 
 from luma.emulator import device
 

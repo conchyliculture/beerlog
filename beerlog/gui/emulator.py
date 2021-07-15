@@ -6,7 +6,7 @@ import logging
 import multiprocessing
 
 try:
-    import gi  # pylint: disable=import-error
+  import gi  # pylint: disable=import-error
 except Exception as import_error:
   raise Exception (
           'Consider running from a virtualenv built with --system-site-packages'

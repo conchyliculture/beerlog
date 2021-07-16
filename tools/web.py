@@ -126,7 +126,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             'labels':fields,
             'datasets':output_datasets,
             'drinkers': self._db.GetAllCharacterNames(),
-            'total': total}}
+            'total': total/100.0}}
         ).encode()
 
 def ParseArguments():

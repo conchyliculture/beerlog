@@ -105,15 +105,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
           datasets[alcoolique] = [cl]
 
     total = 0
+    # 'totals' is unused for now, can be used later to display the scores
+    totals = {} # {'alcoolique': total }
+    for alcoolique in self._db.GetAllCharacterNames():
+      cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
+      total += cl
+      totals[alcoolique] = cl
 
-    # Unused for now, can be used later
-#    totals = {} # {'alcoolique': total }
-#    for alcoolique in self._db.GetAllCharacterNames():
-#      cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
-#      total += cl
-#      totals[alcoolique] = cl
-#
-#    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
 
     # Formating for Charts.js
     output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]

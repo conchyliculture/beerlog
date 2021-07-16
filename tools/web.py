@@ -77,7 +77,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
     else:
       self.send_error(404, 'error')
 
-
   def GetData(self):
     """Builds a dict to use with Chart.js."""
     first_scan = self._db.GetEarliestTimestamp()
@@ -154,6 +153,8 @@ def ParseArguments():
   return parser.parse_args()
 
 
+# This is necessary to be able to pass parameters to the Handler class
+# used in socketserver.TCPServer
 def MakeHandlerClassFromArgv(init_args):
   """Generates a class that inherits from Handler, with the proper attributes"""
   class CustomHandler(Handler):

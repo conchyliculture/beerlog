@@ -16,6 +16,7 @@ DEFAULT_DB = os.path.join('beerlog.sqlite')
 DEFAULT_TAGS_FILE = os.path.join('known_tags.json')
 DEFAULT_PORT = 8000
 
+MAX_HOURS = 30 * 24  # 1 month
 
 class Handler(http.server.BaseHTTPRequestHandler):
   """Implements a simple HTTP server."""
@@ -83,7 +84,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
     last_scan = self._db.GetLatestTimestamp()
     delta = last_scan - first_scan
     total_hours = int((delta.total_seconds() / 3600) + 2)
-    fields = []
+    if total_hours > MAX_HOURS:
+      msg = (
+              'We calculated there are {0:d} hours between {1!s} and {2!s}, '
+              'which is more than the expected max number of hours in a month'
+              ': {3:d}'
+              ).format(total_hours, first_scan, last_scan, MAX_HOURS)
+      raise Exception(msg)
+    fields = [] # This is the X axis
     datasets = {} # {'alcoolique': ['L cummulés']}
     for hour in range(total_hours):
       timestamp = (first_scan + datetime.timedelta(seconds=hour * 3600))
@@ -97,14 +105,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
           datasets[alcoolique] = [cl]
 
     total = 0
-    totals = {} # {'alcoolique': total }
-    for alcoolique in self._db.GetAllCharacterNames():
-      cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
-      total += cl
-      totals[alcoolique] = cl
 
-    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+    # Unused for now, can be used later
+#    totals = {} # {'alcoolique': total }
+#    for alcoolique in self._db.GetAllCharacterNames():
+#      cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
+#      total += cl
+#      totals[alcoolique] = cl
+#
+#    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
 
+    # Formating for Charts.js
     output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
     for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
       output_datasets.append({

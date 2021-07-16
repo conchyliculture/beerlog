@@ -1,5 +1,6 @@
 """Serves the beerlog data in a website"""
 
+import argparse
 import datetime
 import os
 import sys
@@ -11,17 +12,10 @@ from beerlog import beerlogdb
 
 socketserver.TCPServer.allow_reuse_address = True
 
-SOURCEDB = os.path.join('beerlog.sqlite')
-TAGS_FILE = os.path.join('known_tags.json')
+DEFAULT_DB = os.path.join('beerlog.sqlite')
+DEFAULT_TAGS_FILE = os.path.join('known_tags.json')
+DEFAULT_PORT = 8000
 
-if len(sys.argv) == 2:
-  SOURCEDB = sys.argv[1]
-
-PORT = 8000
-
-if not os.path.isfile(SOURCEDB):
-  print('{0!s} is not a file'.format(SOURCEDB))
-  sys.exit(1)
 
 class Handler(http.server.BaseHTTPRequestHandler):
   """Implements a simple HTTP server."""
@@ -37,17 +31,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <body>
   <div id="total">
   </div>
-  <div style="width:90%; height:80%">
+  <div style="width:80%; height:50%">
     <canvas id="myChart"></canvas>
   </div>
   <script>update_graph("/data", drawChart);</script>
 </body></html> """
 
-  def __init__(self, *args):
-    self._characters = None
+  def __init__(self, *args, **kwargs):
     self._datasets = None
     self._db = None
-    super().__init__(*args)
+    self._characters = None
+    self._Setup()
+    super().__init__(*args, **kwargs)
+    self.options = None
+
+  def _Setup(self):
+    """Initiates some useful objects"""
+    self._db = beerlogdb.BeerLogDB(self.options.database)
+    self._db.LoadTagsDB(self.options.known_tags)
+    self._characters = self._db.GetAllCharacterNames()
 
   def do_GET(self): #pylint: disable=invalid-name
     """Handles all GET requests."""
@@ -72,39 +74,60 @@ class Handler(http.server.BaseHTTPRequestHandler):
       self.send_response(200)
       self.send_header('Content-type', 'application/json')
       self.end_headers()
-      self.wfile.write(self.GetData())
+      if self.options.lame:
+        self.wfile.write(self.GetDataLame())
+      else:
+        self.wfile.write(self.GetData())
     else:
       self.send_error(404, 'error')
 
-  def _UpdateDatasets(self, character, new_amount):
-    # [
-    #    {'label': 'alcoolique1', 'data': ['total at tick1', 'total at tick2']}
-    #    {'label': 'alcoolique2', 'data': ['total at tick1', 'total at tick2']}
-    # ]
-    if not self._datasets:
-      self._datasets = []
-      for char in self._characters:
-        self._datasets.append({
-            'label': char,
-            'data': [0],
-            'steppedLine': True,
-            'spanGaps': True}) # Draw 'null' values
-    for dataset in self._datasets:
-      if dataset['label'] == character:
-        dataset['data'].append(new_amount)
-      else:
-        dataset['data'].append(None)
-
-  def _SetUpDB(self):
-    if not self._db:
-      self._db = beerlogdb.BeerLogDB(SOURCEDB)
-      self._db.LoadTagsDB(TAGS_FILE)
-      self._characters = self._db.GetAllCharacterNames()
 
   def GetData(self):
     """Builds a dict to use with Chart.js."""
-    self._SetUpDB()
+    first_scan = self._db.GetEarliestTimestamp()
+    last_scan = self._db.GetLatestTimestamp()
+    delta = last_scan - first_scan
+    total_hours = int((delta.total_seconds() / 3600) + 2)
+    fields = []
+    datasets = {} # {'alcoolique': ['L cummulés']}
+    for hour in range(total_hours):
+      timestamp = (first_scan + datetime.timedelta(seconds=hour * 3600))
+      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+      fields.append(timestamp.astimezone().strftime('%Y%m%d %Hh%M'))
+      for alcoolique in self._characters:
+        cl = self._db.GetAmountFromName(alcoolique, at=timestamp)
+        if alcoolique in datasets:
+          datasets[alcoolique].append(cl)
+        else:
+          datasets[alcoolique] = [cl]
 
+    total = 0
+    totals = {} # {'alcoolique': total }
+    for alcoolique in self._db.GetAllCharacterNames():
+      cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
+      total += cl
+      totals[alcoolique] = cl
+
+    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
+
+    output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
+    for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
+      output_datasets.append({
+          'label': k,
+          'data':v
+          })
+    return json.dumps(
+        {'data':{
+            'labels':fields,
+            'datasets':output_datasets,
+            'drinkers': self._db.GetAllCharacterNames(),
+            'total': total}}
+        ).encode()
+
+  def GetDataLame(self):
+    """Builds a dict to use with Chart.js, but in a lame way.
+
+    This means returning a graph where all scan is a node."""
     data = {}
     for character in self._characters:
       for row in self._db.GetDataFromName(character):
@@ -121,16 +144,28 @@ class Handler(http.server.BaseHTTPRequestHandler):
     labels = [(
         self._db.GetEarliestTimestamp()-datetime.timedelta(hours=1)
         ).strftime('%Y-%m-%d %H:%M:%S')]
+    datasets = []
+    for char in self._characters:
+      datasets.append({
+            'label': char,
+            'data': [0],
+            'steppedLine': True,
+            'spanGaps': True}) # Draw 'null' values
     for time in sorted(data):
       labels.append(time)
       character, amount = data[time]
-      self._UpdateDatasets(character, amount)
+
+      for dataset in datasets:
+        if dataset['label'] == character:
+          dataset['data'].append(amount)
+        else:
+          dataset['data'].append(None)
 
     # We need one last datapoint to draw all the way to the end of times
     labels.append((
         self._db.GetLatestTimestamp()+datetime.timedelta(hours=1)
         ).strftime('%Y-%m-%d %H:%M:%S'))
-    for dataset in self._datasets:
+    for dataset in datasets:
       i = -1
       # Search for the last non empty entry
       while dataset['data'][i] is None:
@@ -140,14 +175,66 @@ class Handler(http.server.BaseHTTPRequestHandler):
     return json.dumps(
         {'data':{
             'labels': labels,
-            'datasets': self._datasets,
+            'datasets': datasets,
             'drinkers': self._characters,
             'total': self._db.GetTotalAmount() / 100.0}}
         ).encode()
 
 
-print('Server listening on port {0:d}...'.format(PORT))
-httpd = socketserver.TCPServer(('', PORT), Handler)
+def ParseArguments():
+  """Parses arguments.
+
+  Returns:
+    argparse.NameSpace: the parsed arguments.
+  """
+
+  parser = argparse.ArgumentParser(description='BeerLog')
+  parser.add_argument(
+      '--database', dest='database', action='store',
+      default=DEFAULT_DB,
+      help='the path to the sqlite file')
+  parser.add_argument(
+      '--known_tags', dest='known_tags', action='store',
+      default=DEFAULT_TAGS_FILE,
+      help='the known tags file to use to use')
+  parser.add_argument(
+      '--lame', dest='lame', action='store_true',
+      help='uses a lame method for graphs, by plotting NFC scans as nodes')
+  parser.add_argument(
+      '--port', dest='port', action='store',
+      default=DEFAULT_PORT, type=int,
+      help='port to listen at')
+
+  parsed_args = parser.parse_args()
+
+  if not os.path.isfile(parsed_args.database):
+    print('Could not find a sqlite file at {0!s}'.format(parsed_args.database))
+    sys.exit(1)
+  if not os.path.isfile(parsed_args.known_tags):
+    print('Could not find a known tags JSON file at {0!s}'.format(
+        parsed_args.known_tags))
+    sys.exit(1)
+
+  return parser.parse_args()
+
+
+def MakeHandlerClassFromArgv(init_args):
+  """Generates a class that inherits from Handler, with the proper attributes"""
+  class CustomHandler(Handler):
+    """Wrapper around Handler that sets the required attributes"""
+    def __init__(self, *args, **kwargs):
+      self.options = init_args
+      super().__init__(*args, **kwargs)
+
+  return CustomHandler
+
+
+app_args = ParseArguments()
+
+HandlerClass =  MakeHandlerClassFromArgv(app_args)
+
+print('Server listening on port {0:d}...'.format(app_args.port))
+httpd = socketserver.TCPServer(('', app_args.port), HandlerClass)
 try:
   httpd.serve_forever()
 except KeyboardInterrupt:

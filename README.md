@@ -14,8 +14,8 @@ Other recommended hardware, especially if the device you're setting up doesn't h
 ## Installation
 
 ```
-sudo apt install python-virtualenv
-virtualenv -p python3.7 --system-site-packages beerlog
+sudo apt install python3-virtualenv
+virtualenv --system-site-packages beerlog
 cd beerlog
 source bin/activate
 

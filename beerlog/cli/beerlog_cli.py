@@ -134,7 +134,8 @@ class BeerLog():
     if self.nfc_reader:
       if self.nfc_reader.process.is_alive():
         self.nfc_reader.process.kill()
-    self.ui.Terminate()
+    if self.ui:
+      self.ui.Terminate()
 
   def InitUI(self):
     """Initialises the user interface."""

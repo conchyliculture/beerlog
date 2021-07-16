@@ -444,7 +444,7 @@ class LumaDisplay():
     with LumaCanvas(self.luma_device) as drawer:
       char_w, char_h = drawer.textsize(' ', font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
-      max_name_width = max_text_width-12
+      max_name_width = max_text_width - 12
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'

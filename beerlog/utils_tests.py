@@ -13,10 +13,10 @@ class TestUtils(unittest.TestCase):
 
   def testGetShortAmountOfBeer(self):
     """Tests the _GetShortLastBeer() method."""
-    self.assertEqual(utils.GetShortAmountOfBeer(0), '   0')
-    self.assertEqual(utils.GetShortAmountOfBeer(1.01), '1.01')
-    self.assertEqual(utils.GetShortAmountOfBeer(1.28), '1.28')
-    self.assertEqual(utils.GetShortAmountOfBeer(1.88), '1.88')
+    self.assertEqual(utils.GetShortAmountOfBeer(0), ' 0.0')
+    self.assertEqual(utils.GetShortAmountOfBeer(1.01), ' 1.0')
+    self.assertEqual(utils.GetShortAmountOfBeer(1.28), ' 1.3')
+    self.assertEqual(utils.GetShortAmountOfBeer(1.88), ' 1.9')
     self.assertEqual(utils.GetShortAmountOfBeer(10.21), '10.2')
     self.assertEqual(utils.GetShortAmountOfBeer(10.91), '10.9')
     self.assertEqual(utils.GetShortAmountOfBeer(99.11), '99.1')

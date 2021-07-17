@@ -51,4 +51,4 @@ def GetShortAmountOfBeer(amount):
     return 'DEAD'
   if amount >= 99.5:
     return '{0:>4d}'.format(int(round(amount)))
-  return '{0:4.3g}'.format(amount)
+  return '{0:4.1f}'.format(round(amount,1))

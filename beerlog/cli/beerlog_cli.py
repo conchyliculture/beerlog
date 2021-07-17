@@ -1,7 +1,5 @@
 """BeerLog main script"""
 
-from __future__ import print_function
-
 import argparse
 import datetime
 import logging
@@ -57,11 +55,7 @@ class BeerLog():
       logging.debug('Started NFC {0!s}'.format(self.nfc_reader))
 
   def ParseArguments(self):
-    """Parses arguments.
-
-    Returns:
-      argparse.NameSpace: the parsed arguments.
-    """
+    """Parses arguments."""
 
     parser = argparse.ArgumentParser(description='BeerLog')
     parser.add_argument(

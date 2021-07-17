@@ -67,25 +67,27 @@ function drawChart(le_data) {
                 },
             },
             monotone: 'monotone',
-            tooltips: {
-                callbacks: {
-                    afterFooter: function(tooltip) {
-                        // Datasets are sorted by amount. First index
-                        // is the winner.
-                        var prices = [
-                            '\uD83E\uDD47', // gold
-                            '\uD83E\uDD48', // silver
-                            '\uD83E\uDD49', // bronze
-                        ];
-                        var text = '';
-                        for (var i in tooltip) {
-                            if (tooltip[i].datasetIndex < 3)
-                                text += prices[tooltip[i].datasetIndex];
-                        }
-                        return text;
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        afterFooter: function(tooltip) {
+                            // Datasets are sorted by amount. First index
+                            // is the winner.
+                            var prices = [
+                                '\uD83E\uDD47', // gold
+                                '\uD83E\uDD48', // silver
+                                '\uD83E\uDD49', // bronze
+                            ];
+                            var text = '';
+                            for (var i in tooltip) {
+                                if (tooltip[i].datasetIndex < 3)
+                                    text += prices[tooltip[i].datasetIndex];
+                            }
+                            return text;
+                        },
                     },
+                    footerFontSize: 40,
                 },
-                footerFontSize: 40,
             },
         },
     });

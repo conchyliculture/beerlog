@@ -358,8 +358,14 @@ class LumaDisplay():
 
     return all_achievements
 
-  def _ShowAchievement(self, achievement, picture=None):
-    """Displays an achievement"""
+  def _ShowAchievement(self, achievement, picture_path=None):
+    """Displays an achievement
+
+    Args:
+        achievement(Achivement): the achievement to display.
+        picture_path(str): if specified, will write the picture to the
+            specified path instead of showing it to the device. Used in tests.
+    """
     img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
     background = PIL.Image.new('RGB', self.luma_device.size, 'black')
     logo = PIL.Image.open(img_path).convert('RGB')
@@ -390,8 +396,8 @@ class LumaDisplay():
     _font = PIL.ImageFont.truetype('assets/fonts/TwitterEmoji.ttf', 28)
     text_layer.text((8, 8), achievement.emoji, (255, 255, 255), font=_font)
 
-    if picture:
-      background.save(picture)
+    if picture_path:
+      background.save(picture_path)
     else:
       regulator = framerate_regulator(fps=5)
       for _ in range(15): # 15 frames at 5fps

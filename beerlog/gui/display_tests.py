@@ -43,7 +43,6 @@ class DisplayTests(unittest.TestCase):
     a = d.GetAchievements('toto')
     self.assertEqual(len(a), 1)
     self.assertIsInstance(a[0], achievements.FirstBeerAchievement)
-    self.assertEqual(a[0].message, 'First beer, enjoy the game toto!')
 
     self.db.AddEntry('0x2', 'pic')
     self.db.AddEntry('0x3', 'pic')
@@ -81,7 +80,5 @@ class DisplayTests(unittest.TestCase):
     a = d.GetAchievements('tyty')
     d._scoreboard.UpdateData(self.db.GetScoreBoard())
     self.assertEqual(len(a), 2)
-    self.assertEqual(
-        a[0].message, 'First beer, enjoy the game tyty!')
     self.assertEqual(
         a[1].message, 'Congrats on passing 1L tyty!')

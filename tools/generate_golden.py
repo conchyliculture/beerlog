@@ -1,4 +1,4 @@
-"""Tool to generate a set of olden images for tests"""
+"""Tool to generate a set of golden images for tests"""
 import multiprocessing
 
 from beerlog import beerlogdb

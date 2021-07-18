@@ -30,7 +30,7 @@ class SelfVolumeAchievement(BaseAchievement):
   def __init__(self, amount, name):
     m = 'Congrats on passing {0:d}L {1:s}!'.format(amount, name)
     b = '{0:d} PINTS !'.format(amount * 2)
-    e = '🍺'
+    e = '\N{beer mug}'
     super().__init__(m, b, e)
 
 class BeatSomeoneAchievement(BaseAchievement):
@@ -38,16 +38,16 @@ class BeatSomeoneAchievement(BaseAchievement):
 
   def __init__(self, position):
     m = 'Congrats on taking rank {0:d}!'.format(position)
-    b = '{0:d} TO GO !'.format(position - 1)
-    e = '🍺'
+    b = '{0:d} TO GO!'.format(position - 1)
+    e = '\N{beer mug}'
     if position == 1:
       m = 'YOU HAVE TAKEN THE LEAD !!!'
-      b = 'WATCH OUT'
-      e = '🥇'
+      b = 'WATCH OUT!'
+      e = '\N{first place medal}'
     elif position == 2:
-      e = '🥈'
+      e = '\N{second place medal}'
     elif position == 3:
-      e = '🥉'
+      e = '\N{third place medal}'
     super().__init__(m, b, e)
 
 class FirstBeerAchievement(BaseAchievement):
@@ -55,5 +55,5 @@ class FirstBeerAchievement(BaseAchievement):
 
   def __init__(self, name):
     super().__init__(
-        'First beer, enjoy the game {0:s}!'.format(name),
-        'FIRST BEER', emoji='1️')
+        'First beer! Have fun {0:s}!'.format(name),
+        'FIRST BEER', emoji='\N{white heavy check mark}')

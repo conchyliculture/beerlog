@@ -371,15 +371,15 @@ class LumaDisplay():
     _, text_height = text_layer.textsize(achievement.message)
     split_message = achievement.Splitted()
     text_layer.text(
-        (44, 4), split_message[0],
+        (42, 4), split_message[0],
         (255, 255, 255), font=_font)
     if len(split_message) >= 2:
       text_layer.text(
-          (44, 4 + text_height), split_message[1],
+          (42, 4 + text_height), split_message[1],
           (255, 255, 255), font=_font)
     if len(split_message) >= 3:
       text_layer.text(
-          (44, 4 + text_height*2), split_message[2],
+          (42, 4 + text_height*2), split_message[2],
           (255, 255, 255), font=_font)
 
     _font = PIL.ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
@@ -387,8 +387,8 @@ class LumaDisplay():
         (5, 8 + text_height*3), achievement.big_message,
         (255, 255, 255), font=_font)
 
-    _font = PIL.ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
-    text_layer.text((4, 4), achievement.emoji, (255, 255, 255), font=_font)
+    _font = PIL.ImageFont.truetype('assets/fonts/TwitterEmoji.ttf', 28)
+    text_layer.text((8, 8), achievement.emoji, (255, 255, 255), font=_font)
 
     if picture:
       background.save(picture)

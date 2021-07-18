@@ -1,7 +1,5 @@
+"""Tool to generate a set of olden images for tests"""
 import multiprocessing
-import os
-import tempfile
-import unittest
 
 from beerlog import beerlogdb
 from beerlog.gui import achievements
@@ -16,7 +14,7 @@ class FakeLumaDevice():
     self.size = (self.width, self.height)
 
 
-def generate(achievement, destination):
+def Generate(achievement, destination):
   """TODO"""
   db = beerlogdb.BeerLogDB(':memory:')
   db.known_tags_list = {
@@ -31,13 +29,15 @@ def generate(achievement, destination):
   d = display.LumaDisplay(
       events_queue=events_queue, database=db)
   d.luma_device = FakeLumaDevice()
-  d._ShowAchievement(achievement, picture=destination)
+  d._ShowAchievement(achievement, picture=destination)  # pylint: disable=protected-access
   print('wrote '+destination)
 
 a_arr = [
         [achievements.FirstBeerAchievement('toto'), 'first.jpg'],
         [achievements.SelfVolumeAchievement(12, 'toto'), 'selfvol12.jpg'],
-        [achievements.BeatSomeoneAchievement(2), 'newrank2.jpg']
+        [achievements.BeatSomeoneAchievement(1), 'newrank1.jpg'],
+        [achievements.BeatSomeoneAchievement(2), 'newrank2.jpg'],
+        [achievements.BeatSomeoneAchievement(3), 'newrank3.jpg']
         ]
 for a, name in a_arr:
-  generate(a, name)
+  Generate(a, name)

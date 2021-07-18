@@ -28,25 +28,31 @@ class AchievementsTests(unittest.TestCase):
 
   def CheckAgainstGolden(self, display, achievement, golden_path):
     """Makes sure the image matches"""
-    with tempfile.NamedTemporaryFile(suffix='.jpg') as temp:
-      display._ShowAchievement(achievement, picture=temp.name)
-      try:
-        self.assertTrue(self.ComparePictures(golden_path, temp.name), (
-            'Result picture for {0:s} doesn\'t match "{1:s}"\n'
-            'You can generate new golden images using tools/generate_golden.py'
-            ).format(achievement.__class__.__name__, golden_path))
-      except AssertionError as e:
-        (out_f, out_p) = tempfile.mkstemp(suffix='.jpg')
-        os.write(out_f, temp.read())
-        os.close(out_f)
-        print('Test failed, saving screenshot as '+out_p)
-        raise e
+    image_data = display._DrawAchievement(achievement)
+    golden_data = PIL.Image.open(golden_path)
+    try:
+      self.assertTrue(self.ComparePictures(image_data, golden_data), (
+          'Result picture for {0:s} doesn\'t match "{1:s}"\n'
+          'You can generate new golden images using tools/generate_golden.py'
+          ).format(achievement.__class__.__name__, golden_path))
+    except AssertionError as e:
+      (out_f, out_p) = tempfile.mkstemp(suffix='.ppm')
+      image_data.save(out_p)
+      os.close(out_f)
+      print('Test failed, saving screenshot as '+out_p)
+      raise e
 
-  def ComparePictures(self, res, expected):
-    """Return True if both pictures are the same"""
-    result = PIL.Image.open(res)
-    golden = PIL.Image.open(expected)
-    return PIL.ImageChops.difference(result, golden).getbbox() is None
+  def ComparePictures(self, generated, expected):
+    """Return True if both Images are the same.
+
+    Args:
+      generated(PIL.Image): the image to test.
+      expected(PIL.Image): the image to test against.
+
+    Returns:
+      bool: whether the images are identical.
+    """
+    return list(expected.getdata()) == list(generated.getdata())
 
   def setUp(self):
     self.db = beerlogdb.BeerLogDB(self.DB_PATH)
@@ -62,7 +68,7 @@ class AchievementsTests(unittest.TestCase):
     self.assertEqual(achievement.emoji, '\N{white heavy check mark}')
     self.assertEqual(achievement.message, 'First beer! Have fun toto!')
     self.assertEqual(achievement.big_message, 'FIRST BEER')
-    golden_path = 'assets/golden/first.jpg'
+    golden_path = 'assets/golden/first.ppm'
     self.CheckAgainstGolden(d, achievement, golden_path)
 
   def testSelfVolumeAchievement(self):
@@ -76,7 +82,7 @@ class AchievementsTests(unittest.TestCase):
     self.assertEqual(achievement.emoji, '\N{beer mug}')
     self.assertEqual(achievement.message, 'Congrats on passing 12L toto!')
     self.assertEqual(achievement.big_message, '24 PINTS !')
-    golden_path = 'assets/golden/selfvol12.jpg'
+    golden_path = 'assets/golden/selfvol12.ppm'
     self.CheckAgainstGolden(d, achievement, golden_path)
 
   def testBeatSomeoneAchievement(self):
@@ -90,19 +96,19 @@ class AchievementsTests(unittest.TestCase):
     self.assertEqual(achievement.emoji, '\N{first place medal}')
     self.assertEqual(achievement.message, 'YOU HAVE TAKEN THE LEAD !!!')
     self.assertEqual(achievement.big_message, 'WATCH OUT!')
-    golden_path = 'assets/golden/newrank1.jpg'
+    golden_path = 'assets/golden/newrank1.ppm'
     self.CheckAgainstGolden(d, achievement, golden_path)
 
     achievement = achievements.BeatSomeoneAchievement(2)
     self.assertEqual(achievement.emoji, '\N{second place medal}')
     self.assertEqual(achievement.message, 'Congrats on taking rank 2!')
     self.assertEqual(achievement.big_message, '1 TO GO!')
-    golden_path = 'assets/golden/newrank2.jpg'
+    golden_path = 'assets/golden/newrank2.ppm'
     self.CheckAgainstGolden(d, achievement, golden_path)
 
     achievement = achievements.BeatSomeoneAchievement(3)
     self.assertEqual(achievement.emoji, '\N{third place medal}')
     self.assertEqual(achievement.message, 'Congrats on taking rank 3!')
     self.assertEqual(achievement.big_message, '2 TO GO!')
-    golden_path = 'assets/golden/newrank3.jpg'
+    golden_path = 'assets/golden/newrank3.ppm'
     self.CheckAgainstGolden(d, achievement, golden_path)

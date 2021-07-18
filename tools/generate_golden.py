@@ -7,7 +7,7 @@ from beerlog.gui import display
 
 
 class FakeLumaDevice():
-  """TODO"""
+  """Fake LumaDevice to provide proper sizes"""
   def __init__(self):
     self.width = 128
     self.height = 64
@@ -15,7 +15,7 @@ class FakeLumaDevice():
 
 
 def Generate(achievement, destination):
-  """TODO"""
+  """Generate a golden image for an achievement"""
   db = beerlogdb.BeerLogDB(':memory:')
   db.known_tags_list = {
       '0x0': {'name': 'toto', 'glass': 33},
@@ -29,15 +29,16 @@ def Generate(achievement, destination):
   d = display.LumaDisplay(
       events_queue=events_queue, database=db)
   d.luma_device = FakeLumaDevice()
-  d._ShowAchievement(achievement, picture=destination)  # pylint: disable=protected-access
+  image_data = d._DrawAchievement(achievement)  # pylint: disable=protected-access
+  image_data.save(destination)
   print('wrote '+destination)
 
 a_arr = [
-        [achievements.FirstBeerAchievement('toto'), 'first.jpg'],
-        [achievements.SelfVolumeAchievement(12, 'toto'), 'selfvol12.jpg'],
-        [achievements.BeatSomeoneAchievement(1), 'newrank1.jpg'],
-        [achievements.BeatSomeoneAchievement(2), 'newrank2.jpg'],
-        [achievements.BeatSomeoneAchievement(3), 'newrank3.jpg']
+        [achievements.FirstBeerAchievement('toto'), 'first.ppm'],
+        [achievements.SelfVolumeAchievement(12, 'toto'), 'selfvol12.ppm'],
+        [achievements.BeatSomeoneAchievement(1), 'newrank1.ppm'],
+        [achievements.BeatSomeoneAchievement(2), 'newrank2.ppm'],
+        [achievements.BeatSomeoneAchievement(3), 'newrank3.ppm']
         ]
 for a, name in a_arr:
   Generate(a, name)

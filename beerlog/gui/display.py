@@ -358,13 +358,19 @@ class LumaDisplay():
 
     return all_achievements
 
-  def _ShowAchievement(self, achievement, picture_path=None):
-    """Displays an achievement
+  def _ShowAchievement(self, achievement):
+    """Displays an achievement"""
+    image_data = self._DrawAchievement(achievement)
+    regulator = framerate_regulator(fps=5)
+    for _ in range(15): # 15 frames at 5fps
+      with regulator:
+        self.luma_device.display(image_data.convert(self.luma_device.mode))
 
-    Args:
-        achievement(Achivement): the achievement to display.
-        picture_path(str): if specified, will write the picture to the
-            specified path instead of showing it to the device. Used in tests.
+  def _DrawAchievement(self, achievement):
+    """Generates an achievement image data.
+
+    Returns:
+      PIL.Image: the image data to display.
     """
     img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
     background = PIL.Image.new('RGB', self.luma_device.size, 'black')
@@ -396,13 +402,7 @@ class LumaDisplay():
     _font = PIL.ImageFont.truetype('assets/fonts/TwitterEmoji.ttf', 28)
     text_layer.text((8, 8), achievement.emoji, (255, 255, 255), font=_font)
 
-    if picture_path:
-      background.save(picture_path)
-    else:
-      regulator = framerate_regulator(fps=5)
-      for _ in range(15): # 15 frames at 5fps
-        with regulator:
-          self.luma_device.display(background.convert(self.luma_device.mode))
+    return background
 
   def _ShowDefaultScan(self, name):
     """Show the default scan animation"""

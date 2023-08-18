@@ -47,6 +47,27 @@ class BeerLogDB():
     """Closes the database."""
     database_proxy.close()
 
+  def GetHexFromName(self, name):
+    """Returns the hex id for a specific realname.
+
+    Args:
+        name(str): the realname
+
+    Returns:
+        str: the hexid
+    """
+    for hexid, data in self.known_tags_list.items():
+      if 'realname' in data:
+        if data['realname'].lower() == name.lower():
+          return hexid
+    return None
+
+  def AddNameEntry(self, character_name, pic=None, time=None):
+    character_hexid = self.GetHexFromName(character_name)
+    if not character_hexid:
+      raise errors.BeerLogError(f'cannot find realname {character_name}')
+    self.AddEntry(character_hexid, pic=pic, time=time)
+
   def AddEntry(self, character_hexid, pic=None, time=None):
     """Inserts an entry in the database.
 

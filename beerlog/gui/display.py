@@ -360,6 +360,18 @@ class LumaDisplay():
 
   def _ShowAchievement(self, achievement):
     """Displays an achievement"""
+    image_data = self._DrawAchievement(achievement)
+    regulator = framerate_regulator(fps=5)
+    for _ in range(15): # 15 frames at 5fps
+      with regulator:
+        self.luma_device.display(image_data.convert(self.luma_device.mode))
+
+  def _DrawAchievement(self, achievement):
+    """Generates an achievement image data.
+
+    Returns:
+      PIL.Image: the image data to display.
+    """
     img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
     background = PIL.Image.new('RGB', self.luma_device.size, 'black')
     logo = PIL.Image.open(img_path).convert('RGB')

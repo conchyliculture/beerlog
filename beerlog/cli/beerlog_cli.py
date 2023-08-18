@@ -222,6 +222,21 @@ class BeerLog():
       self.ui.machine.menu1()
     elif event.type == constants.EVENTTYPES.KEYMENU2:
       self.ui.machine.menu2()
+    elif event.type == constants.EVENTTYPES.KEYMENU3:
+      too_soon = False
+      name = self.ui._current_character_name
+      delta = constants.SCAN_RATE_LIMIT * 2
+      if name in self._last_scanned_names:
+        delta = (datetime.datetime.now() - self._last_scanned_names.get(name))
+        delta = delta.total_seconds()
+      self._last_scanned_names[name] = datetime.datetime.now()
+
+      if delta < constants.SCAN_RATE_LIMIT:
+        too_soon = True
+      else:
+        self.db.AddNameEntry(name, self._last_taken_picture)
+      self.ui.machine.scan(who=name, too_soon=too_soon)
+      self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.ERROR:
       self.ui.machine.error(error=str(event))
     elif event.type == constants.EVENTTYPES.NOEVENT:

@@ -361,10 +361,10 @@ class LumaDisplay():
   def _ShowAchievement(self, achievement):
     """Displays an achievement"""
     image_data = self._DrawAchievement(achievement)
-    regulator = framerate_regulator(fps=5)
-    for _ in range(15): # 15 frames at 5fps
-      with regulator:
-        self.luma_device.display(image_data.convert(self.luma_device.mode))
+#    regulator = framerate_regulator(fps=5)
+#    for _ in range(15): # 15 frames at 5fps
+#      with regulator:
+#        self.luma_device.display(image_data.convert(self.luma_device.mode))
 
   def _DrawAchievement(self, achievement):
     """Generates an achievement image data.
@@ -385,12 +385,14 @@ class LumaDisplay():
     text_layer.text(
         (44, 4), split_message[0],
         (255, 255, 255), font=_font)
-    text_layer.text(
-        (44, 4 + text_height), split_message[1],
-        (255, 255, 255), font=_font)
-    text_layer.text(
-        (44, 4 + text_height*2), split_message[2],
-        (255, 255, 255), font=_font)
+    if len(split_message)>=2:
+      text_layer.text(
+          (44, 4 + text_height), split_message[1],
+          (255, 255, 255), font=_font)
+    if len(split_message)>=3:
+      text_layer.text(
+          (44, 4 + text_height*2), split_message[2],
+          (255, 255, 255), font=_font)
 
     _font = PIL.ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
     text_layer.text(

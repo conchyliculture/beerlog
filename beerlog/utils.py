@@ -14,6 +14,8 @@ def GetShortLastBeer(last, now=None):
   """
   if not now:
     now = datetime.datetime.now()
+  if type(last) == str:
+      last = datetime.datetime.strptime(last, '%Y-%m-%d %H:%M')
   delta = now - last
   seconds = int(delta.total_seconds())
   if seconds == 0:

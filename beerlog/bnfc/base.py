@@ -182,6 +182,8 @@ class BeerNFC(BaseNFC):
         return self._should_beep
       except nfc.tag.tt2.Type2TagCommandError as e:
         event = events.ErrorEvent('{0!s}'.format(e))
+    else:
+      raise Exception('Unknown tag type')
     return False
 
 # vim: tabstop=2 shiftwidth=2 expandtab

@@ -1,6 +1,7 @@
 """Helper methods for collecting some system data."""
 
 import datetime
+import netifaces
 import re
 import subprocess
 
@@ -28,3 +29,17 @@ def GetTime():
     str: the time.
   """
   return datetime.datetime.now().strftime('%H:%M:%S')
+
+
+def GetIpAddress():
+  """Return the IP address of the device."""
+  gws = netifaces.gateways()
+  # Extract the default IPv4 gateway and its interface name
+  # Family 2 corresponds to AF_INET (IPv4)
+  _, interface_name = gws['default'][netifaces.AF_INET]
+
+  # Get the IP address assigned to that interface
+  addresses = netifaces.ifaddresses(interface_name)
+  ip_address = addresses[netifaces.AF_INET][0]['addr']
+
+  return ip_address

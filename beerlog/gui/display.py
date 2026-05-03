@@ -278,6 +278,7 @@ class LumaDisplay():
 
     data.append(DataPoint('Time', system.GetTime()))
     data.append(DataPoint('WiFi', system.GetWifiStatus()))
+    data.append(DataPoint('IP', system.GetIpAddress()))
     data.append(DataPoint('Total', total_l, 'L'))
     data.append(DataPoint('Last h', l_per_h, 'L/h'))
     data.append(DataPoint('Scans nb', self._database.GetEntriesCount()))
@@ -327,22 +328,13 @@ class LumaDisplay():
     """Displays the global menu"""
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
-      char_w, char_h = self._GetTextSize(drawer)
-      print('char size: {0}x{1}'.format(char_w, char_h))
-      max_text_width = int(self.luma_device.width / char_w)
-      print('max text width: {0}'.format(max_text_width))
-      print('setmax lines : {0}'.format(int(self.luma_device.height / char_h)))
-      self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
-      menu_enumerated = enumerate(self._global_menu.GetRows())
+      self._global_menu.SetMaxLines(self._max_rows)
       draw_row = 0
-      for menu_position, data_point in menu_enumerated:
-        print('menu position: {0}'.format(menu_position))
-        print('data point: {0} {1}'.format(data_point.key, data_point.value))
+      for menu_position, data_point in enumerate(self._global_menu.GetRows()):
         key = data_point.key
         value = str(data_point.value)
-        val_len = str(max_text_width - len(key) - 2)
-        text_format = '{0:s}: {1:>'+val_len+'s}'
-        text = text_format.format(self._Truncate(key, max_text_width), value+data_point.unit)
+        value_width = self._max_cols - len(key) - 4
+        text = f"{key}: {value:>{value_width}}"
 
         self._DrawTextRow(
             drawer, text, draw_row,
@@ -514,7 +506,7 @@ class LumaDisplay():
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
 
-      max_name_length = self._max_cols-(3 + 1 + 4 + 1 + 4)
+      max_name_length = self._max_cols-(3 + 1 + 4 + 1 + 4 + 2)
       header = ' '*3+f"{'Name':<{max_name_length}}"+'    L Last'
       self._scoreboard.SetMaxLines(self._max_rows - 1) # -1 for the header
       drawer.text((0, 0), header, fill='white', font=self._font)
@@ -529,11 +521,11 @@ class LumaDisplay():
         # ie: ' 1.Fox        12  12h'
         #     ' 2.Dog        10   5m'
         i = scoreboard_position + 1 + self._scoreboard.window_low
-        text = f'{i:>2}'
+        text = f'{i:>2} '
         if len(row.character_name) <= max_name_length:
-          text += ' '+row.character_name
+          text += f"{row.character_name:<{max_name_length}}"
         else:
-            text += ' '+self._Truncate(row.character_name, max_name_length)
+            text += self._Truncate(row.character_name, max_name_length)
         text += f' {utils.GetShortAmountOfBeer(row.total / 100.0)}'
         text += f' {utils.GetShortLastBeer(row.last)}'
         self._DrawTextRow(drawer, text, draw_row, selected=selected)

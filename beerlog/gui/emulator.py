@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 import logging
+import threading
 import multiprocessing
 
 try:
@@ -10,11 +11,11 @@ try:
 except Exception as import_error:
   raise Exception (
           'Consider running from a virtualenv built with --system-site-packages'
-          )from import_error
+          ) from import_error
 
 try:
   gi.require_version('Gtk', '3.0')
-  from gi.repository import Gtk  # pylint: disable=import-error
+  from gi.repository import Gtk, GLib  # pylint: disable=import-error
 except Exception as import_error:
   raise Exception('Need at least version 3.0 pf pygtk') from import_error
 
@@ -43,13 +44,13 @@ class Emulator(gui_base.BaseGUI):
   def __init__(self, queue):
     super().__init__(queue)
     self.uuid_entry = None
-    self.process = None
+    self.thread: threading.Thread
 
   def Setup(self):
     """Sets up the device."""
     self._device = device.pygame()
-    self.process = multiprocessing.Process(target=self._SetupUI, daemon=True)
-    self.process.start()
+    self.thread = threading.Thread(target=self._SetupUI, daemon=True)
+    self.thread.start()
 
   def _SetupUI(self):
     """TODO"""
@@ -112,7 +113,9 @@ class Emulator(gui_base.BaseGUI):
 
     win.connect('destroy', Gtk.main_quit)
     win.show_all()
+    print('Emulator thread started.')
     Gtk.main()
+    print('Emulator thread finished.')
 
   def _OnUIButtonClicked(self, button):
     """Handle button clicks.
@@ -136,6 +139,19 @@ class Emulator(gui_base.BaseGUI):
     self.queue.put(event)
 
   def Terminate(self):
-    self.process.kill()
+    GLib.idle_add(Gtk.main_quit)
 
 # vim: tabstop=2 shiftwidth=2 expandtab
+
+if __name__ == '__main__':
+  queue = multiprocessing.Queue()
+  emulator = Emulator(queue)
+  emulator.Setup()
+  try:
+    while True:
+      event = queue.get()
+      print('Received event: {0}'.format(event))
+  except KeyboardInterrupt:
+    print('Terminating emulator...')
+    emulator.Terminate()
+    print('Emulator terminated.')

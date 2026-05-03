@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+from collections import defaultdict
 import logging
 import multiprocessing
 import os
@@ -26,18 +27,15 @@ class BeerLog():
   """
 
   def __init__(self):
-    self.nfc_reader = None
-    self.ui = None
-    self.db = None
-    self._capture_command = None
-    self._database_path = None
-    self._events_queue = multiprocessing.Queue()
+    self.nfc_reader: nfc_base.BaseNFC | None = None
+    self.ui: display.LumaDisplay
+    self.db: beerlogdb.BeerLogDB
+    self._database_path: str
+    self._events_queue: multiprocessing.Queue = multiprocessing.Queue()
     self._disable_nfc = False
-    self._known_tags = None
-    self._last_taken_picture = None
-    self._last_scanned_names = {}
-    self._picture_dir = None
-    self._should_beep = None
+    self._known_tags_path: str = 'known_tags.json'
+    self._last_scanned_names = defaultdict(lambda: datetime.datetime(2023, 1, 1))
+    self._should_beep = True
 
     self._timers = []
 
@@ -63,12 +61,6 @@ class BeerLog():
         default=True,
         help='Disable beeping of the NFC reader')
     parser.add_argument(
-        '--capture', dest='capture_command', action='store',
-        help=(
-            'Picture capture command. Output filename will be appended. '
-            'Exemple: "fswebcam -r 1280x720. -S 10"')
-    )
-    parser.add_argument(
         '-d', '--debug', dest='debug', action='store_true',
         help='Debug mode')
     parser.add_argument(
@@ -80,19 +72,13 @@ class BeerLog():
         default='known_tags.json',
         help='the known tags file to use to use')
     parser.add_argument(
-        '--dir', dest='picture_dir', action='store',
-        default='pics',
-        help='Where to store the pictures')
-    parser.add_argument(
         '--disable_nfc', dest='disable_nfc', action='store_true',
         help='Disables the NFC reader (useful in emulator mode)')
 
     args = parser.parse_args()
 
-    self._capture_command = args.capture_command
     self._database_path = args.database
-    self._known_tags = args.known_tags
-    self._picture_dir = args.picture_dir
+    self._known_tags_path = args.known_tags
     self._should_beep = args.should_beep
     self._disable_nfc = args.disable_nfc
 
@@ -101,14 +87,10 @@ class BeerLog():
     else:
       logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
-    if not os.path.isdir(args.picture_dir):
-      # TODO more checks
-      os.mkdir(args.picture_dir)
-
   def InitDB(self):
     """Initializes the BeerLogDB object."""
     self.db = beerlogdb.BeerLogDB(self._database_path)
-    self.db.LoadTagsDB(self._known_tags)
+    self.db.LoadTagsDB(self._known_tags_path)
 
   def Main(self):
     """Runs the script."""
@@ -118,6 +100,9 @@ class BeerLog():
       self.InitNFC(path="usb")
       self.InitUI()
       self.Loop()
+    except Exception as e:  # pylint: disable=broad-except
+      logging.error(e)
+      print('An error occurred: {0!s}'.format(e))
     finally:
       self.Terminate()
 
@@ -134,6 +119,7 @@ class BeerLog():
   def InitUI(self):
     """Initialises the user interface."""
     # Only GUI for now
+    print("Initializing UI...")
     self.ui = display.LumaDisplay(
         events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
@@ -181,7 +167,8 @@ class BeerLog():
       except queue.Empty:
         pass
       time.sleep(0.05)
-      self.ui.Update()
+      if self.ui is not None:
+        self.ui.Update()
 
   def _HandleEvent(self, event):
     """Does something with an Event.
@@ -193,19 +180,23 @@ class BeerLog():
     """
     # TODO : have a UI class of events, and let the ui object deal with them
     self.ResetTimers()
+    assert self.db is not None
+    assert self.ui is not None
+    assert self.ui.machine is not None
     if event.type == constants.EVENTTYPES.NFCSCANNED:
       too_soon = False
       name = self.db.GetNameFromHexID(event.uid)
       delta = constants.SCAN_RATE_LIMIT * 2
       if name in self._last_scanned_names:
-        delta = (datetime.datetime.now() - self._last_scanned_names.get(name))
+        now = datetime.datetime.now()
+        delta = (now - self._last_scanned_names.get(name, datetime.datetime(now.year, now.month, now.day)))
         delta = delta.total_seconds()
       self._last_scanned_names[name] = datetime.datetime.now()
 
       if delta < constants.SCAN_RATE_LIMIT:
         too_soon = True
       else:
-        self.db.AddEntry(event.uid, self._last_taken_picture)
+        self.db.AddEntry(event.uid)
       self.ui.machine.scan(who=name, too_soon=too_soon)
       self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.KEYUP:
@@ -227,44 +218,24 @@ class BeerLog():
       name = self.ui._current_character_name
       delta = constants.SCAN_RATE_LIMIT * 2
       if name in self._last_scanned_names:
-        delta = (datetime.datetime.now() - self._last_scanned_names.get(name))
+        now = datetime.datetime.now()
+        delta = (now - self._last_scanned_names.get(name, datetime.datetime(now.year, now.month, now.day)))
         delta = delta.total_seconds()
       self._last_scanned_names[name] = datetime.datetime.now()
 
       if delta < constants.SCAN_RATE_LIMIT:
         too_soon = True
       else:
-        self.db.AddNameEntry(name, self._last_taken_picture)
+        self.db.AddNameEntry(name)
       self.ui.machine.scan(who=name, too_soon=too_soon)
       self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.ERROR:
       self.ui.machine.error(error=str(event))
+      self.AddDelayedEvent(events.UIEvent(constants.EVENTTYPES.ESCAPE), 2)
     elif event.type == constants.EVENTTYPES.NOEVENT:
       self.ui.Update()
 
     self.db.Close()
-
-  def TakePicture(self, command):
-    """Takes a picture.
-
-    Args:
-      command(str): command to be run after a filename is appended to it.
-
-    Returns:
-      str: the path to the (hopefully created) picture, or None if no command
-        was passed.
-    """
-    if not command:
-      return None
-
-    filepath = datetime.datetime.now().strftime('%Y-%m-%d_%H%M%S.jpg')
-    cmd = '{0} "{1}"'.format(
-        command, os.path.join(self._picture_dir, filepath))
-    logging.debug('Running {0}'.format(cmd))
-    subprocess.call('{0} "{1}"'.format(cmd, filepath), shell=True)
-
-    return filepath
-
 
 def Main():
   """Main function"""

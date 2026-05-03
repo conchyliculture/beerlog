@@ -2,6 +2,6 @@ luma.core
 matplotlib
 nfcpy
 peewee
-RPi.GPIO
 transitions
+spidev
 

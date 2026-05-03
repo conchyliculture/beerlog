@@ -5,17 +5,23 @@ from __future__ import print_function
 from collections import namedtuple
 import datetime
 import io
+from multiprocessing import Queue
 import os
 import time
 import transitions
 
-from luma.core.render import canvas as LumaCanvas
+from luma.core.render import canvas
 from luma.core.sprite_system import framerate_regulator
 from luma.core.virtual import terminal
+from luma.emulator.device import pygame as luma_emulator
+from luma.oled.device import sh1106
 import matplotlib.pyplot as plt
-import PIL
+from PIL import Image, ImageDraw, ImageFont, ImageSequence
 
+import beerlog
+from beerlog.gui import base as gui_base
 from beerlog.gui import achievements
+from beerlog.beerlogdb import BeerLogDB
 from beerlog import errors
 from beerlog import system
 from beerlog import utils
@@ -105,7 +111,7 @@ class LumaDisplay():
 
   DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
 
-  def __init__(self, events_queue, database):
+  def __init__(self, events_queue: Queue, database: BeerLogDB):
     """Initializes a Display backed by luma.
 
     Attributes:
@@ -119,25 +125,25 @@ class LumaDisplay():
       _last_scanned_name(str): Name of the character who just scanned.
 
     """
-    self._events_queue = events_queue
-    self._database = database
+    self._events_queue: Queue = events_queue
+    self._database: BeerLogDB = database
     if not self._events_queue:
       raise errors.BeerLogError('Display needs an events_queue')
     if not self._database:
       raise errors.BeerLogError('Display needs a DB object')
 
     # This is the object for different implementations
-    self.gui_object = None
+    self.gui_object: gui_base.BaseGUI
     # This is a pointer to the luma_device, which draws stuff
-    self.luma_device = None
-    self.machine = None
+    self.luma_device: sh1106 | luma_emulator
+    self.machine: transitions.Machine
     self._last_scanned_name = None
-    self._last_error = None
-    self._too_soon = False
-    self._current_character_name = None
+    self._last_error: str = ''
+    self._too_soon: bool = False
+    self._current_character_name: str = ''
 
     # UI related defaults
-    self._font = PIL.ImageFont.load_default()
+    self._font = ImageFont.load_default()
     self._splash_pic_path = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -210,6 +216,7 @@ class LumaDisplay():
     """Draws the display depending on the state of the StateMachine."""
     self._scoreboard.UpdateData(self._database.GetScoreBoard())
     self._global_menu.UpdateData(self._GetGlobalMenuRows())
+    assert self.machine is not None
     if self.machine.state == 'SPLASH':
       self.ShowSplash()
     elif self.machine.state == 'ERROR':
@@ -253,16 +260,17 @@ class LumaDisplay():
       data.append(DataPoint('1st today', first_scan_today.character_name))
     return data
 
-  def _DrawTextRow(self, drawer, text, line_num, char_height, selected=False):
+  def _DrawTextRow(self, drawer: ImageDraw.ImageDraw, text: str, line_num: int, char_height: int, selected: bool = False):
     """Helper method to draw a row of text.
 
     Args:
-      drawer(LumaCanvas): the canvas to draw into.
+      drawer(canvas): the canvas to draw into.
       text(str): the text to display.
       line_num(int): which line number to draw.
       char_height(int): height of a character in pixels.
       selected(bool): whether to draw the line as selected.
     """
+    assert self.luma_device is not None
     if selected:
       rectangle_geometry = (
           2,
@@ -280,7 +288,8 @@ class LumaDisplay():
 
   def ShowMenuGlobal(self):
     """Displays the global menu"""
-    with LumaCanvas(self.luma_device) as drawer:
+    assert self.luma_device is not None
+    with canvas(self.luma_device) as drawer:
       char_w, char_h = self._GetTextSize(drawer, font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
       self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
@@ -306,8 +315,8 @@ class LumaDisplay():
     """Draws the screen showing we're scanning too fast."""
     msg = 'Already scanned\n cheater :3'
     # Add a text layer over the frame
-    background = PIL.Image.new('RGB', self.luma_device.size, 'black')
-    text_layer = PIL.ImageDraw.Draw(background)
+    background = Image.new('RGB', self.luma_device.size, 'black')
+    text_layer = ImageDraw.Draw(background)
     text_width, text_height = self._GetTextSize(text_layer, text=msg, font=self._font)
     text_pos = (
         (self.luma_device.width - text_width) // 2,
@@ -377,12 +386,12 @@ class LumaDisplay():
       PIL.Image: the image data to display.
     """
     img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
-    background = PIL.Image.new('RGB', self.luma_device.size, 'black')
-    logo = PIL.Image.open(img_path).convert('RGB')
+    background = Image.new('RGB', self.luma_device.size, 'black')
+    logo = Image.open(img_path).convert('RGB')
     background.paste(logo)
 
-    text_layer = PIL.ImageDraw.Draw(background)
-    _font = PIL.ImageFont.load_default()
+    text_layer = ImageDraw.Draw(background)
+    _font = ImageFont.load_default()
 
     _, text_height = self._GetTextSize(text_layer, text=achievement.message)
     split_message = achievement.Splitted()
@@ -398,12 +407,12 @@ class LumaDisplay():
           (44, 4 + text_height*2), split_message[2],
           (255, 255, 255), font=_font)
 
-    _font = PIL.ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
+    _font = ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
     text_layer.text(
         (5, 8 + text_height*3), achievement.big_message,
         (255, 255, 255), font=_font)
 
-    _font = PIL.ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
+    _font = ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
     text_layer.text((4, 4), achievement.emoji, (255, 255, 255), font=_font)
 
     regulator = framerate_regulator(fps=5)
@@ -419,7 +428,7 @@ class LumaDisplay():
         self.luma_device.height - size[1]
     )
     regulator = framerate_regulator(fps=30)
-    image = PIL.Image.open(DEFAULT_SCAN_GIF)
+    image = Image.open(DEFAULT_SCAN_GIF)
 
     total_drunk = self._database.GetAmountFromName(name)
 
@@ -427,15 +436,15 @@ class LumaDisplay():
     default_msg += ' {0:s}L'.format(
         utils.GetShortAmountOfBeer(total_drunk / 100.0))
 
-    for gif_frame in PIL.ImageSequence.Iterator(image):
+    for gif_frame in ImageSequence.Iterator(image):
       with regulator:
-        background = PIL.Image.new('RGB', self.luma_device.size, 'black')
+        background = Image.new('RGB', self.luma_device.size, 'black')
         # Add a frame from the animation
         background.paste(
-            gif_frame.resize(size, resample=PIL.Image.LANCZOS), posn)
+            gif_frame.resize(size, resample=Image.Resampling.LANCZOS), posn)
 
         # Add a text layer over the frame
-        text_layer = PIL.ImageDraw.Draw(background)
+        text_layer = ImageDraw.Draw(background)
         text_width, text_height = self._GetTextSize(text_layer, text=default_msg)
         text_pos = (
             (self.luma_device.width - text_width) // 2,
@@ -459,7 +468,8 @@ class LumaDisplay():
 
   def ShowScores(self):
     """Draws the Scoreboard screen."""
-    with LumaCanvas(self.luma_device) as drawer:
+    assert self.luma_device is not None
+    with canvas(self.luma_device) as drawer:
       char_w, char_h = self._GetTextSize(drawer)
       max_text_width = int(self.luma_device.width / char_w)
       max_name_width = max_text_width-13
@@ -488,8 +498,8 @@ class LumaDisplay():
 
   def ShowSplash(self):
     """Displays the splash screen."""
-    background = PIL.Image.new(self.luma_device.mode, self.luma_device.size)
-    splash = PIL.Image.open(self._splash_pic_path).convert(
+    background = Image.new(self.luma_device.mode, self.luma_device.size)
+    splash = Image.open(self._splash_pic_path).convert(
         self.luma_device.mode)
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
@@ -518,7 +528,7 @@ class LumaDisplay():
 
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=fig.dpi, facecolor='black')
-    background = PIL.Image.open(buf)
+    background = Image.open(buf)
     self.luma_device.display(background.convert(self.luma_device.mode))
 
     plt.close()

@@ -36,7 +36,7 @@ def GetIpAddress():
   gws = netifaces.gateways()
   # Extract the default IPv4 gateway and its interface name
   # Family 2 corresponds to AF_INET (IPv4)
-  _, interface_name = gws['default'][netifaces.AF_INET]
+  _, interface_name, *_ = gws['default'][netifaces.AF_INET]
 
   # Get the IP address assigned to that interface
   addresses = netifaces.ifaddresses(interface_name)

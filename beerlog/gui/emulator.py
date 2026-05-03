@@ -15,7 +15,7 @@ except Exception as import_error:
 
 try:
   gi.require_version('Gtk', '3.0')
-  from gi.repository import Gtk, GLib  # pylint: disable=import-error
+  from gi.repository import Gtk, GLib  #  pyright: ignore [reportAttributeAccessIssue]
 except Exception as import_error:
   raise Exception('Need at least version 3.0 pf pygtk') from import_error
 
@@ -43,7 +43,7 @@ class Emulator(gui_base.BaseGUI):
 
   def __init__(self, queue):
     super().__init__(queue)
-    self.uuid_entry = None
+    self.uuid_entry: Gtk.Entry
     self.thread: threading.Thread
 
   def Setup(self):

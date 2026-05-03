@@ -184,11 +184,11 @@ class LumaDisplay():
         states=list(self.STATES), initial='SPLASH', send_event=True)
 
     # Used to set our attributes from the Machine object
-    self.machine.SetEnv = self._SetEnv
-    self.machine.IncrementScoreIndex = self._scoreboard.IncrementIndex
-    self.machine.DecrementScoreIndex = self._scoreboard.DecrementIndex
-    self.machine.IncrementGlobalMenuIndex = self._global_menu.IncrementIndex
-    self.machine.DecrementGlobalMenuIndex = self._global_menu.DecrementIndex
+    self.machine.SetEnv = self._SetEnv  # pyright: ignore [reportAttributeAccessIssue]
+    self.machine.IncrementScoreIndex = self._scoreboard.IncrementIndex  # pyright: ignore [reportAttributeAccessIssue]
+    self.machine.DecrementScoreIndex = self._scoreboard.DecrementIndex  # pyright: ignore [reportAttributeAccessIssue]
+    self.machine.IncrementGlobalMenuIndex = self._global_menu.IncrementIndex  # pyright: ignore [reportAttributeAccessIssue]
+    self.machine.DecrementGlobalMenuIndex = self._global_menu.DecrementIndex  # pyright: ignore [reportAttributeAccessIssue]
     # Transitions
     # (trigger, source, destination)
     self.machine.add_transition('back', '*', 'SCORE', before='SetEnv')

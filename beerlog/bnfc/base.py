@@ -171,14 +171,14 @@ class BeerNFC(BaseNFC):
       bytearray: True if the read operation was successful,
         or None if it wasn't.
     """
-    if isinstance(tag, nfc.tag.tt2.Type2Tag):
+    if isinstance(tag, nfc.tag.tt2.Type2Tag): # pyright: ignore [reportAttributeAccessIssue]
       uid = NFC215.ReadUIDFromTag(tag)
       try:
         if uid:
           event = NFCEvent(uid=uid)
           self._AddToQueue(event)
         return self._should_beep
-      except nfc.tag.tt2.Type2TagCommandError as e:
+      except nfc.tag.tt2.Type2TagCommandError as e: # pyright: ignore [reportAttributeAccessIssue]
         event = events.ErrorEvent('{0!s}'.format(e))
     else:
       raise Exception('Unknown tag type')

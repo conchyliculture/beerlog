@@ -40,14 +40,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
 </body></html> """
 
   def __init__(self, *args, **kwargs):
-    self._db = None
-    self._characters = None
+    self._db: beerlogdb.BeerLogDB
+    self._characters: list[str]
     self._Setup()
     super().__init__(*args, **kwargs)
-    self.options = None
+    self.options: argparse.Namespace
 
   def _Setup(self):
     """Initiates some useful objects"""
+    assert self.options is not None, 'options should be set before calling _Setup'
     self._db = beerlogdb.BeerLogDB(self.options.database)
     self._db.LoadTagsDB(self.options.known_tags)
     self._characters = self._db.GetAllCharacterNames()
@@ -130,7 +131,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             'total': total/100.0}}
         ).encode()
 
-def ParseArguments():
+def ParseArguments() -> argparse.Namespace:
   """Parses arguments.
 
   Returns:
@@ -166,7 +167,7 @@ def ParseArguments():
 
 # This is necessary to be able to pass parameters to the Handler class
 # used in socketserver.TCPServer
-def MakeHandlerClassFromArgv(init_args):
+def MakeHandlerClassFromArgv(init_args: argparse.Namespace):
   """Generates a class that inherits from Handler, with the proper attributes"""
   class CustomHandler(Handler):
     """Wrapper around Handler that sets the required attributes"""

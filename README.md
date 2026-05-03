@@ -86,3 +86,12 @@ For development purposes, you can run the code with an emulated interface.
 ```
 apt install python3-gi
 ```
+
+## Troubleshoot access to NFC reader
+
+Run
+```
+python -m nfc
+```
+
+And follow instructions

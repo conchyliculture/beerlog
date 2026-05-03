@@ -18,7 +18,6 @@ from luma.oled.device import sh1106
 import matplotlib.pyplot as plt
 from PIL import Image, ImageDraw, ImageFont, ImageSequence
 
-import beerlog
 from beerlog.gui import base as gui_base
 from beerlog.gui import achievements
 from beerlog.beerlogdb import BeerLogDB
@@ -143,7 +142,7 @@ class LumaDisplay():
     self._current_character_name: str = ''
 
     # UI related defaults
-    self._font = ImageFont.load_default()
+    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont('SpaceMono-Regular.ttf', font_size=10)
     self._splash_pic_path = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -152,6 +151,26 @@ class LumaDisplay():
 
     self._scoreboard = Scroller()
     self._global_menu = Scroller()
+
+  def _LoadFont(self, font_name: str, font_size=10) -> ImageFont.ImageFont | ImageFont.FreeTypeFont:
+    """Loads a font from a path.
+
+    Args:
+      font_path(str): the path to the .ttf file.
+      font_size(int): the size of the font.
+    """
+    font_path = os.path.join(
+        os.path.dirname(
+            os.path.dirname(
+                os.path.dirname(os.path.realpath(__file__)))),
+        'assets/fonts', font_name)
+    if os.path.isfile(font_path):
+      print('Loading font from {0}'.format(font_path))
+      return ImageFont.truetype(font_path, font_size)
+    print('Font file {0} not found, using default font'.format(font_path))
+    return ImageFont.load_default()
+
+
 
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
@@ -255,7 +274,7 @@ class LumaDisplay():
     data.append(DataPoint('WiFi', system.GetWifiStatus()))
     data.append(DataPoint('Total', total_l, 'L'))
     data.append(DataPoint('Last h', l_per_h, 'L/h'))
-    data.append(DataPoint('Number of scans', self._database.GetEntriesCount()))
+    data.append(DataPoint('Scans nb', self._database.GetEntriesCount()))
     if first_scan_today:
       data.append(DataPoint('1st today', first_scan_today.character_name))
     return data
@@ -286,30 +305,48 @@ class LumaDisplay():
       drawer.text(
           (2, line_num*char_height), text, font=self._font, fill='white')
 
+  def _Truncate(self, text, max_length):
+    """Helper method to truncate text if it's too long.
+
+    Args:
+      text(str): the text to truncate.
+      max_length(int): the maximum length of the text.
+    Returns:
+      str: the truncated text.
+    """
+    if len(text) > max_length:
+      return text[:max_length-3] + '...'
+    return text
+
   def ShowMenuGlobal(self):
     """Displays the global menu"""
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
-      char_w, char_h = self._GetTextSize(drawer, font=self._font)
+      char_w, char_h = self._GetTextSize(drawer)
+      print('char size: {0}x{1}'.format(char_w, char_h))
       max_text_width = int(self.luma_device.width / char_w)
+      print('max text width: {0}'.format(max_text_width))
+      print('setmax lines : {0}'.format(int(self.luma_device.height / char_h)))
       self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
       menu_enumerated = enumerate(self._global_menu.GetRows())
       draw_row = 0
       for menu_position, data_point in menu_enumerated:
+        print('menu position: {0}'.format(menu_position))
+        print('data point: {0} {1}'.format(data_point.key, data_point.value))
         key = data_point.key
         value = str(data_point.value)
         val_len = str(max_text_width - len(key) - 2)
         text_format = '{0:s}: {1:>'+val_len+'s}'
-        text = text_format.format(key, value+data_point.unit)
+        text = text_format.format(self._Truncate(key, max_text_width), value+data_point.unit)
 
         self._DrawTextRow(
             drawer, text, draw_row, char_h,
             selected=(self._global_menu.index == menu_position))
         draw_row += 1
 
-  def _GetTextSize(self, draw, text='P', font=None):
-    left, top, right, bottom = draw.textbbox((0, 0), text)
-    return right - left + 2, bottom - top + 2
+  def _GetTextSize(self, draw: ImageDraw.ImageDraw, text: str = 'P') -> tuple[int, int]:
+    left, top, right, bottom = draw.textbbox((0, 0), text, font=self._font)
+    return int(right) - int(left) + 2, int(bottom) - int(top) + 2
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
@@ -317,7 +354,7 @@ class LumaDisplay():
     # Add a text layer over the frame
     background = Image.new('RGB', self.luma_device.size, 'black')
     text_layer = ImageDraw.Draw(background)
-    text_width, text_height = self._GetTextSize(text_layer, text=msg, font=self._font)
+    text_width, text_height = self._GetTextSize(text_layer, text=msg)
     text_pos = (
         (self.luma_device.width - text_width) // 2,
         (self.luma_device.height - text_height) // 2
@@ -471,7 +508,9 @@ class LumaDisplay():
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
       char_w, char_h = self._GetTextSize(drawer)
+      print('char size: {0}x{1}'.format(char_w, char_h))
       max_text_width = int(self.luma_device.width / char_w)
+      print('max text width: {0}'.format(max_text_width))
       max_name_width = max_text_width-13
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
@@ -486,8 +525,9 @@ class LumaDisplay():
         if selected:
           self._current_character_name = row.character_name
         draw_row += 1
-        # ie: '1.Fox        12  12h'
-        #     '2.Dog        10   5m'
+        #     ' 0.<      > <4 > <4 >
+        # ie: ' 1.Fox        12  12h'
+        #     ' 2.Dog        10   5m'
         text = '{0:d}.'.format(
             scoreboard_position + 1 + self._scoreboard.window_low)
         text += ' '.join([

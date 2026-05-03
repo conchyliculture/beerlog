@@ -2,7 +2,7 @@
 
 import datetime
 
-def GetShortLastBeer(last, now=None):
+def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime = datetime.datetime.now()) -> str:
   """Returns a shortened string for the delta between now and last scan.
 
   Args:
@@ -12,10 +12,8 @@ def GetShortLastBeer(last, now=None):
   Returns:
     str: the time delta since the last scan and now.
   """
-  if not now:
-    now = datetime.datetime.now()
-  if type(last) == str:
-      last = datetime.datetime.strptime(last, '%Y-%m-%d %H:%M')
+#  if type(last) == str:
+#      last = datetime.datetime.strptime(last, '%Y-%m-%d %H:%M')
   delta = now - last
   seconds = int(delta.total_seconds())
   if seconds == 0:
@@ -41,7 +39,7 @@ def GetShortLastBeer(last, now=None):
     result = 'Unk?'
   return '{0: >4}'.format(result[0:4])
 
-def GetShortAmountOfBeer(amount):
+def GetShortAmountOfBeer(amount: float) -> str:
   """Returns a shortened string for an volume in Litre
 
   Args:

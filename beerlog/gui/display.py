@@ -16,8 +16,9 @@ from luma.core.virtual import terminal
 from luma.emulator.device import pygame as luma_emulator
 from luma.oled.device import sh1106
 import matplotlib.pyplot as plt
-from PIL import Image, ImageDraw, ImageFont, ImageSequence
+from PIL import Image, ImageDraw, ImageFont, ImageSequence, ImageText
 
+from beerlog import beerlogdb
 from beerlog.gui import base as gui_base
 from beerlog.gui import achievements
 from beerlog.beerlogdb import BeerLogDB
@@ -141,8 +142,11 @@ class LumaDisplay():
     self._too_soon: bool = False
     self._current_character_name: str = ''
 
+    self._text_char_width: int
+    self._text_char_height: int
+
     # UI related defaults
-    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont('SpaceMono-Regular.ttf', font_size=10)
+    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont('RobotoMono-Regular.ttf', font_size=12)
     self._splash_pic_path = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -344,9 +348,10 @@ class LumaDisplay():
             selected=(self._global_menu.index == menu_position))
         draw_row += 1
 
-  def _GetTextSize(self, draw: ImageDraw.ImageDraw, text: str = 'P') -> tuple[int, int]:
-    left, top, right, bottom = draw.textbbox((0, 0), text, font=self._font)
-    return int(right) - int(left) + 2, int(bottom) - int(top) + 2
+  def _GetTextSize(self, draw: ImageDraw.ImageDraw, text: str = 'T') -> tuple[int, int]:
+    t = ImageText.Text(text, self._font)
+    left, top, right, bottom = t.get_bbox()
+    return int(right) - int(left), int(bottom) - int(top)
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
@@ -511,11 +516,11 @@ class LumaDisplay():
       print('char size: {0}x{1}'.format(char_w, char_h))
       max_text_width = int(self.luma_device.width / char_w)
       print('max text width: {0}'.format(max_text_width))
-      max_name_width = max_text_width-13
+      max_name_width = max_text_width-(3 + 1 + utils.SHORT_AMOUNT_OF_BEER_LENGTH+1+utils.SHORT_LAST_BEER_LENGTH)
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
-      drawer.text((0, 0), header, fill='white')
+      drawer.text((0, 0), header, fill='white', font=self._font)
 #      drawer.text((2, 0), header, font=self._font, fill='white')
       score_enumerated = enumerate(self._scoreboard.GetRows())
       draw_row = 0
@@ -594,7 +599,17 @@ class LumaDisplay():
 
     self.gui_object.Setup()
     self.luma_device = self.gui_object.GetDevice()
-
+    with canvas(self.luma_device) as drawer:
+      self._text_char_width, self._text_char_height = self._GetTextSize(drawer)
+      self._max_rows = int(self.luma_device.height / self._text_char_height)
+      self._max_cols = int(self.luma_device.width / self._text_char_width)
+    print('Luma device initialized: {0}'.format(self.luma_device))
+    print('Device width: {0}, height: {1}'.format(
+        self.luma_device.width, self.luma_device.height))
+    print('Text char width: {0}, char height: {1}'.format(
+        self._text_char_width, self._text_char_height)
+        )
+    print('Max rows: {0}, max cols: {1}'.format(self._max_rows, self._max_cols))
     self._InitStateMachine()
 
   def Terminate(self):

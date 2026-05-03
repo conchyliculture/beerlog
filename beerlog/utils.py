@@ -2,6 +2,9 @@
 
 import datetime
 
+SHORT_LAST_BEER_LENGTH = 4
+SHORT_AMOUNT_OF_BEER_LENGTH = 4
+
 def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime = datetime.datetime.now()) -> str:
   """Returns a shortened string for the delta between now and last scan.
 

@@ -144,9 +144,11 @@ class LumaDisplay():
 
     self._text_char_width: int
     self._text_char_height: int
+    self._max_cols: int
+    self._max_rows: int
 
     # UI related defaults
-    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont('RobotoMono-Regular.ttf', font_size=12)
+    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont('RobotoMono-Regular.ttf', font_size=9)
     self._splash_pic_path = os.path.join(
         os.path.dirname(
             os.path.dirname(
@@ -283,31 +285,30 @@ class LumaDisplay():
       data.append(DataPoint('1st today', first_scan_today.character_name))
     return data
 
-  def _DrawTextRow(self, drawer: ImageDraw.ImageDraw, text: str, line_num: int, char_height: int, selected: bool = False):
+  def _DrawTextRow(self, drawer: ImageDraw.ImageDraw, text: str, line_num: int, selected: bool = False):
     """Helper method to draw a row of text.
 
     Args:
       drawer(canvas): the canvas to draw into.
       text(str): the text to display.
       line_num(int): which line number to draw.
-      char_height(int): height of a character in pixels.
       selected(bool): whether to draw the line as selected.
     """
     assert self.luma_device is not None
     if selected:
       rectangle_geometry = (
-          2,
-          line_num * char_height,
+          0,
+          line_num * self._text_char_height + 2,
           self.luma_device.width,
-          ((line_num+1) * char_height)
+          (line_num+1) * self._text_char_height + 1
           )
       drawer.rectangle(
           rectangle_geometry, outline='white', fill='white')
       drawer.text(
-          (2, line_num*char_height), text, font=self._font, fill='black')
+          (2, line_num*self._text_char_height), text, font=self._font, fill='black')
     else:
       drawer.text(
-          (2, line_num*char_height), text, font=self._font, fill='white')
+          (2, line_num*self._text_char_height), text, font=self._font, fill='white')
 
   def _Truncate(self, text, max_length):
     """Helper method to truncate text if it's too long.
@@ -344,14 +345,14 @@ class LumaDisplay():
         text = text_format.format(self._Truncate(key, max_text_width), value+data_point.unit)
 
         self._DrawTextRow(
-            drawer, text, draw_row, char_h,
+            drawer, text, draw_row,
             selected=(self._global_menu.index == menu_position))
         draw_row += 1
 
   def _GetTextSize(self, draw: ImageDraw.ImageDraw, text: str = 'T') -> tuple[int, int]:
     t = ImageText.Text(text, self._font)
     left, top, right, bottom = t.get_bbox()
-    return int(right) - int(left), int(bottom) - int(top)
+    return int(right) - int(left), int(bottom) - int(top) + 2
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
@@ -512,19 +513,13 @@ class LumaDisplay():
     """Draws the Scoreboard screen."""
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
-      char_w, char_h = self._GetTextSize(drawer)
-      print('char size: {0}x{1}'.format(char_w, char_h))
-      max_text_width = int(self.luma_device.width / char_w)
-      print('max text width: {0}'.format(max_text_width))
-      max_name_width = max_text_width-(3 + 1 + utils.SHORT_AMOUNT_OF_BEER_LENGTH+1+utils.SHORT_LAST_BEER_LENGTH)
-      self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
-      # ie: '  Name      L Last'
-      header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
+
+      max_name_length = self._max_cols-(3 + 1 + 4 + 1 + 4)
+      header = ' '*3+f"{'Name':<{max_name_length}}"+'    L Last'
+      self._scoreboard.SetMaxLines(self._max_rows - 1) # -1 for the header
       drawer.text((0, 0), header, fill='white', font=self._font)
-#      drawer.text((2, 0), header, font=self._font, fill='white')
-      score_enumerated = enumerate(self._scoreboard.GetRows())
       draw_row = 0
-      for scoreboard_position, row in score_enumerated:
+      for scoreboard_position, row in enumerate(self._scoreboard.GetRows()):
         selected = (self._scoreboard.index ==
                     scoreboard_position + self._scoreboard.window_low)
         if selected:
@@ -533,13 +528,15 @@ class LumaDisplay():
         #     ' 0.<      > <4 > <4 >
         # ie: ' 1.Fox        12  12h'
         #     ' 2.Dog        10   5m'
-        text = '{0:d}.'.format(
-            scoreboard_position + 1 + self._scoreboard.window_low)
-        text += ' '.join([
-            ('{0:<'+str(max_name_width)+'}').format(row.character_name),
-            utils.GetShortAmountOfBeer(row.total / 100.0),
-            utils.GetShortLastBeer(row.last)])
-        self._DrawTextRow(drawer, text, draw_row, char_h, selected=selected)
+        i = scoreboard_position + 1 + self._scoreboard.window_low
+        text = f'{i:>2}'
+        if len(row.character_name) <= max_name_length:
+          text += ' '+row.character_name
+        else:
+            text += ' '+self._Truncate(row.character_name, max_name_length)
+        text += f' {utils.GetShortAmountOfBeer(row.total / 100.0)}'
+        text += f' {utils.GetShortLastBeer(row.last)}'
+        self._DrawTextRow(drawer, text, draw_row, selected=selected)
 
   def ShowSplash(self):
     """Displays the splash screen."""
@@ -617,4 +614,26 @@ class LumaDisplay():
     if self.gui_object:
       self.gui_object.Terminate()
 
-# vim: tabstop=2 shiftwidth=2 expandtab
+
+if __name__ == '__main__':
+  import multiprocessing
+  queue = multiprocessing.Queue()
+  db = beerlogdb.BeerLogDB(':memory:')
+  ld = LumaDisplay(events_queue=queue, database=db)
+  ld.Setup()
+  with canvas(ld.luma_device) as drawer:
+    t = ImageText.Text('T', ld._font)
+    left, top, right, bottom = t.get_bbox()
+    width = int(right) - int(left)
+    height = int(bottom) - int(top) + 1
+    for i in range(ld._max_cols):
+      drawer.text((i*width , 0), '8', fill='white', font=ld._font)
+
+  try:
+    while True:
+      event = queue.get()
+      print('Received event: {0}'.format(event))
+  except KeyboardInterrupt:
+    print('Terminating emulator...')
+    ld.Terminate()
+    print('Emulator terminated.')

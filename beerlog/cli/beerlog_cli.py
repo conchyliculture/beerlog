@@ -11,6 +11,7 @@ import subprocess
 import sys
 from threading import Timer
 import time
+import traceback
 
 from beerlog import beerlogdb
 from beerlog.bnfc import base as nfc_base
@@ -103,6 +104,7 @@ class BeerLog():
     except Exception as e:  # pylint: disable=broad-except
       logging.error(e)
       print('An error occurred: {0!s}'.format(e))
+      print(traceback.format_exc())
     finally:
       self.Terminate()
 

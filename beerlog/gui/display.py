@@ -281,7 +281,7 @@ class LumaDisplay():
   def ShowMenuGlobal(self):
     """Displays the global menu"""
     with LumaCanvas(self.luma_device) as drawer:
-      char_w, char_h = drawer.textsize(' ', font=self._font)
+      char_w, char_h = self._GetTextSize(drawer, font=self._font)
       max_text_width = int(self.luma_device.width / char_w)
       self._global_menu.SetMaxLines(int(self.luma_device.height / char_h))
       menu_enumerated = enumerate(self._global_menu.GetRows())
@@ -298,13 +298,17 @@ class LumaDisplay():
             selected=(self._global_menu.index == menu_position))
         draw_row += 1
 
+  def _GetTextSize(self, draw, text='P', font=None):
+    left, top, right, bottom = draw.textbbox((0, 0), text)
+    return right - left + 2, bottom - top + 2
+
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
     msg = 'Already scanned\n cheater :3'
     # Add a text layer over the frame
     background = PIL.Image.new('RGB', self.luma_device.size, 'black')
     text_layer = PIL.ImageDraw.Draw(background)
-    text_width, text_height = text_layer.textsize(msg)
+    text_width, text_height = self._GetTextSize(text_layer, text=msg, font=self._font)
     text_pos = (
         (self.luma_device.width - text_width) // 2,
         (self.luma_device.height - text_height) // 2
@@ -380,7 +384,7 @@ class LumaDisplay():
     text_layer = PIL.ImageDraw.Draw(background)
     _font = PIL.ImageFont.load_default()
 
-    _, text_height = text_layer.textsize(achievement.message)
+    _, text_height = self._GetTextSize(text_layer, text=achievement.message)
     split_message = achievement.Splitted()
     text_layer.text(
         (44, 4), split_message[0],
@@ -432,7 +436,7 @@ class LumaDisplay():
 
         # Add a text layer over the frame
         text_layer = PIL.ImageDraw.Draw(background)
-        text_width, text_height = text_layer.textsize(default_msg)
+        text_width, text_height = self._GetTextSize(text_layer, text=default_msg)
         text_pos = (
             (self.luma_device.width - text_width) // 2,
             self.luma_device.height - text_height
@@ -456,13 +460,14 @@ class LumaDisplay():
   def ShowScores(self):
     """Draws the Scoreboard screen."""
     with LumaCanvas(self.luma_device) as drawer:
-      char_w, char_h = drawer.textsize(' ', font=self._font)
+      char_w, char_h = self._GetTextSize(drawer)
       max_text_width = int(self.luma_device.width / char_w)
       max_name_width = max_text_width-13
       self._scoreboard.SetMaxLines(int(self.luma_device.height / char_h))
       # ie: '  Name      L Last'
       header = '  '+('{:<'+str(max_name_width)+'}').format('Name')+'    L Last'
-      drawer.text((2, 0), header, font=self._font, fill='white')
+      drawer.text((0, 0), header, fill='white')
+#      drawer.text((2, 0), header, font=self._font, fill='white')
       score_enumerated = enumerate(self._scoreboard.GetRows())
       draw_row = 0
       for scoreboard_position, row in score_enumerated:

@@ -1,17 +1,15 @@
 """BeerLog main script"""
 
 from __future__ import print_function
-
 import binascii
 import logging
 import multiprocessing
 import time
 
-import nfc
-
 from beerlog import errors
 from beerlog import constants
 from beerlog import events
+import nfc
 
 
 class NFCEvent(events.BaseEvent):
@@ -56,7 +54,7 @@ class NFC215():
       tag(nfc.tag.tt2_nxp.NTAG215): the input data read from the tag.
     """
     pages = []
-    for i in range(0, (NFC215.TAG_FILE_SIZE/NFC215.PAGE_SIZE), 4):
+    for i in range(0, int(NFC215.TAG_FILE_SIZE/NFC215.PAGE_SIZE), 4):
       page = tag.read(i)
       print('{0!s}:{1!s}'.format(i, binascii.hexlify(page).upper()))
       pages.append(binascii.hexlify(page).upper())
@@ -77,7 +75,7 @@ class BaseNFC():
     self._events_queue = events_queue
 
     self._last_event = None
-    self.process = None
+    self.process: multiprocessing.Process
 
     self.OpenNFC()
 

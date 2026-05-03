@@ -37,7 +37,7 @@ class BeerLogDB():
 
     sqlite_db.create_tables([Entry], safe=True)
 
-    self.known_tags_list = None
+    self.known_tags_list = {}
 
   def Connect(self):
     """Connects to the database."""
@@ -96,7 +96,7 @@ class BeerLogDB():
       )
     return entry
 
-  def GetAllCharacterNames(self):
+  def GetAllCharacterNames(self) -> list[str]:
     """Gets all active characters."""
     query = Entry.select(Entry.character_name).distinct()
     return [entry.character_name for entry in query.execute()]
@@ -190,6 +190,7 @@ class BeerLogDB():
     try:
       with open(known_tags_path, 'r') as json_file:
         self.known_tags_list = json.load(json_file)
+        print(self.known_tags_list)
     except IOError as e:
       raise errors.BeerLogError(
           'Could not load known tags file {0} with error {1!s}'.format(

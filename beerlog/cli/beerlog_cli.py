@@ -121,7 +121,6 @@ class BeerLog():
   def InitUI(self):
     """Initialises the user interface."""
     # Only GUI for now
-    print("Initializing UI...")
     self.ui = display.LumaDisplay(
         events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
@@ -169,8 +168,7 @@ class BeerLog():
       except queue.Empty:
         pass
       time.sleep(0.05)
-      if self.ui is not None:
-        self.ui.Update()
+      self.ui.Update()
 
   def _HandleEvent(self, event):
     """Does something with an Event.

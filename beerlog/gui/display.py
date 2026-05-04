@@ -171,9 +171,7 @@ class LumaDisplay():
                 os.path.dirname(os.path.realpath(__file__)))),
         'assets/fonts', font_name)
     if os.path.isfile(font_path):
-      print('Loading font from {0}'.format(font_path))
       return ImageFont.truetype(font_path, font_size)
-    print('Font file {0} not found, using default font'.format(font_path))
     return ImageFont.load_default()
 
 
@@ -592,13 +590,6 @@ class LumaDisplay():
       self._text_char_width, self._text_char_height = self._GetTextSize(drawer)
       self._max_rows = int(self.luma_device.height / self._text_char_height)
       self._max_cols = int(self.luma_device.width / self._text_char_width)
-    print('Luma device initialized: {0}'.format(self.luma_device))
-    print('Device width: {0}, height: {1}'.format(
-        self.luma_device.width, self.luma_device.height))
-    print('Text char width: {0}, char height: {1}'.format(
-        self._text_char_width, self._text_char_height)
-        )
-    print('Max rows: {0}, max cols: {1}'.format(self._max_rows, self._max_cols))
     self._InitStateMachine()
 
   def Terminate(self):

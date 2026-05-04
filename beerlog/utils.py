@@ -5,7 +5,7 @@ import datetime
 SHORT_LAST_BEER_LENGTH = 4
 SHORT_AMOUNT_OF_BEER_LENGTH = 4
 
-def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime = datetime.datetime.now()) -> str:
+def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime | None = None) -> str:
   """Returns a shortened string for the delta between now and last scan.
 
   Args:
@@ -17,7 +17,10 @@ def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime = datetime.
   """
 #  if type(last) == str:
 #      last = datetime.datetime.strptime(last, '%Y-%m-%d %H:%M')
+  if now is None:
+    now = datetime.datetime.now()
   delta = now - last
+  assert delta.total_seconds() >= 0, 'last scan should be in the past not {0!s}s'.format(last)
   seconds = int(delta.total_seconds())
   if seconds == 0:
     return '  0s'

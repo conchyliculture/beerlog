@@ -68,7 +68,7 @@ class BeerLogDBTests(unittest.TestCase):
     results = [
         (t.character_name, t.total, t.pic)
         for t in self.db.GetScoreBoard()]
-    self.assertEqual(expected, results)
+    self.assertEqual(expected, results, 'Error in testGetScoreBoard')
 
   def testGetCharacters(self):
     """Test tags name/hexid operations."""

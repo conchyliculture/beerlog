@@ -15,12 +15,9 @@ def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime | None = No
   Returns:
     str: the time delta since the last scan and now.
   """
-#  if type(last) == str:
-#      last = datetime.datetime.strptime(last, '%Y-%m-%d %H:%M')
   if now is None:
     now = datetime.datetime.now()
   delta = now - last
-  assert delta.total_seconds() >= 0, 'last scan should be in the past not {0!s}s'.format(last)
   seconds = int(delta.total_seconds())
   if seconds == 0:
     return '  0s'
@@ -38,6 +35,8 @@ def GetShortLastBeer(last: datetime.datetime, now: datetime.datetime | None = No
       period_value, seconds = divmod(seconds, period_seconds)
       result += '{0:d}{1:s}'.format(period_value, period_name)
       if period_name not in ['h', 'm']:
+        break
+      if period_name == 'm' and period_value >= 10:
         break
       if len(result) >= 4:
         break

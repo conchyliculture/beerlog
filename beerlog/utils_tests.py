@@ -42,6 +42,9 @@ class TestUtils(unittest.TestCase):
     last = datetime(2019, 4, 3, 0, 1, 2)
     self.assertEqual('2h8s', utils.GetShortLastBeer(last, now=now))
 
+    last = datetime(2019, 4, 3, 1, 50, 0)
+    self.assertEqual(' 11m', utils.GetShortLastBeer(last, now=now))
+
     last = datetime(2019, 4, 3, 2, 0, 0)
     self.assertEqual('1m10', utils.GetShortLastBeer(last, now=now))
 

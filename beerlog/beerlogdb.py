@@ -68,7 +68,7 @@ class BeerLogDB():
       raise errors.BeerLogError(f'cannot find realname {character_name}')
     self.AddEntry(character_hexid, pic=pic, time=time)
 
-  def AddEntry(self, character_hexid, pic=None, time=datetime.now()):
+  def AddEntry(self, character_hexid, pic=None, time=None):
     """Inserts an entry in the database.
 
     Args:
@@ -79,7 +79,6 @@ class BeerLogDB():
     Returns:
       Entry: the Entry that was stored in the database.
     """
-    print(f'Adding entry for {character_hexid} time {time}')
     amount = self.GetGlassFromHexID(character_hexid)
     character_name = self.GetNameFromHexID(character_hexid)
     if time:
@@ -93,6 +92,7 @@ class BeerLogDB():
       entry = Entry.create(
           character_name=character_name,
           amount=amount,
+          timestamp=datetime.now(),
           pic=pic
       )
     return entry

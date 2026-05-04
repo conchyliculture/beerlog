@@ -504,7 +504,7 @@ class LumaDisplay():
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
 
-      max_name_length = self._max_cols-(3 + 1 + 4 + 1 + 4 + 2)
+      max_name_length = self._max_cols-(3 + 1 + 4 + 1 + 4 + 3)
       header = ' '*3+f"{'Name':<{max_name_length}}"+'    L Last'
       self._scoreboard.SetMaxLines(self._max_rows - 1) # -1 for the header
       drawer.text((0, 0), header, fill='white', font=self._font)

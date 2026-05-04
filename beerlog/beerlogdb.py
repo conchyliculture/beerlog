@@ -30,7 +30,7 @@ class Entry(BeerModel):
 class BeerLogDB():
   """Wrapper for the database."""
 
-  def __init__(self, database_path):
+  def __init__(self, database_path: str):
     self.database_path = database_path
     sqlite_db = peewee.SqliteDatabase(self.database_path)
     database_proxy.initialize(sqlite_db)
@@ -68,7 +68,7 @@ class BeerLogDB():
       raise errors.BeerLogError(f'cannot find realname {character_name}')
     self.AddEntry(character_hexid, pic=pic, time=time)
 
-  def AddEntry(self, character_hexid, pic=None, time=None):
+  def AddEntry(self, character_hexid, pic=None, time=datetime.now()):
     """Inserts an entry in the database.
 
     Args:
@@ -79,6 +79,7 @@ class BeerLogDB():
     Returns:
       Entry: the Entry that was stored in the database.
     """
+    print(f'Adding entry for {character_hexid} time {time}')
     amount = self.GetGlassFromHexID(character_hexid)
     character_name = self.GetNameFromHexID(character_hexid)
     if time:

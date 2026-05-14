@@ -97,7 +97,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     datasets = {} # {'alcoolique': ['L cummulés']}
     for hour in range(total_hours):
       timestamp = (first_scan + datetime.timedelta(seconds=hour * 3600))
-      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+#      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
       fields.append(timestamp.astimezone().strftime('%Y%m%d %Hh%M'))
       for alcoolique in self._characters:
         cl = self._db.GetAmountFromName(alcoolique, at=timestamp)

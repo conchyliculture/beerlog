@@ -116,19 +116,83 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
 
+    total_by_hour = [
+        sum(datasets[name][hour] for name in self._characters)
+        for hour in range(total_hours)
+    ]
+    if len(total_by_hour) == 1:
+      window = 1
+      peak_3hr = total_by_hour[0]
+      peak_start = 0
+    else:
+      window = min(2, len(total_by_hour) - 1)
+      peak_3hr = 0
+      peak_start = 0
+      for hour in range(len(total_by_hour) - window - 1):
+        consumed = total_by_hour[hour + window] - total_by_hour[hour]
+        if consumed > peak_3hr:
+          peak_3hr = consumed
+          peak_start = hour
+    peak_3hr_per_hour = peak_3hr / 100.0 / float(window)
+    peak_start = max(0, min(peak_start, len(fields) - 1)) if fields else 0
+    peak_label = fields[peak_start] if fields else ''
+
+    peak_by_character = []
+    for alcoolique in self._characters:
+      char_values = datasets[alcoolique]
+      if len(char_values) == 1:
+        char_window = 1
+        char_peak = char_values[0]
+        char_start = 0
+      else:
+        char_window = window
+        char_peak = 0
+        char_start = 0
+        for hour in range(len(char_values) - char_window - 1):
+          consumed = char_values[hour + char_window] - char_values[hour]
+          if consumed > char_peak:
+            char_peak = consumed
+            char_start = hour
+      peak_by_character.append({
+          'name': alcoolique,
+          'avg': char_peak / 100.0 / float(char_window),
+          'start_index': char_start,
+          'label': fields[char_start] if fields else '',
+          'window_length': char_window})
+    peak_by_character.sort(key=lambda item: item['avg'], reverse=True)
+
     # Formating for Charts.js
+    speed_by_hour = [0]
+    for hour in range(1, len(total_by_hour)):
+      speed_by_hour.append(total_by_hour[hour] - total_by_hour[hour - 1])
+
     output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
     for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
       output_datasets.append({
           'label': k,
           'data':v
           })
+    output_datasets.append({
+        'label': 'Total cumulative',
+        'data': total_by_hour,
+        'order': 0
+    })
+    output_datasets.append({
+        'label': 'Total speed',
+        'data': speed_by_hour,
+        'order': 1
+    })
     return json.dumps(
         {'data':{
             'labels':fields,
             'datasets':output_datasets,
             'drinkers': self._db.GetAllCharacterNames(),
-            'total': total/100.0}}
+            'total': total/100.0,
+            'peak_3hr_avg': peak_3hr_per_hour,
+            'peak_3hr_window_length': window,
+            'peak_3hr_start_index': peak_start,
+            'peak_3hr_label': peak_label,
+            'peak_by_character': peak_by_character}}
         ).encode()
 
 def ParseArguments() -> argparse.Namespace:

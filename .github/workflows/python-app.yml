@@ -17,8 +17,7 @@ jobs:
     steps:
     - name: Main
       run: |
-        pwd
-        find
+        find /home/runner/work/
 
     - name: Install and run ruff check
       uses: astral-sh/ruff-action@v3

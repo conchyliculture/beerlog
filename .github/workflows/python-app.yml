@@ -17,7 +17,8 @@ jobs:
     steps:
     - name: Main
       run: |
-        ls ./beerlog
+        pwd
+        find
 
     - name: Install and run ruff check
       uses: astral-sh/ruff-action@v3

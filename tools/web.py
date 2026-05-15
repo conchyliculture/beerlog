@@ -12,11 +12,12 @@ from beerlog import beerlogdb
 
 socketserver.TCPServer.allow_reuse_address = True
 
-DEFAULT_DB = os.path.join('beerlog.sqlite')
-DEFAULT_TAGS_FILE = os.path.join('known_tags.json')
+DEFAULT_DB = os.path.join("beerlog.sqlite")
+DEFAULT_TAGS_FILE = os.path.join("known_tags.json")
 DEFAULT_PORT = 8000
 
 MAX_HOURS = 30 * 24  # 1 month
+
 
 class Handler(http.server.BaseHTTPRequestHandler):
   """Implements a simple HTTP server."""
@@ -48,37 +49,37 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
   def _Setup(self):
     """Initiates some useful objects"""
-    assert self.options is not None, 'options should be set before calling _Setup'
+    assert self.options is not None, "options should be set before calling _Setup"
     self._db = beerlogdb.BeerLogDB(self.options.database)
     self._db.LoadTagsDB(self.options.known_tags)
     self._characters = self._db.GetAllCharacterNames()
 
-  def do_GET(self): #pylint: disable=invalid-name
+  def do_GET(self):  # pylint: disable=invalid-name
     """Handles all GET requests."""
-    if self.path == '/':
+    if self.path == "/":
       self.send_response(200)
       self.send_header("Content-type", "text/html")
       self.end_headers()
       self.wfile.write(self.TEMPLATE_HTML.format().encode())
-    elif self.path == '/chart.js':
+    elif self.path == "/chart.js":
       self.send_response(200)
       self.send_header("Content-type", "text/html")
       self.end_headers()
-      with open(os.path.join('assets', 'web', 'chart.js'), 'rb') as js:
+      with open(os.path.join("assets", "web", "chart.js"), "rb") as js:
         self.wfile.write(js.read())
-    elif self.path == '/beer.js':
+    elif self.path == "/beer.js":
       self.send_response(200)
-      self.send_header('Content-type', 'text/html')
+      self.send_header("Content-type", "text/html")
       self.end_headers()
-      with open(os.path.join('assets', 'web', 'beer.js'), 'rb') as js:
+      with open(os.path.join("assets", "web", "beer.js"), "rb") as js:
         self.wfile.write(js.read())
-    elif self.path == '/data':
+    elif self.path == "/data":
       self.send_response(200)
-      self.send_header('Content-type', 'application/json')
+      self.send_header("Content-type", "application/json")
       self.end_headers()
       self.wfile.write(self.GetData())
     else:
-      self.send_error(404, 'error')
+      self.send_error(404, "error")
 
   def GetData(self):
     """Builds a dict to use with Chart.js."""
@@ -88,17 +89,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
     total_hours = int((delta.total_seconds() / 3600) + 2)
     if total_hours > MAX_HOURS:
       msg = (
-              'We calculated there are {0:d} hours between {1!s} and {2!s}, '
-              'which is more than the expected max number of hours in a month'
-              ': {3:d}'
-              ).format(total_hours, first_scan, last_scan, MAX_HOURS)
+        "We calculated there are {0:d} hours between {1!s} and {2!s}, "
+        "which is more than the expected max number of hours in a month"
+        ": {3:d}"
+      ).format(total_hours, first_scan, last_scan, MAX_HOURS)
       raise Exception(msg)
-    fields = [] # This is the X axis
-    datasets = {} # {'alcoolique': ['L cummulés']}
+    fields = []  # This is the X axis
+    datasets = {}  # {'alcoolique': ['L cummulés']}
     for hour in range(total_hours):
-      timestamp = (first_scan + datetime.timedelta(seconds=hour * 3600))
-#      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
-      fields.append(timestamp.astimezone().strftime('%Y%m%d %Hh%M'))
+      timestamp = first_scan + datetime.timedelta(seconds=hour * 3600)
+      #      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+      fields.append(timestamp.astimezone().strftime("%Y%m%d %Hh%M"))
       for alcoolique in self._characters:
         cl = self._db.GetAmountFromName(alcoolique, at=timestamp)
         if alcoolique in datasets:
@@ -108,7 +109,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     total = 0
     # 'totals' is unused for now, can be used later to display the scores
-    totals = {} # {'alcoolique': total }
+    totals = {}  # {'alcoolique': total }
     for alcoolique in self._db.GetAllCharacterNames():
       cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
       total += cl
@@ -117,8 +118,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
 
     total_by_hour = [
-        sum(datasets[name][hour] for name in self._characters)
-        for hour in range(total_hours)
+      sum(datasets[name][hour] for name in self._characters) for hour in range(total_hours)
     ]
     if len(total_by_hour) == 1:
       window = 1
@@ -135,7 +135,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
           peak_start = hour
     peak_3hr_per_hour = peak_3hr / 100.0 / float(window)
     peak_start = max(0, min(peak_start, len(fields) - 1)) if fields else 0
-    peak_label = fields[peak_start] if fields else ''
+    peak_label = fields[peak_start] if fields else ""
 
     peak_by_character = []
     for alcoolique in self._characters:
@@ -153,47 +153,43 @@ class Handler(http.server.BaseHTTPRequestHandler):
           if consumed > char_peak:
             char_peak = consumed
             char_start = hour
-      peak_by_character.append({
-          'name': alcoolique,
-          'avg': char_peak / 100.0 / float(char_window),
-          'start_index': char_start,
-          'label': fields[char_start] if fields else '',
-          'window_length': char_window})
-    peak_by_character.sort(key=lambda item: item['avg'], reverse=True)
+      peak_by_character.append(
+        {
+          "name": alcoolique,
+          "avg": char_peak / 100.0 / float(char_window),
+          "start_index": char_start,
+          "label": fields[char_start] if fields else "",
+          "window_length": char_window,
+        }
+      )
+    peak_by_character.sort(key=lambda item: item["avg"], reverse=True)
 
     # Formating for Charts.js
     speed_by_hour = [0]
     for hour in range(1, len(total_by_hour)):
       speed_by_hour.append(total_by_hour[hour] - total_by_hour[hour - 1])
 
-    output_datasets = [] # [{'label': 'alcoolique', 'data': ['L cummulés']}]
+    output_datasets = []  # [{'label': 'alcoolique', 'data': ['L cummulés']}]
     for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
-      output_datasets.append({
-          'label': k,
-          'data':v
-          })
-    output_datasets.append({
-        'label': 'Total cumulative',
-        'data': total_by_hour,
-        'order': 0
-    })
-    output_datasets.append({
-        'label': 'Total speed',
-        'data': speed_by_hour,
-        'order': 1
-    })
+      output_datasets.append({"label": k, "data": v})
+    output_datasets.append({"label": "Total cumulative", "data": total_by_hour, "order": 0})
+    output_datasets.append({"label": "Total speed", "data": speed_by_hour, "order": 1})
     return json.dumps(
-        {'data':{
-            'labels':fields,
-            'datasets':output_datasets,
-            'drinkers': self._db.GetAllCharacterNames(),
-            'total': total/100.0,
-            'peak_3hr_avg': peak_3hr_per_hour,
-            'peak_3hr_window_length': window,
-            'peak_3hr_start_index': peak_start,
-            'peak_3hr_label': peak_label,
-            'peak_by_character': peak_by_character}}
-        ).encode()
+      {
+        "data": {
+          "labels": fields,
+          "datasets": output_datasets,
+          "drinkers": self._db.GetAllCharacterNames(),
+          "total": total / 100.0,
+          "peak_3hr_avg": peak_3hr_per_hour,
+          "peak_3hr_window_length": window,
+          "peak_3hr_start_index": peak_start,
+          "peak_3hr_label": peak_label,
+          "peak_by_character": peak_by_character,
+        }
+      }
+    ).encode()
+
 
 def ParseArguments() -> argparse.Namespace:
   """Parses arguments.
@@ -202,28 +198,32 @@ def ParseArguments() -> argparse.Namespace:
     argparse.NameSpace: the parsed arguments.
   """
 
-  parser = argparse.ArgumentParser(description='BeerLog')
+  parser = argparse.ArgumentParser(description="BeerLog")
   parser.add_argument(
-      '--database', dest='database', action='store',
-      default=DEFAULT_DB,
-      help='the path to the sqlite file')
+    "--database",
+    dest="database",
+    action="store",
+    default=DEFAULT_DB,
+    help="the path to the sqlite file",
+  )
   parser.add_argument(
-      '--known_tags', dest='known_tags', action='store',
-      default=DEFAULT_TAGS_FILE,
-      help='the known tags file to use to use')
+    "--known_tags",
+    dest="known_tags",
+    action="store",
+    default=DEFAULT_TAGS_FILE,
+    help="the known tags file to use to use",
+  )
   parser.add_argument(
-      '--port', dest='port', action='store',
-      default=DEFAULT_PORT, type=int,
-      help='port to listen at')
+    "--port", dest="port", action="store", default=DEFAULT_PORT, type=int, help="port to listen at"
+  )
 
   parsed_args = parser.parse_args()
 
   if not os.path.isfile(parsed_args.database):
-    print('Could not find a sqlite file at {0!s}'.format(parsed_args.database))
+    print("Could not find a sqlite file at {0!s}".format(parsed_args.database))
     sys.exit(1)
   if not os.path.isfile(parsed_args.known_tags):
-    print('Could not find a known tags JSON file at {0!s}'.format(
-        parsed_args.known_tags))
+    print("Could not find a known tags JSON file at {0!s}".format(parsed_args.known_tags))
     sys.exit(1)
 
   return parser.parse_args()
@@ -233,8 +233,10 @@ def ParseArguments() -> argparse.Namespace:
 # used in socketserver.TCPServer
 def MakeHandlerClassFromArgv(init_args: argparse.Namespace):
   """Generates a class that inherits from Handler, with the proper attributes"""
+
   class CustomHandler(Handler):
     """Wrapper around Handler that sets the required attributes"""
+
     def __init__(self, *args, **kwargs):
       self.options = init_args
       super().__init__(*args, **kwargs)
@@ -244,13 +246,13 @@ def MakeHandlerClassFromArgv(init_args: argparse.Namespace):
 
 app_args = ParseArguments()
 
-HandlerClass =  MakeHandlerClassFromArgv(app_args)
+HandlerClass = MakeHandlerClassFromArgv(app_args)
 
-print('Server listening on port {0:d}...'.format(app_args.port))
-httpd = socketserver.TCPServer(('', app_args.port), HandlerClass)
+print("Server listening on port {0:d}...".format(app_args.port))
+httpd = socketserver.TCPServer(("", app_args.port), HandlerClass)
 try:
   httpd.serve_forever()
 except KeyboardInterrupt:
   pass
-print('Shutting Down')
+print("Shutting Down")
 httpd.server_close()

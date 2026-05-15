@@ -5,13 +5,14 @@ from multiprocessing import Queue
 from luma.oled.device import sh1106
 from luma.emulator.device import pygame
 
-class BaseGUI():
+
+class BaseGUI:
   """Base class for a GUI object. To be implemented by each class for each
-     hardware displays."""
+  hardware displays."""
 
   def __init__(self, queue: Queue):
     """Initializes a BaseGUI object.
-  
+
     Args:
       queue(Queue): the shared events queue.
     """

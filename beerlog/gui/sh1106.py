@@ -16,7 +16,7 @@ class WaveShareOLEDHat(gui_base.BaseGUI):
   """Implements a GUI with a WaveShare 1.3" OLED Hat"""
 
   # How do we connect to the OLED hat
-  CONNECTION = 'spi'
+  CONNECTION = "spi"
 
   # How long to wait, in ms before accepting a new event of the same type
   BOUNCE_MS = 100
@@ -26,22 +26,22 @@ class WaveShareOLEDHat(gui_base.BaseGUI):
   DC_PIN = 24
 
   _BUTTON_DICT = {
-      # KEY_UP_PIN
-      6: constants.EVENTTYPES.KEYDOWN, # Yes.
-      # KEY_DOWN_PIN
-      19: constants.EVENTTYPES.KEYUP,
-      # KEY_LEFT_PIN
-      5: constants.EVENTTYPES.KEYRIGHT,
-      # KEY_RIGHT_PIN
-      26: constants.EVENTTYPES.KEYLEFT,
-      # KEY_PRESS_PIN
-      13: constants.EVENTTYPES.KEYPRESS,
-      # KEY1_PIN
-      21: constants.EVENTTYPES.KEYMENU1,
-      # KEY2_PIN
-      20: constants.EVENTTYPES.KEYMENU2,
-      # KEY3_PIN
-      16: constants.EVENTTYPES.KEYMENU3,
+    # KEY_UP_PIN
+    6: constants.EVENTTYPES.KEYDOWN,  # Yes.
+    # KEY_DOWN_PIN
+    19: constants.EVENTTYPES.KEYUP,
+    # KEY_LEFT_PIN
+    5: constants.EVENTTYPES.KEYRIGHT,
+    # KEY_RIGHT_PIN
+    26: constants.EVENTTYPES.KEYLEFT,
+    # KEY_PRESS_PIN
+    13: constants.EVENTTYPES.KEYPRESS,
+    # KEY1_PIN
+    21: constants.EVENTTYPES.KEYMENU1,
+    # KEY2_PIN
+    20: constants.EVENTTYPES.KEYMENU2,
+    # KEY3_PIN
+    16: constants.EVENTTYPES.KEYMENU3,
   }
 
   def __init__(self, queue):
@@ -89,21 +89,25 @@ class WaveShareOLEDHat(gui_base.BaseGUI):
     Raises:
       Exception: if we didn't specify the connection parameter correctly.
     """
-    if self.CONNECTION == 'spi':
+    if self.CONNECTION == "spi":
       self._serial = spi(
-          device=0, port=0, bus_speed_hz=8000000,
-          transfer_size=4096,
-          gpio_DC=self.DC_PIN,
-          gpio_RST=self.RST_PIN)
-    elif self.CONNECTION == 'i2c':
+        device=0,
+        port=0,
+        bus_speed_hz=8000000,
+        transfer_size=4096,
+        gpio_DC=self.DC_PIN,
+        gpio_RST=self.RST_PIN,
+      )
+    elif self.CONNECTION == "i2c":
       GPIO.setup(self.RST_PIN, GPIO.OUT)
       GPIO.output(self.RST_PIN, GPIO.HIGH)
-      self._serial = i2c(port=1, address=0x3c)
+      self._serial = i2c(port=1, address=0x3C)
     else:
       raise Exception('Need "spi" or "i2c" as connection type')
 
     self._SetupGPIO()
 
     self._device = sh1106(self._serial, rotate=0)
+
 
 # vim: tabstop=2 shiftwidth=2 expandtab

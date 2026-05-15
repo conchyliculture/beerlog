@@ -27,13 +27,12 @@ from beerlog import system
 from beerlog import utils
 
 
-DataPoint = namedtuple(
-    'DataPoint', ['key', 'value', 'unit'], defaults=['', '', ''])
+DataPoint = namedtuple("DataPoint", ["key", "value", "unit"], defaults=["", "", ""])
 
-DEFAULT_SCAN_GIF = 'assets/gif/beer_scanned.gif'
+DEFAULT_SCAN_GIF = "assets/gif/beer_scanned.gif"
 
 
-class Scroller():
+class Scroller:
   """Implements a scroller object."""
 
   def __init__(self):
@@ -71,7 +70,7 @@ class Scroller():
     Returns:
       enumerate(peewee rows): the scoreboard window.
     """
-    window = self.data[self.window_low:self.window_high]
+    window = self.data[self.window_low : self.window_high]
     return window
 
   def IncrementIndex(self, unused_event):
@@ -103,13 +102,12 @@ class Scroller():
       self.index -= 1
 
 
-class LumaDisplay():
+class LumaDisplay:
   """Class managing the display."""
 
-  STATES = [
-      'SPLASH', 'SCORE', 'STATS', 'SCANNED', 'ERROR', 'MENUGLOBAL', 'GRAPH']
+  STATES = ["SPLASH", "SCORE", "STATS", "SCANNED", "ERROR", "MENUGLOBAL", "GRAPH"]
 
-  DEFAULT_SPLASH_PIC = 'assets/pics/splash_small.png'
+  DEFAULT_SPLASH_PIC = "assets/pics/splash_small.png"
 
   def __init__(self, events_queue: Queue, database: BeerLogDB):
     """Initializes a Display backed by luma.
@@ -128,9 +126,9 @@ class LumaDisplay():
     self._events_queue: Queue = events_queue
     self._database: BeerLogDB = database
     if not self._events_queue:
-      raise errors.BeerLogError('Display needs an events_queue')
+      raise errors.BeerLogError("Display needs an events_queue")
     if not self._database:
-      raise errors.BeerLogError('Display needs a DB object')
+      raise errors.BeerLogError("Display needs a DB object")
 
     # This is the object for different implementations
     self.gui_object: gui_base.BaseGUI
@@ -138,9 +136,9 @@ class LumaDisplay():
     self.luma_device: sh1106 | luma_emulator
     self.machine: transitions.Machine
     self._last_scanned_name = None
-    self._last_error: str = ''
+    self._last_error: str = ""
     self._too_soon: bool = False
-    self._current_character_name: str = ''
+    self._current_character_name: str = ""
 
     self._text_char_width: int
     self._text_char_height: int
@@ -148,12 +146,13 @@ class LumaDisplay():
     self._max_rows: int
 
     # UI related defaults
-    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont('RobotoMono-Regular.ttf', font_size=9)
+    self._font: ImageFont.ImageFont | ImageFont.FreeTypeFont = self._LoadFont(
+      "RobotoMono-Regular.ttf", font_size=9
+    )
     self._splash_pic_path = os.path.join(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(os.path.realpath(__file__)))),
-        self.DEFAULT_SPLASH_PIC)
+      os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+      self.DEFAULT_SPLASH_PIC,
+    )
 
     self._scoreboard = Scroller()
     self._global_menu = Scroller()
@@ -166,20 +165,17 @@ class LumaDisplay():
       font_size(int): the size of the font.
     """
     font_path = os.path.join(
-        os.path.dirname(
-            os.path.dirname(
-                os.path.dirname(os.path.realpath(__file__)))),
-        'assets/fonts', font_name)
+      os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__)))),
+      "assets/fonts",
+      font_name,
+    )
     if os.path.isfile(font_path):
       return ImageFont.truetype(font_path, font_size)
     return ImageFont.load_default()
 
-
-
   def _InitStateMachine(self):
     """Initializes the internal state machine."""
-    self.machine = transitions.Machine(
-        states=list(self.STATES), initial='SPLASH', send_event=True)
+    self.machine = transitions.Machine(states=list(self.STATES), initial="SPLASH", send_event=True)
 
     # Used to set our attributes from the Machine object
     self.machine.SetEnv = self._SetEnv  # pyright: ignore [reportAttributeAccessIssue]
@@ -189,41 +185,38 @@ class LumaDisplay():
     self.machine.DecrementGlobalMenuIndex = self._global_menu.DecrementIndex  # pyright: ignore [reportAttributeAccessIssue]
     # Transitions
     # (trigger, source, destination)
-    self.machine.add_transition('back', '*', 'SCORE', before='SetEnv')
-    self.machine.add_transition('scan', '*', 'SCANNED', before='SetEnv')
-    self.machine.add_transition('error', '*', 'ERROR', before='SetEnv')
+    self.machine.add_transition("back", "*", "SCORE", before="SetEnv")
+    self.machine.add_transition("scan", "*", "SCANNED", before="SetEnv")
+    self.machine.add_transition("error", "*", "ERROR", before="SetEnv")
     # TODO: check device "mode" ?
-    self.machine.add_transition(
-        'up', 'SCORE', 'SCORE', after='DecrementScoreIndex')
-    self.machine.add_transition(
-        'down', 'SCORE', 'SCORE', after='IncrementScoreIndex')
-    self.machine.add_transition('up', 'SPLASH', 'SCORE')
-    self.machine.add_transition('down', 'SPLASH', 'SCORE')
+    self.machine.add_transition("up", "SCORE", "SCORE", after="DecrementScoreIndex")
+    self.machine.add_transition("down", "SCORE", "SCORE", after="IncrementScoreIndex")
+    self.machine.add_transition("up", "SPLASH", "SCORE")
+    self.machine.add_transition("down", "SPLASH", "SCORE")
 
-    self.machine.add_transition('menu1', '*', 'MENUGLOBAL')
+    self.machine.add_transition("menu1", "*", "MENUGLOBAL")
+    self.machine.add_transition("up", "MENUGLOBAL", "MENUGLOBAL", after="DecrementGlobalMenuIndex")
     self.machine.add_transition(
-        'up', 'MENUGLOBAL', 'MENUGLOBAL', after='DecrementGlobalMenuIndex')
-    self.machine.add_transition(
-        'down', 'MENUGLOBAL', 'MENUGLOBAL', after='IncrementGlobalMenuIndex')
-    self.machine.add_transition('up', 'SPLASH', 'SCORE')
-    self.machine.add_transition('down', 'SPLASH', 'SCORE')
-
+      "down", "MENUGLOBAL", "MENUGLOBAL", after="IncrementGlobalMenuIndex"
+    )
+    self.machine.add_transition("up", "SPLASH", "SCORE")
+    self.machine.add_transition("down", "SPLASH", "SCORE")
 
     # Graphs
-    self.machine.add_transition('right', 'SCORE', 'GRAPH')
-    self.machine.add_transition('right', 'GRAPH', 'GRAPH')
-    self.machine.add_transition('left', 'GRAPH', 'SCORE')
+    self.machine.add_transition("right", "SCORE", "GRAPH")
+    self.machine.add_transition("right", "GRAPH", "GRAPH")
+    self.machine.add_transition("left", "GRAPH", "SCORE")
 
-    self.machine.add_transition('up', 'ERROR', 'SCORE')
-    self.machine.add_transition('down', 'ERROR', 'SCORE')
-    self.machine.add_transition('left', 'ERROR', 'SCORE')
-    self.machine.add_transition('right', 'ERROR', 'SCORE')
+    self.machine.add_transition("up", "ERROR", "SCORE")
+    self.machine.add_transition("down", "ERROR", "SCORE")
+    self.machine.add_transition("left", "ERROR", "SCORE")
+    self.machine.add_transition("right", "ERROR", "SCORE")
 
-    self.machine.add_transition('menu1', 'MENUGLOBAL', 'SCORE')
-    self.machine.add_transition('menu2', '*', 'SCORE')
+    self.machine.add_transition("menu1", "MENUGLOBAL", "SCORE")
+    self.machine.add_transition("menu2", "*", "SCORE")
 
-    self.machine.add_transition('up', '*', '=')
-    self.machine.add_transition('down', '*', '=')
+    self.machine.add_transition("up", "*", "=")
+    self.machine.add_transition("down", "*", "=")
 
   def _SetEnv(self, event):
     """Helper method to change some of our attributes on transiton changes.
@@ -231,29 +224,29 @@ class LumaDisplay():
     Args:
       event(transitions.EventData): the event.
     """
-    self._last_scanned_name = event.kwargs.get('who', None)
-    self._too_soon = event.kwargs.get('too_soon', False)
-    self._last_error = event.kwargs.get('error', None)
+    self._last_scanned_name = event.kwargs.get("who", None)
+    self._too_soon = event.kwargs.get("too_soon", False)
+    self._last_error = event.kwargs.get("error", None)
 
   def Update(self):
     """Draws the display depending on the state of the StateMachine."""
     self._scoreboard.UpdateData(self._database.GetScoreBoard())
     self._global_menu.UpdateData(self._GetGlobalMenuRows())
     assert self.machine is not None
-    if self.machine.state == 'SPLASH':
+    if self.machine.state == "SPLASH":
       self.ShowSplash()
-    elif self.machine.state == 'ERROR':
+    elif self.machine.state == "ERROR":
       self.ShowError()
-    elif self.machine.state == 'SCORE':
+    elif self.machine.state == "SCORE":
       self.ShowScores()
-    elif self.machine.state == 'SCANNED':
+    elif self.machine.state == "SCANNED":
       if self._too_soon:
         self.ShowScannedTooSoon()
       else:
         self.ShowScanned()
-    elif self.machine.state == 'MENUGLOBAL':
+    elif self.machine.state == "MENUGLOBAL":
       self.ShowMenuGlobal()
-    elif self.machine.state == 'GRAPH':
+    elif self.machine.state == "GRAPH":
       self.ShowGraph()
 
   def _GetGlobalMenuRows(self):
@@ -264,27 +257,27 @@ class LumaDisplay():
     """
     data = []
 
-    total_l = utils.GetShortAmountOfBeer(
-        self._database.GetTotalAmount() / 100.0)
+    total_l = utils.GetShortAmountOfBeer(self._database.GetTotalAmount() / 100.0)
     last_h = datetime.datetime.now() - datetime.timedelta(hours=1)
-    l_per_h = utils.GetShortAmountOfBeer(
-        self._database.GetTotalAmount(since=last_h) / 100.0)
+    l_per_h = utils.GetShortAmountOfBeer(self._database.GetTotalAmount(since=last_h) / 100.0)
 
     now = datetime.datetime.now()
     today = datetime.datetime(now.year, now.month, now.day, 0, 0, 0)
     first_scan_today = self._database.GetEarliestEntry(after=today)
 
-    data.append(DataPoint('Time', system.GetTime()))
-    data.append(DataPoint('WiFi', system.GetWifiStatus()))
-    data.append(DataPoint('IP', system.GetIpAddress()))
-    data.append(DataPoint('Total', total_l, 'L'))
-    data.append(DataPoint('Last h', l_per_h, 'L/h'))
-    data.append(DataPoint('Scans nb', self._database.GetEntriesCount()))
+    data.append(DataPoint("Time", system.GetTime()))
+    data.append(DataPoint("WiFi", system.GetWifiStatus()))
+    data.append(DataPoint("IP", system.GetIpAddress()))
+    data.append(DataPoint("Total", total_l, "L"))
+    data.append(DataPoint("Last h", l_per_h, "L/h"))
+    data.append(DataPoint("Scans nb", self._database.GetEntriesCount()))
     if first_scan_today:
-      data.append(DataPoint('1st today', first_scan_today.character_name))
+      data.append(DataPoint("1st today", first_scan_today.character_name))
     return data
 
-  def _DrawTextRow(self, drawer: ImageDraw.ImageDraw, text: str, line_num: int, selected: bool = False):
+  def _DrawTextRow(
+    self, drawer: ImageDraw.ImageDraw, text: str, line_num: int, selected: bool = False
+  ):
     """Helper method to draw a row of text.
 
     Args:
@@ -296,18 +289,15 @@ class LumaDisplay():
     assert self.luma_device is not None
     if selected:
       rectangle_geometry = (
-          0,
-          line_num * self._text_char_height + 2,
-          self.luma_device.width,
-          (line_num+1) * self._text_char_height + 1
-          )
-      drawer.rectangle(
-          rectangle_geometry, outline='white', fill='white')
-      drawer.text(
-          (2, line_num*self._text_char_height), text, font=self._font, fill='black')
+        0,
+        line_num * self._text_char_height + 2,
+        self.luma_device.width,
+        (line_num + 1) * self._text_char_height + 1,
+      )
+      drawer.rectangle(rectangle_geometry, outline="white", fill="white")
+      drawer.text((2, line_num * self._text_char_height), text, font=self._font, fill="black")
     else:
-      drawer.text(
-          (2, line_num*self._text_char_height), text, font=self._font, fill='white')
+      drawer.text((2, line_num * self._text_char_height), text, font=self._font, fill="white")
 
   def _Truncate(self, text, max_length):
     """Helper method to truncate text if it's too long.
@@ -319,7 +309,7 @@ class LumaDisplay():
       str: the truncated text.
     """
     if len(text) > max_length:
-      return text[:max_length-3] + '...'
+      return text[: max_length - 3] + "..."
     return text
 
   def ShowMenuGlobal(self):
@@ -335,25 +325,25 @@ class LumaDisplay():
         text = f"{key}: {value:>{value_width}}"
 
         self._DrawTextRow(
-            drawer, text, draw_row,
-            selected=(self._global_menu.index == menu_position))
+          drawer, text, draw_row, selected=(self._global_menu.index == menu_position)
+        )
         draw_row += 1
 
-  def _GetTextSize(self, draw: ImageDraw.ImageDraw, text: str = 'T') -> tuple[int, int]:
+  def _GetTextSize(self, draw: ImageDraw.ImageDraw, text: str = "T") -> tuple[int, int]:
     t = ImageText.Text(text, self._font)
     left, top, right, bottom = t.get_bbox()
     return int(right) - int(left), int(bottom) - int(top) + 2
 
   def ShowScannedTooSoon(self):
     """Draws the screen showing we're scanning too fast."""
-    msg = 'Already scanned\n cheater :3'
+    msg = "Already scanned\n cheater :3"
     # Add a text layer over the frame
-    background = Image.new('RGB', self.luma_device.size, 'black')
+    background = Image.new("RGB", self.luma_device.size, "black")
     text_layer = ImageDraw.Draw(background)
     text_width, text_height = self._GetTextSize(text_layer, text=msg)
     text_pos = (
-        (self.luma_device.width - text_width) // 2,
-        (self.luma_device.height - text_height) // 2
+      (self.luma_device.width - text_width) // 2,
+      (self.luma_device.height - text_height) // 2,
     )
     text_layer.text(text_pos, msg, (255, 255, 255), font=self._font)
 
@@ -398,19 +388,19 @@ class LumaDisplay():
       all_achievements.append(achievements.FirstBeerAchievement(name))
 
     for cool_amount in [1, 5, 10, 15, 20, 25, 30]:
-      if total_drunk >= cool_amount*100 > prev_total_drunk:
-        all_achievements.append(
-            achievements.SelfVolumeAchievement(cool_amount, name))
+      if total_drunk >= cool_amount * 100 > prev_total_drunk:
+        all_achievements.append(achievements.SelfVolumeAchievement(cool_amount, name))
 
     return all_achievements
 
   def _ShowAchievement(self, achievement):
     """Displays an achievement"""
     image_data = self._DrawAchievement(achievement)
-#    regulator = framerate_regulator(fps=5)
-#    for _ in range(15): # 15 frames at 5fps
-#      with regulator:
-#        self.luma_device.display(image_data.convert(self.luma_device.mode))
+
+  #    regulator = framerate_regulator(fps=5)
+  #    for _ in range(15): # 15 frames at 5fps
+  #      with regulator:
+  #        self.luma_device.display(image_data.convert(self.luma_device.mode))
 
   def _DrawAchievement(self, achievement):
     """Generates an achievement image data.
@@ -419,8 +409,8 @@ class LumaDisplay():
       PIL.Image: the image data to display.
     """
     img_path = os.path.abspath(achievements.DEFAULT_ACHIEVEMENT_FRAME)
-    background = Image.new('RGB', self.luma_device.size, 'black')
-    logo = Image.open(img_path).convert('RGB')
+    background = Image.new("RGB", self.luma_device.size, "black")
+    logo = Image.open(img_path).convert("RGB")
     background.paste(logo)
 
     text_layer = ImageDraw.Draw(background)
@@ -428,60 +418,47 @@ class LumaDisplay():
 
     _, text_height = self._GetTextSize(text_layer, text=achievement.message)
     split_message = achievement.Splitted()
-    text_layer.text(
-        (44, 4), split_message[0],
-        (255, 255, 255), font=_font)
-    if len(split_message)>=2:
-      text_layer.text(
-          (44, 4 + text_height), split_message[1],
-          (255, 255, 255), font=_font)
-    if len(split_message)>=3:
-      text_layer.text(
-          (44, 4 + text_height*2), split_message[2],
-          (255, 255, 255), font=_font)
+    text_layer.text((44, 4), split_message[0], (255, 255, 255), font=_font)
+    if len(split_message) >= 2:
+      text_layer.text((44, 4 + text_height), split_message[1], (255, 255, 255), font=_font)
+    if len(split_message) >= 3:
+      text_layer.text((44, 4 + text_height * 2), split_message[2], (255, 255, 255), font=_font)
 
-    _font = ImageFont.truetype('assets/fonts/pixelmix.ttf', 16)
-    text_layer.text(
-        (5, 8 + text_height*3), achievement.big_message,
-        (255, 255, 255), font=_font)
+    _font = ImageFont.truetype("assets/fonts/pixelmix.ttf", 16)
+    text_layer.text((5, 8 + text_height * 3), achievement.big_message, (255, 255, 255), font=_font)
 
-    _font = ImageFont.truetype('assets/fonts/NotoEmoji-Regular.ttf', 28)
+    _font = ImageFont.truetype("assets/fonts/NotoEmoji-Regular.ttf", 28)
     text_layer.text((4, 4), achievement.emoji, (255, 255, 255), font=_font)
 
     regulator = framerate_regulator(fps=5)
-    for _ in range(15): # 15 frames at 5fps
+    for _ in range(15):  # 15 frames at 5fps
       with regulator:
         self.luma_device.display(background.convert(self.luma_device.mode))
 
   def _ShowDefaultScan(self, name):
     """Show the default scan animation"""
     size = [min(*self.luma_device.size)] * 2
-    posn = (
-        (self.luma_device.width - size[0]) // 2,
-        self.luma_device.height - size[1]
-    )
+    posn = ((self.luma_device.width - size[0]) // 2, self.luma_device.height - size[1])
     regulator = framerate_regulator(fps=30)
     image = Image.open(DEFAULT_SCAN_GIF)
 
     total_drunk = self._database.GetAmountFromName(name)
 
-    default_msg = 'Cheers ' + name + '!'
-    default_msg += ' {0:s}L'.format(
-        utils.GetShortAmountOfBeer(total_drunk / 100.0))
+    default_msg = "Cheers " + name + "!"
+    default_msg += " {0:s}L".format(utils.GetShortAmountOfBeer(total_drunk / 100.0))
 
     for gif_frame in ImageSequence.Iterator(image):
       with regulator:
-        background = Image.new('RGB', self.luma_device.size, 'black')
+        background = Image.new("RGB", self.luma_device.size, "black")
         # Add a frame from the animation
-        background.paste(
-            gif_frame.resize(size, resample=Image.Resampling.LANCZOS), posn)
+        background.paste(gif_frame.resize(size, resample=Image.Resampling.LANCZOS), posn)
 
         # Add a text layer over the frame
         text_layer = ImageDraw.Draw(background)
         text_width, text_height = self._GetTextSize(text_layer, text=default_msg)
         text_pos = (
-            (self.luma_device.width - text_width) // 2,
-            self.luma_device.height - text_height
+          (self.luma_device.width - text_width) // 2,
+          self.luma_device.height - text_height,
         )
         text_layer.text(text_pos, default_msg, (255, 255, 255), font=self._font)
 
@@ -503,15 +480,13 @@ class LumaDisplay():
     """Draws the Scoreboard screen."""
     assert self.luma_device is not None
     with canvas(self.luma_device) as drawer:
-
-      max_name_length = self._max_cols-(3 + 1 + 4 + 1 + 4 + 3)
-      header = ' '*3+f"{'Name':<{max_name_length}}"+'    L Last'
-      self._scoreboard.SetMaxLines(self._max_rows - 1) # -1 for the header
-      drawer.text((0, 0), header, fill='white', font=self._font)
+      max_name_length = self._max_cols - (3 + 1 + 4 + 1 + 4 + 3)
+      header = " " * 3 + f"{'Name':<{max_name_length}}" + "    L Last"
+      self._scoreboard.SetMaxLines(self._max_rows - 1)  # -1 for the header
+      drawer.text((0, 0), header, fill="white", font=self._font)
       draw_row = 0
       for scoreboard_position, row in enumerate(self._scoreboard.GetRows()):
-        selected = (self._scoreboard.index ==
-                    scoreboard_position + self._scoreboard.window_low)
+        selected = self._scoreboard.index == scoreboard_position + self._scoreboard.window_low
         if selected:
           self._current_character_name = row.character_name
         draw_row += 1
@@ -519,20 +494,19 @@ class LumaDisplay():
         # ie: ' 1.Fox        12  12h'
         #     ' 2.Dog        10   5m'
         i = scoreboard_position + 1 + self._scoreboard.window_low
-        text = f'{i:>2} '
+        text = f"{i:>2} "
         if len(row.character_name) <= max_name_length:
           text += f"{row.character_name:<{max_name_length}}"
         else:
-            text += self._Truncate(row.character_name, max_name_length)
-        text += f' {utils.GetShortAmountOfBeer(row.total / 100.0)}'
-        text += f' {utils.GetShortLastBeer(row.last)}'
+          text += self._Truncate(row.character_name, max_name_length)
+        text += f" {utils.GetShortAmountOfBeer(row.total / 100.0)}"
+        text += f" {utils.GetShortLastBeer(row.last)}"
         self._DrawTextRow(drawer, text, draw_row, selected=selected)
 
   def ShowSplash(self):
     """Displays the splash screen."""
     background = Image.new(self.luma_device.mode, self.luma_device.size)
-    splash = Image.open(self._splash_pic_path).convert(
-        self.luma_device.mode)
+    splash = Image.open(self._splash_pic_path).convert(self.luma_device.mode)
     posn = ((self.luma_device.width - splash.width) // 2, 0)
     background.paste(splash, posn)
     self.luma_device.display(background)
@@ -548,18 +522,17 @@ class LumaDisplay():
 
   def ShowGraph(self):
     """Displays a person graph"""
-    fig, ax = plt.subplots(figsize=(2, 1), dpi=64, facecolor='black')
+    fig, ax = plt.subplots(figsize=(2, 1), dpi=64, facecolor="black")
     fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-    plt.figtext(
-        0.5, 0.2, self._current_character_name, color='w', fontsize='large')
+    plt.figtext(0.5, 0.2, self._current_character_name, color="w", fontsize="large")
 
     point_data = self._database.GetDataFromName(self._current_character_name)
 
-    ax.plot([e.timestamp for e in point_data], [e.sum for e in point_data], 'w')
+    ax.plot([e.timestamp for e in point_data], [e.sum for e in point_data], "w")
     ax.set_frame_on(False)
 
     buf = io.BytesIO()
-    fig.savefig(buf, format='png', dpi=fig.dpi, facecolor='black')
+    fig.savefig(buf, format="png", dpi=fig.dpi, facecolor="black")
     background = Image.open(buf)
     self.luma_device.display(background.convert(self.luma_device.mode))
 
@@ -569,20 +542,22 @@ class LumaDisplay():
     """Initializes the GUI."""
     is_rpi = False
     try:
-      with open('/sys/firmware/devicetree/base/model', 'r') as model:
-        is_rpi = model.read().startswith('Raspberry Pi')
+      with open("/sys/firmware/devicetree/base/model", "r") as model:
+        is_rpi = model.read().startswith("Raspberry Pi")
     except IOError:
       pass
 
     if is_rpi:
       from beerlog.gui import sh1106  # pylint: disable=import-outside-toplevel
+
       self.gui_object = sh1106.WaveShareOLEDHat(self._events_queue)
     else:
       from beerlog.gui import emulator  # pylint: disable=import-outside-toplevel
+
       self.gui_object = emulator.Emulator(self._events_queue)
 
     if not self.gui_object:
-      raise Exception('Could not initialize a GUI object')
+      raise Exception("Could not initialize a GUI object")
 
     self.gui_object.Setup()
     self.luma_device = self.gui_object.GetDevice()
@@ -598,25 +573,26 @@ class LumaDisplay():
       self.gui_object.Terminate()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   import multiprocessing
+
   queue = multiprocessing.Queue()
-  db = beerlogdb.BeerLogDB(':memory:')
+  db = beerlogdb.BeerLogDB(":memory:")
   ld = LumaDisplay(events_queue=queue, database=db)
   ld.Setup()
   with canvas(ld.luma_device) as drawer:
-    t = ImageText.Text('T', ld._font)
+    t = ImageText.Text("T", ld._font)
     left, top, right, bottom = t.get_bbox()
     width = int(right) - int(left)
     height = int(bottom) - int(top) + 1
     for i in range(ld._max_cols):
-      drawer.text((i*width , 0), '8', fill='white', font=ld._font)
+      drawer.text((i * width, 0), "8", fill="white", font=ld._font)
 
   try:
     while True:
       event = queue.get()
-      print('Received event: {0}'.format(event))
+      print("Received event: {0}".format(event))
   except KeyboardInterrupt:
-    print('Terminating emulator...')
+    print("Terminating emulator...")
     ld.Terminate()
-    print('Emulator terminated.')
+    print("Emulator terminated.")

@@ -20,7 +20,7 @@ from beerlog import events
 from beerlog.gui import display
 
 
-class BeerLog():
+class BeerLog:
   """BeerLog main class.
 
   Attributes:
@@ -34,7 +34,7 @@ class BeerLog():
     self._database_path: str
     self._events_queue: multiprocessing.Queue = multiprocessing.Queue()
     self._disable_nfc = False
-    self._known_tags_path: str = 'known_tags.json'
+    self._known_tags_path: str = "known_tags.json"
     self._last_scanned_names = defaultdict(lambda: datetime.datetime(2023, 1, 1))
     self._should_beep = True
 
@@ -48,33 +48,43 @@ class BeerLog():
     """
     if not self._disable_nfc:
       self.nfc_reader = nfc_base.BeerNFC(
-          events_queue=self._events_queue, should_beep=self._should_beep,
-          path=path)
+        events_queue=self._events_queue, should_beep=self._should_beep, path=path
+      )
       self.nfc_reader.process.start()
-      logging.debug('Started NFC {0!s}'.format(self.nfc_reader))
+      logging.debug("Started NFC {0!s}".format(self.nfc_reader))
 
   def ParseArguments(self):
     """Parses arguments."""
 
-    parser = argparse.ArgumentParser(description='BeerLog')
+    parser = argparse.ArgumentParser(description="BeerLog")
     parser.add_argument(
-        '--nobeep', dest='should_beep', action='store_false',
-        default=True,
-        help='Disable beeping of the NFC reader')
+      "--nobeep",
+      dest="should_beep",
+      action="store_false",
+      default=True,
+      help="Disable beeping of the NFC reader",
+    )
+    parser.add_argument("-d", "--debug", dest="debug", action="store_true", help="Debug mode")
     parser.add_argument(
-        '-d', '--debug', dest='debug', action='store_true',
-        help='Debug mode')
+      "--database",
+      dest="database",
+      action="store",
+      default=os.path.join(os.path.dirname(__name__), "beerlog.sqlite"),
+      help='the path to the sqlite file, or ":memory:" for a memory db',
+    )
     parser.add_argument(
-        '--database', dest='database', action='store',
-        default=os.path.join(os.path.dirname(__name__), 'beerlog.sqlite'),
-        help='the path to the sqlite file, or ":memory:" for a memory db')
+      "--known_tags",
+      dest="known_tags",
+      action="store",
+      default="known_tags.json",
+      help="the known tags file to use to use",
+    )
     parser.add_argument(
-        '--known_tags', dest='known_tags', action='store',
-        default='known_tags.json',
-        help='the known tags file to use to use')
-    parser.add_argument(
-        '--disable_nfc', dest='disable_nfc', action='store_true',
-        help='Disables the NFC reader (useful in emulator mode)')
+      "--disable_nfc",
+      dest="disable_nfc",
+      action="store_true",
+      help="Disables the NFC reader (useful in emulator mode)",
+    )
 
     args = parser.parse_args()
 
@@ -103,7 +113,7 @@ class BeerLog():
       self.Loop()
     except Exception as e:  # pylint: disable=broad-except
       logging.error(e)
-      print('An error occurred: {0!s}'.format(e))
+      print("An error occurred: {0!s}".format(e))
       print(traceback.format_exc())
     finally:
       self.Terminate()
@@ -121,8 +131,7 @@ class BeerLog():
   def InitUI(self):
     """Initialises the user interface."""
     # Only GUI for now
-    self.ui = display.LumaDisplay(
-        events_queue=self._events_queue, database=self.db)
+    self.ui = display.LumaDisplay(events_queue=self._events_queue, database=self.db)
     self.ui.Setup()
     self.ui.Update()
 
@@ -161,9 +170,9 @@ class BeerLog():
         event = self._events_queue.get(timeout=1)
         try:
           self._HandleEvent(event)
-        except Exception as e:  #pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except
           logging.error(e)
-          err_event = events.ErrorEvent('{0!s}'.format(e))
+          err_event = events.ErrorEvent("{0!s}".format(e))
           self.PushEvent(err_event)
       except queue.Empty:
         pass
@@ -189,7 +198,9 @@ class BeerLog():
       delta = constants.SCAN_RATE_LIMIT * 2
       if name in self._last_scanned_names:
         now = datetime.datetime.now()
-        delta = (now - self._last_scanned_names.get(name, datetime.datetime(now.year, now.month, now.day)))
+        delta = now - self._last_scanned_names.get(
+          name, datetime.datetime(now.year, now.month, now.day)
+        )
         delta = delta.total_seconds()
       self._last_scanned_names[name] = datetime.datetime.now()
 
@@ -219,7 +230,9 @@ class BeerLog():
       delta = constants.SCAN_RATE_LIMIT * 2
       if name in self._last_scanned_names:
         now = datetime.datetime.now()
-        delta = (now - self._last_scanned_names.get(name, datetime.datetime(now.year, now.month, now.day)))
+        delta = now - self._last_scanned_names.get(
+          name, datetime.datetime(now.year, now.month, now.day)
+        )
         delta = delta.total_seconds()
       self._last_scanned_names[name] = datetime.datetime.now()
 
@@ -237,11 +250,13 @@ class BeerLog():
 
     self.db.Close()
 
+
 def Main():
   """Main function"""
   m = BeerLog()
   m.Main()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
   Main()
 # vim: tabstop=2 shiftwidth=2 expandtab

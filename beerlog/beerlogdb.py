@@ -12,22 +12,30 @@ from beerlog import constants
 
 
 database_proxy = peewee.Proxy()
+
+
 # pylint: disable=no-init
 class BeerModel(peewee.Model):
   """Model for the database."""
+
   id = None
-  class Meta():
+
+  class Meta:
     """Sets Metadata for the database."""
+
     database = database_proxy
+
 
 class Entry(BeerModel):
   """class for one Entry in the BeerLog database."""
+
   character_name = peewee.CharField()
   amount = peewee.IntegerField(default=constants.DEFAULT_GLASS_SIZE)
   timestamp = peewee.DateTimeField(default=datetime.now)
   pic = peewee.CharField(null=True)
 
-class BeerLogDB():
+
+class BeerLogDB:
   """Wrapper for the database."""
 
   def __init__(self, database_path: str):
@@ -57,15 +65,15 @@ class BeerLogDB():
         str: the hexid
     """
     for hexid, data in self.known_tags_list.items():
-      if 'realname' in data:
-        if data['realname'].lower() == name.lower():
+      if "realname" in data:
+        if data["realname"].lower() == name.lower():
           return hexid
     return None
 
   def AddNameEntry(self, character_name, pic=None, time=None):
     character_hexid = self.GetHexFromName(character_name)
     if not character_hexid:
-      raise errors.BeerLogError(f'cannot find realname {character_name}')
+      raise errors.BeerLogError(f"cannot find realname {character_name}")
     self.AddEntry(character_hexid, pic=pic, time=time)
 
   def AddEntry(self, character_hexid, pic=None, time=None):
@@ -82,18 +90,10 @@ class BeerLogDB():
     amount = self.GetGlassFromHexID(character_hexid)
     character_name = self.GetNameFromHexID(character_hexid)
     if time:
-      entry = Entry.create(
-          character_name=character_name,
-          amount=amount,
-          timestamp=time,
-          pic=pic
-      )
+      entry = Entry.create(character_name=character_name, amount=amount, timestamp=time, pic=pic)
     else:
       entry = Entry.create(
-          character_name=character_name,
-          amount=amount,
-          timestamp=datetime.now(),
-          pic=pic
+        character_name=character_name, amount=amount, timestamp=datetime.now(), pic=pic
       )
     return entry
 
@@ -104,7 +104,7 @@ class BeerLogDB():
 
   def GetEntriesCount(self):
     """Returns the number of entries."""
-    count = Entry.select().count() #pylint: disable=no-value-for-parameter
+    count = Entry.select().count()  # pylint: disable=no-value-for-parameter
     return count
 
   def GetEntryById(self, entry_id):
@@ -136,15 +136,17 @@ class BeerLogDB():
     Returns:
       peewee.ModelSelect: the query.
     """
-    query = Entry.select(
+    query = (
+      Entry.select(
         Entry,
-        peewee.fn.SUM(Entry.amount).alias('total'),
-        peewee.fn.MAX(Entry.timestamp).alias('last'),
-    ).group_by(
-        Entry.character_name
-    ).order_by(
-        peewee.SQL('total').desc(),
+        peewee.fn.SUM(Entry.amount).alias("total"),
+        peewee.fn.MAX(Entry.timestamp).alias("last"),
+      )
+      .group_by(Entry.character_name)
+      .order_by(
+        peewee.SQL("total").desc(),
         (peewee.fn.MAX(Entry.timestamp)).asc(),
+      )
     )
     return query
 
@@ -157,12 +159,15 @@ class BeerLogDB():
       int: the glass size for a character, or the default value if not found.
     """
 
-    entry = Entry.select(Entry.amount).where(
-        Entry.character_name == name).order_by(Entry.timestamp.desc()).first()
+    entry = (
+      Entry.select(Entry.amount)
+      .where(Entry.character_name == name)
+      .order_by(Entry.timestamp.desc())
+      .first()
+    )
     if not entry:
       return constants.DEFAULT_GLASS_SIZE
     return entry.amount
-
 
   def GetGlassFromHexID(self, uid):
     """Returns the corresponding glass from a uid
@@ -176,9 +181,9 @@ class BeerLogDB():
     """
     tag_object = self.known_tags_list.get(uid)
     if not tag_object:
-      raise errors.BeerLogError('Unknown character for tag {0:s}'.format(uid))
+      raise errors.BeerLogError("Unknown character for tag {0:s}".format(uid))
 
-    return tag_object.get('glass', constants.DEFAULT_GLASS_SIZE)
+    return tag_object.get("glass", constants.DEFAULT_GLASS_SIZE)
 
   def LoadTagsDB(self, known_tags_path):
     """Loads the external known tags list.
@@ -189,16 +194,14 @@ class BeerLogDB():
       errors.BeerLogError: if we couldn't load the file.
     """
     try:
-      with open(known_tags_path, 'r') as json_file:
+      with open(known_tags_path, "r") as json_file:
         self.known_tags_list = json.load(json_file)
     except IOError as e:
       raise errors.BeerLogError(
-          'Could not load known tags file {0} with error {1!s}'.format(
-              known_tags_path, e))
+        "Could not load known tags file {0} with error {1!s}".format(known_tags_path, e)
+      )
     except ValueError as e:
-      raise errors.BeerLogError(
-          'Known tags file {0} is invalid: {1!s}'.format(
-              known_tags_path, e))
+      raise errors.BeerLogError("Known tags file {0} is invalid: {1!s}".format(known_tags_path, e))
 
   def GetNameFromHexID(self, uid):
     """Returns the corresponding name from a uid
@@ -213,13 +216,13 @@ class BeerLogDB():
     """
     tag_object = self.known_tags_list.get(uid)
     if not tag_object:
-      raise errors.BeerLogError('Unknown character for tag {0:s}'.format(uid))
-    return tag_object.get('realname') or tag_object.get('name')
+      raise errors.BeerLogError("Unknown character for tag {0:s}".format(uid))
+    return tag_object.get("realname") or tag_object.get("name")
 
   def GetEarliestTimestamp(self):
     """Returns the earliest timestamp."""
     query = Entry.select(peewee.fn.MIN(Entry.timestamp))
-    return query.scalar() #pylint: disable=no-value-for-parameter
+    return query.scalar()  # pylint: disable=no-value-for-parameter
 
   def GetEarliestEntry(self, after=None):
     """Returns the earliest Entry.
@@ -231,15 +234,21 @@ class BeerLogDB():
       Entry: the first entry.
     """
     if after:
-      query = Entry.select(Entry).where(
-          Entry.timestamp >= after).group_by(Entry.timestamp).order_by(
-              Entry.timestamp.asc())
+      query = (
+        Entry.select(Entry)
+        .where(Entry.timestamp >= after)
+        .group_by(Entry.timestamp)
+        .order_by(Entry.timestamp.asc())
+      )
     else:
-      query = Entry.select(Entry).group_by(Entry.timestamp).having(
-          Entry.timestamp == peewee.fn.MIN(Entry.timestamp))
+      query = (
+        Entry.select(Entry)
+        .group_by(Entry.timestamp)
+        .having(Entry.timestamp == peewee.fn.MIN(Entry.timestamp))
+      )
     try:
       return query.get()
-    except Exception: # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
       return None
 
   def GetLatestTimestamp(self, name=None):
@@ -247,7 +256,7 @@ class BeerLogDB():
     query = Entry.select(peewee.fn.MAX(Entry.timestamp))
     if name:
       query = query.where(Entry.character_name == name)
-    return query.scalar() #pylint: disable=no-value-for-parameter
+    return query.scalar()  # pylint: disable=no-value-for-parameter
 
   def GetAmountFromHexID(self, hexid, at=None):
     """Returns the amount of beer drunk for a Character.
@@ -273,11 +282,10 @@ class BeerLogDB():
     amount_cl = 0
     if at:
       query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
-          Entry.character_name == name,
-          Entry.timestamp <= at)
+        Entry.character_name == name, Entry.timestamp <= at
+      )
     else:
-      query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
-          Entry.character_name == name)
+      query = Entry.select(peewee.fn.SUM(Entry.amount)).where(Entry.character_name == name)
     amount = query.scalar()
     if amount:
       amount_cl = amount
@@ -294,11 +302,10 @@ class BeerLogDB():
 
     """
     if since:
-      query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
-          Entry.timestamp >= since)
+      query = Entry.select(peewee.fn.SUM(Entry.amount)).where(Entry.timestamp >= since)
     else:
       query = Entry.select(peewee.fn.SUM(Entry.amount))
-    return query.scalar() or 0 # pylint: disable=no-value-for-parameter
+    return query.scalar() or 0  # pylint: disable=no-value-for-parameter
 
   def GetDataFromName(self, name):
     """Returns the accumulated amount for a character name.
@@ -315,8 +322,9 @@ class BeerLogDB():
       peewee.ModelSelect: the query.
     """
     query = Entry.select(
-        Entry.timestamp, peewee.fn.SUM(Entry.amount).over(
-            order_by=[Entry.timestamp]).alias('sum')).where(
-                Entry.character_name == name)
+      Entry.timestamp, peewee.fn.SUM(Entry.amount).over(order_by=[Entry.timestamp]).alias("sum")
+    ).where(Entry.character_name == name)
     return query.execute()
+
+
 # vim: tabstop=2 shiftwidth=2 expandtab

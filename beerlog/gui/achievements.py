@@ -2,12 +2,13 @@
 
 import textwrap
 
-DEFAULT_ACHIEVEMENT_FRAME = 'assets/pics/achievement.png'
+DEFAULT_ACHIEVEMENT_FRAME = "assets/pics/achievement.png"
 
-class BaseAchievement():
+
+class BaseAchievement:
   """Base class for an Achievement."""
 
-  def __init__(self, message, big_message, emoji='👍'):
+  def __init__(self, message, big_message, emoji="👍"):
     """Initializes a BaseAchievement.
 
     Args:
@@ -28,32 +29,32 @@ class SelfVolumeAchievement(BaseAchievement):
   """Class for a 'number of L drunk' achievement."""
 
   def __init__(self, amount, name):
-    m = 'Congrats on passing {0:d}L {1:s}!'.format(amount, name)
-    b = '{0:d} PINTS !'.format(amount * 2)
-    e = '🍺'
+    m = "Congrats on passing {0:d}L {1:s}!".format(amount, name)
+    b = "{0:d} PINTS !".format(amount * 2)
+    e = "🍺"
     super().__init__(m, b, e)
+
 
 class BeatSomeoneAchievement(BaseAchievement):
   """Class for an achievement when someone takes over someone else."""
 
   def __init__(self, position):
-    m = 'Congrats on taking rank {0:d}!'.format(position)
-    b = '{0:d} TO GO !'.format(position - 1)
-    e = '🍺'
+    m = "Congrats on taking rank {0:d}!".format(position)
+    b = "{0:d} TO GO !".format(position - 1)
+    e = "🍺"
     if position == 1:
-      m = 'YOU HAVE TAKEN THE LEAD !!!'
-      b = 'WATCH OUT'
-      e = '🥇'
+      m = "YOU HAVE TAKEN THE LEAD !!!"
+      b = "WATCH OUT"
+      e = "🥇"
     elif position == 2:
-      e = '🥈'
+      e = "🥈"
     elif position == 3:
-      e = '🥉'
+      e = "🥉"
     super().__init__(m, b, e)
+
 
 class FirstBeerAchievement(BaseAchievement):
   """First beer of the game."""
 
   def __init__(self, name):
-    super().__init__(
-        'First beer, enjoy the game {0:s}!'.format(name),
-        'FIRST BEER', emoji='1️')
+    super().__init__("First beer, enjoy the game {0:s}!".format(name), "FIRST BEER", emoji="1️")

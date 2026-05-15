@@ -20,11 +20,12 @@ class NFCEvent(events.BaseEvent):
     self.uid = uid
 
   def __str__(self):
-    return 'NFCEvent uid:{0:s} [{1!s}]'.format(self.uid, self.timestamp)
+    return "NFCEvent uid:{0:s} [{1!s}]".format(self.uid, self.timestamp)
 
 
-class NFC215():
+class NFC215:
   """Handles read operations on NFC215 tags."""
+
   BULK_READ_PAGE_COUNT = 4
   PAGE_SIZE = 4
   TAG_FILE_SIZE = 532
@@ -39,11 +40,11 @@ class NFC215():
       uid(str): the tag uid in form 0x0580000000050002.
     """
     uid = None
-    if tag.product == 'NXP NTAG215':
+    if tag.product == "NXP NTAG215":
       bytes_array = tag.read(21)[0:8]
-      uid = '0x{0}'.format(binascii.hexlify(bytes_array).decode('utf-8'))
+      uid = "0x{0}".format(binascii.hexlify(bytes_array).decode("utf-8"))
     else:
-      logging.debug('Unknown tag product: {0:s}'.format(tag.product))
+      logging.debug("Unknown tag product: {0:s}".format(tag.product))
     return uid
 
   @staticmethod
@@ -54,17 +55,17 @@ class NFC215():
       tag(nfc.tag.tt2_nxp.NTAG215): the input data read from the tag.
     """
     pages = []
-    for i in range(0, int(NFC215.TAG_FILE_SIZE/NFC215.PAGE_SIZE), 4):
+    for i in range(0, int(NFC215.TAG_FILE_SIZE / NFC215.PAGE_SIZE), 4):
       page = tag.read(i)
-      print('{0!s}:{1!s}'.format(i, binascii.hexlify(page).upper()))
+      print("{0!s}:{1!s}".format(i, binascii.hexlify(page).upper()))
       pages.append(binascii.hexlify(page).upper())
-    print(''.join(pages))
+    print("".join(pages))
 
 
-class BaseNFC():
+class BaseNFC:
   """Base class for a NFC reader."""
 
-  SCAN_TIMEOUT_MS = 1 * 1000 # 1 seconds
+  SCAN_TIMEOUT_MS = 1 * 1000  # 1 seconds
 
   def __init__(self, events_queue):
     """Initializes a BaseNFC object.
@@ -92,7 +93,7 @@ class BaseNFC():
         if delta_ms > self.SCAN_TIMEOUT_MS:
           self._events_queue.put(event)
         else:
-          logging.debug('Already scanned {0!s} recently'.format(event))
+          logging.debug("Already scanned {0!s} recently".format(event))
       else:
         self._events_queue.put(event)
       self._last_event = event
@@ -129,8 +130,8 @@ class BeerNFC(BaseNFC):
     self.path = path
     super().__init__(events_queue=events_queue)
 
-#    self._last_taken_picture = None
-#    self._picture_dir = None
+  #    self._last_taken_picture = None
+  #    self._picture_dir = None
 
   def OpenNFC(self):
     """Initializes the NFC reader.
@@ -138,28 +139,26 @@ class BeerNFC(BaseNFC):
     Raises:
       errors.BeerLogError: when we couldn't open the device.
     """
-    self.process = multiprocessing.Process(
-        target=self._DoNFC, args=(self.path,), daemon=True)
+    self.process = multiprocessing.Process(target=self._DoNFC, args=(self.path,), daemon=True)
 
   def _DoNFC(self, path):
     """TODO"""
     try:
       with nfc.ContactlessFrontend(path) as clf:
         while True:
-          success = clf.connect(
-              rdwr={'on-connect': self.ReadTag}
-          )
+          success = clf.connect(rdwr={"on-connect": self.ReadTag})
 
           if not success:
-            logging.debug('Could not read NFC tag, or we timedout')
+            logging.debug("Could not read NFC tag, or we timedout")
           time.sleep(0.1)
     except IOError as e:
       raise errors.BeerLogError(
-          (
-              'Could not load NFC reader (path: {0}) with error: {1!s}\n'
-              'Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533'
-              '; rmmod nfc'
-          ).format(path, e))
+        (
+          "Could not load NFC reader (path: {0}) with error: {1!s}\n"
+          "Try removing some modules (hint: rmmod pn533_usb ; rmmod pn533"
+          "; rmmod nfc"
+        ).format(path, e)
+      )
 
   def ReadTag(self, tag):
     """Reads a tag from the NFC reader.
@@ -171,17 +170,18 @@ class BeerNFC(BaseNFC):
       bytearray: True if the read operation was successful,
         or None if it wasn't.
     """
-    if isinstance(tag, nfc.tag.tt2.Type2Tag): # pyright: ignore [reportAttributeAccessIssue]
+    if isinstance(tag, nfc.tag.tt2.Type2Tag):  # pyright: ignore [reportAttributeAccessIssue]
       uid = NFC215.ReadUIDFromTag(tag)
       try:
         if uid:
           event = NFCEvent(uid=uid)
           self._AddToQueue(event)
         return self._should_beep
-      except nfc.tag.tt2.Type2TagCommandError as e: # pyright: ignore [reportAttributeAccessIssue]
-        event = events.ErrorEvent('{0!s}'.format(e))
+      except nfc.tag.tt2.Type2TagCommandError as e:  # pyright: ignore [reportAttributeAccessIssue]
+        event = events.ErrorEvent("{0!s}".format(e))
     else:
-      raise Exception('Unknown tag type')
+      raise Exception("Unknown tag type")
     return False
+
 
 # vim: tabstop=2 shiftwidth=2 expandtab

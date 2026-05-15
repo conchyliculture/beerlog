@@ -395,7 +395,7 @@ class LumaDisplay:
 
   def _ShowAchievement(self, achievement):
     """Displays an achievement"""
-    image_data = self._DrawAchievement(achievement)
+    self._DrawAchievement(achievement)
 
   #    regulator = framerate_regulator(fps=5)
   #    for _ in range(15): # 15 frames at 5fps

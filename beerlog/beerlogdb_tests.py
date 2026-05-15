@@ -118,8 +118,8 @@ class BeerLogDBTests(unittest.TestCase):
       )
       temp.flush()
       self.db.LoadTagsDB(temp.name)
-      l = self.db.known_tags_list
-      self.assertEqual(2, len(l))
+      thelist = self.db.known_tags_list
+      self.assertEqual(2, len(thelist))
 
       self.assertEqual("Kikoo", self.db.GetNameFromHexID("0x0"))
       self.assertEqual("realname", self.db.GetNameFromHexID("0x2"))

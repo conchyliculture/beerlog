@@ -17,10 +17,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    - name: Main
-      run: |
-        find /home/runner/work/
-
     - name: Install and run ruff check
       uses: astral-sh/ruff-action@v3
       with:

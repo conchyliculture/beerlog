@@ -1,3 +1,2 @@
 -r requirements.txt
 -r requirements-desktop.txt
-pylint

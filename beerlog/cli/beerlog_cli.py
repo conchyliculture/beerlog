@@ -7,7 +7,6 @@ import logging
 import multiprocessing
 import os
 import queue
-import subprocess
 import sys
 from threading import Timer
 import time

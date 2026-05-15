@@ -27,15 +27,30 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <html>
 <head>
   <title>Beer</title>
-  <link rel="icon" href="data:;base64,=">
+  <style>
+    body { font-family: sans-serif; padding: 1em; }
+    #chart-container { width: 80%; margin-bottom: 1.5em; }
+    #peak-speeds { width: 80%; clear: both; }
+    #peak-speed-table { width: 100%; border-collapse: collapse; }
+    #peak-speed-table th, #peak-speed-table td { border: 1px solid #ccc; padding: 0.4em 0.6em; text-align: left; }
+  </style>
   <script src="beer.js"></script>
   <script src="chart.js"></script>
 </head>
 <body>
   <div id="total">
   </div>
-  <div style="width:80%; height:50%">
+  <div id="chart-container" style="min-height:360px; margin-bottom:1.5em;">
     <canvas id="myChart"></canvas>
+  </div>
+  <div id="peak-speeds">
+    <h2>Peak speed by character</h2>
+    <table id="peak-speed-table">
+      <thead>
+        <tr><th>Character</th><th>Peak speed (L/h)</th><th>Peak time</th></tr>
+      </thead>
+      <tbody id="peak-speed-table-body"></tbody>
+    </table>
   </div>
   <script>update_graph("/data", drawChart);</script>
 </body></html> """
@@ -61,7 +76,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
       self.send_response(200)
       self.send_header("Content-type", "text/html")
       self.end_headers()
-      self.wfile.write(self.TEMPLATE_HTML.format().encode())
+      self.wfile.write(self.TEMPLATE_HTML.encode())
     elif self.path == "/chart.js":
       self.send_response(200)
       self.send_header("Content-type", "text/html")
@@ -176,12 +191,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
             name=alcoolique,
           )
+          consumed_char_speed = consumed_char / window_size / 100.0
           if (
             alcoolique not in peaks_window
-            or consumed_char / 100 > peaks_window[alcoolique]["amount"]
+            or consumed_char_speed > peaks_window[alcoolique]["amount"]
           ):
             peaks_window[alcoolique] = {
-              "amount": consumed_char / 100,
+              "amount": consumed_char_speed,
               "time": str(first_scan + datetime.timedelta(seconds=hour * 3600)),
             }
 

@@ -24,6 +24,23 @@ function drawChart(le_data) {
         'Total drunk: ' + le_data['total'] + 'L<br>' +
         'Top cumulative speed: ' + le_data['peak_total']['amount'].toFixed(2) + 'L of beer per hour<br>';
 
+    var peakTableBody = document.getElementById('peak-speed-table-body');
+    if (peakTableBody) {
+      peakTableBody.innerHTML = '';
+      peakByCharacter.forEach(function(item) {
+        var name = item[0];
+        var entry = item[1] || {};
+        var amount = typeof entry.amount === 'number' ? entry.amount : NaN;
+        var time = entry.time || 'N/A';
+        peakTableBody.insertAdjacentHTML(
+          'beforeend',
+          '<tr><td>' + name + '</td><td>' +
+            (isNaN(amount) ? 'N/A' : amount.toFixed(2) + ' L/h') +
+            '</td><td>' + time + '</td></tr>'
+        );
+      });
+    }
+
     // Assign a color for each name.
     var nameToColor = {};
     for (var idx in drinkers) {
@@ -90,7 +107,7 @@ function drawChart(le_data) {
                     position: 'left',
                     title: {
                         display: true,
-                        text: 'Drinkers (L)'
+                        text: 'Beer drank (L)'
                     }
                 },
                 y1: {
@@ -123,6 +140,9 @@ function drawChart(le_data) {
                             var value = context.parsed && context.parsed.y != null ? context.parsed.y : context.raw;
                             if (label === 'Total speed' && typeof value === 'number') {
                                 return label + ': ' + value.toFixed(2) + ' L/h';
+                            }
+                            if (label !== 'Total cumulative' && typeof value === 'number') {
+                                return label + ': ' + (value / 100).toFixed(2) + ' L';
                             }
                             return label + ': ' + context.formattedValue;
                         },

@@ -118,6 +118,14 @@ function drawChart(le_data) {
                 },
                 tooltip: {
                     callbacks: {
+                        label: function(context) {
+                            var label = context.dataset.label || '';
+                            var value = context.parsed && context.parsed.y != null ? context.parsed.y : context.raw;
+                            if (label === 'Total speed' && typeof value === 'number') {
+                                return label + ': ' + value.toFixed(2) + ' L/h';
+                            }
+                            return label + ': ' + context.formattedValue;
+                        },
                         afterFooter: function(tooltip) {
                             // Datasets are sorted by amount. First index
                             // is the winner.

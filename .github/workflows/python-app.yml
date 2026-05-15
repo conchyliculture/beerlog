@@ -15,7 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Install ruff without running check or format
+    - name: Main
+      run: |
+        ls ./beerlog
+
+    - name: Install and run ruff check
       uses: astral-sh/ruff-action@v3
       with:
         args: "--verbose check"

@@ -97,6 +97,14 @@ class BeerLogDB:
       )
     return entry
 
+  def GetAllData(self):
+    """Returns all the data in the database.
+
+    Returns:
+      list[Entry]: a list of all the Entry in the database.
+    """
+    return list(Entry.select().order_by(Entry.timestamp.asc()).execute())
+
   def GetAllCharacterNames(self) -> list[str]:
     """Gets all active characters."""
     query = Entry.select(Entry.character_name).distinct()

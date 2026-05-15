@@ -2,6 +2,8 @@
 
 import argparse
 import datetime
+import IPython
+import ipdb
 import os
 import sys
 import http.server
@@ -53,6 +55,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     self._db = beerlogdb.BeerLogDB(self.options.database)
     self._db.LoadTagsDB(self.options.known_tags)
     self._characters = self._db.GetAllCharacterNames()
+    self._all_data = self._db.GetAllData()
 
   def do_GET(self):  # pylint: disable=invalid-name
     """Handles all GET requests."""
@@ -81,12 +84,49 @@ class Handler(http.server.BaseHTTPRequestHandler):
     else:
       self.send_error(404, "error")
 
+  def _GetAmountFromName(self, name, at=None):
+    """Gets the amount of beer consumed by a character at a specific time.
+
+    Args:
+      name(str): the realname of the character.
+      at(datetime): the time to get the amount at. If None, gets the latest amount.
+
+    Returns:
+      int: the amount of beer consumed in cl.
+    """
+    total = 0
+    if at is None:
+      at = datetime.datetime.now()
+    for entry in reversed(self._all_data):
+      if entry.character_name.lower() == name.lower() and entry.timestamp <= at:
+        total += entry.amount
+
+    return total
+
+  def _GetAmountInWindow(self, start, end, name=None):
+    """Gets the amount of beer consumed by a character in a specific time window.
+
+    Args:
+      start(datetime): the start of the time window.
+      end(datetime): the end of the time window.
+      name(str): the realname of the character. If None, gets the total amount for all characters.
+    """
+    total = 0
+    for entry in self._all_data:
+      if entry.timestamp >= start and entry.timestamp <= end:
+        if name is None or entry.character_name.lower() == name.lower():
+          total += entry.amount
+
+    return total
+
   def GetData(self):
     """Builds a dict to use with Chart.js."""
-    first_scan = self._db.GetEarliestTimestamp()
-    last_scan = self._db.GetLatestTimestamp()
+    first_scan = self._db.GetEarliestTimestamp().replace(minute=0, second=0, microsecond=0)
+    last_scan = self._db.GetLatestTimestamp().replace(
+      minute=0, second=0, microsecond=0
+    ) + datetime.timedelta(hours=1)
     delta = last_scan - first_scan
-    total_hours = int((delta.total_seconds() / 3600) + 2)
+    total_hours = int((delta.total_seconds() / 3600))
     if total_hours > MAX_HOURS:
       msg = (
         "We calculated there are {0:d} hours between {1!s} and {2!s}, "
@@ -96,78 +136,61 @@ class Handler(http.server.BaseHTTPRequestHandler):
       raise Exception(msg)
     fields = []  # This is the X axis
     datasets = {}  # {'alcoolique': ['L cummulés']}
-    for hour in range(total_hours):
+
+    total_drunk = self._GetAmountInWindow(start=first_scan, end=last_scan)
+
+    for hour in range(total_hours + 1):
       timestamp = first_scan + datetime.timedelta(seconds=hour * 3600)
-      #      timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
-      fields.append(timestamp.astimezone().strftime("%Y%m%d %Hh%M"))
+      fields.append(timestamp.strftime("%a %Hh%M"))
       for alcoolique in self._characters:
-        cl = self._db.GetAmountFromName(alcoolique, at=timestamp)
+        cl = self._GetAmountFromName(alcoolique, at=timestamp)
         if alcoolique in datasets:
           datasets[alcoolique].append(cl)
         else:
           datasets[alcoolique] = [cl]
 
-    total = 0
-    # 'totals' is unused for now, can be used later to display the scores
-    totals = {}  # {'alcoolique': total }
-    for alcoolique in self._db.GetAllCharacterNames():
-      cl = self._db.GetAmountFromName(alcoolique, at=last_scan)
-      total += cl
-      totals[alcoolique] = cl
-
-    totals = sorted(totals.items(), key=lambda x: x[1], reverse=True)
-
     total_by_hour = [
       sum(datasets[name][hour] for name in self._characters) for hour in range(total_hours)
     ]
-    if len(total_by_hour) == 1:
-      window = 1
-      peak_3hr = total_by_hour[0]
-      peak_start = 0
-    else:
-      window = min(2, len(total_by_hour) - 1)
-      peak_3hr = 0
-      peak_start = 0
-      for hour in range(len(total_by_hour) - window - 1):
-        consumed = total_by_hour[hour + window] - total_by_hour[hour]
-        if consumed > peak_3hr:
-          peak_3hr = consumed
-          peak_start = hour
-    peak_3hr_per_hour = peak_3hr / 100.0 / float(window)
-    peak_start = max(0, min(peak_start, len(fields) - 1)) if fields else 0
-    peak_label = fields[peak_start] if fields else ""
+    window_size = 2
+    peaks_window = {"total": {"amount": 0, "start": None}}
 
-    peak_by_character = []
-    for alcoolique in self._characters:
-      char_values = datasets[alcoolique]
-      if len(char_values) == 1:
-        char_window = 1
-        char_peak = char_values[0]
-        char_start = 0
-      else:
-        char_window = window
-        char_peak = 0
-        char_start = 0
-        for hour in range(len(char_values) - char_window - 1):
-          consumed = char_values[hour + char_window] - char_values[hour]
-          if consumed > char_peak:
-            char_peak = consumed
-            char_start = hour
-      peak_by_character.append(
-        {
-          "name": alcoolique,
-          "avg": char_peak / 100.0 / float(char_window),
-          "start_index": char_start,
-          "label": fields[char_start] if fields else "",
-          "window_length": char_window,
-        }
-      )
-    peak_by_character.sort(key=lambda item: item["avg"], reverse=True)
+    speed_by_hour = []
+
+    if total_hours > window_size:
+      for hour in range(total_hours + 1):
+        total_l_per_hour = (
+          self._GetAmountInWindow(
+            start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
+            end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
+          )
+          / window_size
+        )
+        speed_by_hour.append(total_l_per_hour / 100.0)
+        if total_l_per_hour / 100 > peaks_window["total"]["amount"]:
+          peaks_window["total"] = {
+            "amount": total_l_per_hour / 100,
+            "time": str(first_scan + datetime.timedelta(seconds=hour * 3600)),
+          }
+        for alcoolique in self._characters:
+          consumed_char = self._GetAmountInWindow(
+            start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
+            end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
+            name=alcoolique,
+          )
+          if (
+            alcoolique not in peaks_window
+            or consumed_char / 100 > peaks_window[alcoolique]["amount"]
+          ):
+            peaks_window[alcoolique] = {
+              "amount": consumed_char / 100,
+              "time": str(first_scan + datetime.timedelta(seconds=hour * 3600)),
+            }
+
+    peak_by_character = [[c, p] for c, p in peaks_window.items() if c != "total"]
+    peak_by_character.sort(key=lambda x: x[1]["amount"], reverse=True)
 
     # Formating for Charts.js
-    speed_by_hour = [0]
-    for hour in range(1, len(total_by_hour)):
-      speed_by_hour.append(total_by_hour[hour] - total_by_hour[hour - 1])
 
     output_datasets = []  # [{'label': 'alcoolique', 'data': ['L cummulés']}]
     for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
@@ -179,12 +202,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         "data": {
           "labels": fields,
           "datasets": output_datasets,
-          "drinkers": self._db.GetAllCharacterNames(),
-          "total": total / 100.0,
-          "peak_3hr_avg": peak_3hr_per_hour,
-          "peak_3hr_window_length": window,
-          "peak_3hr_start_index": peak_start,
-          "peak_3hr_label": peak_label,
+          "drinkers": self._characters,
+          "total": total_drunk / 100.0,
+          "peak_total": peaks_window["total"],
           "peak_by_character": peak_by_character,
         }
       }

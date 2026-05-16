@@ -47,7 +47,7 @@ class BeerLogDB:
 
     self.known_tags_list = {}
     self.cutoff_hour = 6  # We don't expect a scan after 6am
-    self.pertes_percent = 5
+    self.pertes_percent = 7
 
   def Connect(self):
     """Connects to the database."""

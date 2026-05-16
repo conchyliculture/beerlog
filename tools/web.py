@@ -50,9 +50,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
   </div>
   <div id="loading" style="display:none;">
     <div style="text-align: center;">
-      <div class="spinner"></div>
       <p style="margin-top: 1em; font-size: 1.1em;">Thinking...</p>
-      <p id="token-counter" style="margin: 0.5em 0; font-size: 0.9em; color: #666;">Tokens being burnt for nothing: <span id="token-count">0</span></p>
+      <div style="display: flex; justify-content: center; align-items: center; gap: 1em;">
+        <div class="spinner"></div>
+        <p id="token-counter" style="margin: 0; font-size: 0.9em; color: #666;">Tokens being burnt for nothing: <span id="token-count">0</span></p>
+      </div>
     </div>
   </div>
   <div id="chart-container" style="min-height:360px; margin-bottom:1.5em;">

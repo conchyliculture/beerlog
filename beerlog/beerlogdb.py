@@ -450,10 +450,10 @@ class BeerLogDB:
       empty_time = now + datetime.timedelta(hours=empty_in_hours)
 
     should_open_new_keg = False
-    if amount_left_cl <= 0 or (
-      empty_time
-      and empty_time
-      <= now.replace(hour=1, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
+    if amount_left_cl <= 0:
+      should_open_new_keg = True
+    if empty_time and empty_time <= (
+      now.replace(hour=1, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
     ):
       should_open_new_keg = True
 

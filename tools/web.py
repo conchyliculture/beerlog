@@ -164,6 +164,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
       <label for="keg_size">Keg size (liters):</label>
       <input id="keg_size" name="keg_size" type="text" value="{keg_size}" />
       <button type="submit">Predict</button>
+      <a href="/" style="margin-left: 1em;"><button type="button">Back to graphs</button></a>
     </form>
     {error_html}
 """.format(keg_size=int(keg_size or 2000) / 100, error_html=error_html)

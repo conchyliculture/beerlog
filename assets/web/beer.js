@@ -80,6 +80,7 @@ function drawChart(le_data) {
 
     datasets.forEach(function (item) {
         if (item.label === 'Total cumulative') {
+            item.data = item.data.map(function(v) { return v / 100; });
             item.backgroundColor = 'rgba(0, 0, 0, 0.1)';
             item.borderColor = 'rgba(0, 0, 0, 0.7)';
             item.borderDash = [6, 4];
@@ -88,9 +89,11 @@ function drawChart(le_data) {
         } else if (item.label === 'Total speed') {
             item.backgroundColor = 'rgba(54, 162, 235, 0.1)';
             item.borderColor = 'rgba(54, 162, 235, 0.9)';
+            item.borderDash = [6, 4];
             item.pointRadius = 2;
             item.yAxisID = 'y2';
         } else {
+            item.data = item.data.map(function(v) { return v / 100; });
             item.backgroundColor = nameToColor[item.label];
             item.borderColor = nameToColor[item.label];
             item.hoverBackgroundColor = nameToColor[item.label];
@@ -126,17 +129,17 @@ function drawChart(le_data) {
                     }
                 },
                 y: {
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Beer drank (L)'
-                    }
-                },
-                y1: {
                     position: 'right',
                     title: {
                         display: true,
-                        text: 'Total cumulative (L)'
+                        text: 'Beer drank (Litres)'
+                    }
+                },
+                y1: {
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Total cumulative (Litres)'
                     },
                     grid: {
                         drawOnChartArea: false
@@ -163,8 +166,8 @@ function drawChart(le_data) {
                             if (label === 'Total speed' && typeof value === 'number') {
                                 return label + ': ' + value.toFixed(2) + ' L/h';
                             }
-                            if (label !== 'Total cumulative' && typeof value === 'number') {
-                                return label + ': ' + (value / 100).toFixed(2) + ' L';
+                            if (typeof value === 'number') {
+                                return label + ': ' + value.toFixed(2) + ' L';
                             }
                             return label + ': ' + context.formattedValue;
                         },

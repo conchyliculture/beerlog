@@ -476,10 +476,12 @@ class BeerLogDB:
       name(str): the realname of the character. If None, gets the total amount for all characters.
     """
     total = 0
-    for entry in self.GetAllData():
-      if entry.timestamp >= start and entry.timestamp <= end:
-        if name is None or entry.character_name.lower() == name.lower():
-          total += entry.amount
+    query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
+      Entry.timestamp >= start, Entry.timestamp <= end
+    )
+    if name is not None:
+      query = query.where(Entry.character_name == name)
+    total = query.scalar()
 
     return total
 

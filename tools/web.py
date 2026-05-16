@@ -1,5 +1,6 @@
 """Serves the beerlog data in a website"""
 
+from profilehooks import profile
 import argparse
 import datetime
 import html
@@ -75,6 +76,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     self._characters = self._db.GetAllCharacterNames()
     self._all_data = self._db.GetAllData()
 
+  @profile(immediate=True)
   def do_GET(self):  # pylint: disable=invalid-name
     """Handles all GET requests."""
     parsed_path = urllib.parse.urlparse(self.path)
@@ -252,8 +254,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
             end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
           )
-          / window_size
-        )
+          or 0
+        ) / window_size
         speed_by_hour.append(total_l_per_hour / 100.0)
         if total_l_per_hour / 100 > peaks_window["total"]["amount"]:
           peaks_window["total"] = {
@@ -266,7 +268,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
             name=alcoolique,
           )
-          consumed_char_speed = consumed_char / window_size / 100.0
+          consumed_char_speed = (consumed_char or 0) / window_size / 100.0
           if (
             alcoolique not in peaks_window
             or consumed_char_speed > peaks_window[alcoolique]["amount"]

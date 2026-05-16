@@ -166,7 +166,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
       <button type="submit">Predict</button>
     </form>
     {error_html}
-""".format(keg_size=int((keg_size or 0) / 100), error_html=error_html)
+""".format(keg_size=int(keg_size or 2000) / 100, error_html=error_html)
 
     if prediction is not None:
       page += f"""

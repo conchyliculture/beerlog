@@ -42,6 +42,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
 <body>
   <div id="total">
   </div>
+  <div id="page-actions" style="margin-bottom:1em;">
+    <a href="/predict"><button type="button">Keg prediction</button></a>
+  </div>
   <div id="chart-container" style="min-height:360px; margin-bottom:1.5em;">
     <canvas id="myChart"></canvas>
   </div>

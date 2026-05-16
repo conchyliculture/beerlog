@@ -1,13 +1,28 @@
 function update_graph(path, func) {
     var xhttp = new XMLHttpRequest(), method = "GET", url=path;
     var loadingEl = document.getElementById('loading');
+    var tokenCountEl = document.getElementById('token-count');
+    var tokenInterval;
+    
     if (loadingEl) {
-        loadingEl.style.display = 'flex';
+        loadingEl.style.display = 'block';
+        if (tokenCountEl) {
+            var randomTokens = Math.floor(Math.random() * 10000) + 100;
+            tokenCountEl.textContent = randomTokens;
+            tokenInterval = setInterval(function() {
+                randomTokens += Math.floor(Math.random() * 50) + 10;
+                tokenCountEl.textContent = randomTokens;
+            }, 500);
+        }
     }
+    
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
             if (loadingEl) {
                 loadingEl.style.display = 'none';
+            }
+            if (tokenInterval) {
+                clearInterval(tokenInterval);
             }
             info = JSON.parse(xhttp.responseText);
             func(info['data']);

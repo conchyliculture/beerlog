@@ -49,7 +49,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
     <a href="/predict"><button type="button">Keg prediction</button></a>
   </div>
   <div id="loading" style="display:none;">
-    <div class="spinner"></div>
+    <div style="text-align: center;">
+      <div class="spinner"></div>
+      <p style="margin-top: 1em; font-size: 1.1em;">Thinking...</p>
+      <p id="token-counter" style="margin: 0.5em 0; font-size: 0.9em; color: #666;">Tokens being burnt for nothing: <span id="token-count">0</span></p>
+    </div>
   </div>
   <div id="chart-container" style="min-height:360px; margin-bottom:1.5em;">
     <canvas id="myChart"></canvas>

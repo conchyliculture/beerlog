@@ -1,6 +1,5 @@
 """Serves the beerlog data in a website"""
 
-from profilehooks import profile
 import argparse
 import datetime
 import html
@@ -76,7 +75,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
     self._characters = self._db.GetAllCharacterNames()
     self._all_data = self._db.GetAllData()
 
-  @profile(immediate=True)
   def do_GET(self):  # pylint: disable=invalid-name
     """Handles all GET requests."""
     parsed_path = urllib.parse.urlparse(self.path)

@@ -301,7 +301,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
       output_datasets.append({"label": k, "data": v})
     output_datasets.append({"label": "Total cumulative", "data": total_by_hour, "order": 0})
-    output_datasets.append({"label": "Total speed", "data": speeds_by_hour, "order": 1})
+    output_datasets.append({"label": "Total speed", "data": speeds_by_hour[0:-1], "order": 1})
     return json.dumps(
       {
         "data": {

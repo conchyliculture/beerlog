@@ -37,13 +37,10 @@ function drawChart(le_data) {
     var datasets = le_data['datasets'];
     var drinkers = le_data['drinkers'];
 
-    var peakIndex = le_data['peak_3hr_start_index'];
-    var peakWindowLength = le_data['peak_3hr_window_length'] || 3;
-    var peakLabel = le_data['peak_3hr_label'] || (labels[peakIndex] || 'unknown');
     var peakByCharacter = le_data['peak_by_character'] || [];
 
     document.getElementById('total').innerHTML =
-        'Total drunk: ' + le_data['total'] + 'L<br>' +
+        'Total drunk: ' + le_data['total'] + 'L ('+(le_data['total'] * 1.07).toFixed(2)+'L avec 7% de pertes)<br>' +
         'Top cumulative speed: ' + le_data['peak_total']['amount'].toFixed(2) + 'L of beer per hour<br>';
 
     var peakTableBody = document.getElementById('peak-speed-table-body');
@@ -155,9 +152,6 @@ function drawChart(le_data) {
             },
             monotone: 'monotone',
             plugins: {
-                peakHighlight: {
-                    index: peakIndex,
-                },
                 tooltip: {
                     callbacks: {
                         label: function(context) {

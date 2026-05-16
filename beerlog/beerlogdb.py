@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from datetime import datetime
+import datetime
 import json
 
 import peewee
@@ -31,7 +31,7 @@ class Entry(BeerModel):
 
   character_name = peewee.CharField()
   amount = peewee.IntegerField(default=constants.DEFAULT_GLASS_SIZE)
-  timestamp = peewee.DateTimeField(default=datetime.now)
+  timestamp = peewee.DateTimeField(default=datetime.datetime.now)
   pic = peewee.CharField(null=True)
 
 
@@ -46,6 +46,8 @@ class BeerLogDB:
     sqlite_db.create_tables([Entry], safe=True)
 
     self.known_tags_list = {}
+    self.cutoff_hour = 6  # We don't expect a scan after 6am
+    self.pertes_percent = 5
 
   def Connect(self):
     """Connects to the database."""
@@ -93,7 +95,7 @@ class BeerLogDB:
       entry = Entry.create(character_name=character_name, amount=amount, timestamp=time, pic=pic)
     else:
       entry = Entry.create(
-        character_name=character_name, amount=amount, timestamp=datetime.now(), pic=pic
+        character_name=character_name, amount=amount, timestamp=datetime.datetime.now(), pic=pic
       )
     return entry
 
@@ -137,6 +139,21 @@ class BeerLogDB:
       int: the total number of Entry lines in the database.
     """
     return Entry.select().count(None)
+
+  def GetTotalDailyAverageConsumption(self):
+    """Returns the average consumption per day.
+
+    Returns:
+      float: the averageconsumption per day, in cL.
+    """
+    total_cl = self.GetTotalAmount()
+    earliest_timestamp = self.GetEarliestTimestamp()
+    if not earliest_timestamp:
+      return 0.0
+    days = (self.GetLatestTimestamp() - earliest_timestamp).total_seconds() / 86400.0
+    if days <= 2:
+      raise errors.BeerLogError("Not enough data to compute a reliable daily average consumption")
+    return total_cl / days
 
   def GetScoreBoard(self):
     """Returns a query with the scoreboard.
@@ -232,7 +249,7 @@ class BeerLogDB:
     query = Entry.select(peewee.fn.MIN(Entry.timestamp))
     return query.scalar()  # pylint: disable=no-value-for-parameter
 
-  def GetEarliestEntry(self, after=None):
+  def GetEarliestEntry(self, after: datetime.datetime | None = None) -> Entry | None:
     """Returns the earliest Entry.
 
     Args:
@@ -253,6 +270,33 @@ class BeerLogDB:
         Entry.select(Entry)
         .group_by(Entry.timestamp)
         .having(Entry.timestamp == peewee.fn.MIN(Entry.timestamp))
+      )
+    try:
+      return query.get()
+    except Exception:  # pylint: disable=broad-except
+      return None
+
+  def GetLatestEntry(self, before: datetime.datetime | None = None) -> Entry | None:
+    """Returns the latest Entry.
+
+    Args:
+      before(datetime.datetime): an optional timestamp from which to start
+        searching.
+    Returns:
+      Entry: the first entry.
+    """
+    if before:
+      query = (
+        Entry.select(Entry)
+        .where(Entry.timestamp <= before)
+        .group_by(Entry.timestamp)
+        .order_by(Entry.timestamp.desc())
+      )
+    else:
+      query = (
+        Entry.select(Entry)
+        .group_by(Entry.timestamp)
+        .having(Entry.timestamp == peewee.fn.MAX(Entry.timestamp))
       )
     try:
       return query.get()
@@ -333,6 +377,111 @@ class BeerLogDB:
       Entry.timestamp, peewee.fn.SUM(Entry.amount).over(order_by=[Entry.timestamp]).alias("sum")
     ).where(Entry.character_name == name)
     return query.execute()
+
+  def GetAverageTotalHourlyConsumption(self):
+    """Returns the average total hourly consumption.
+
+    Returns:
+      list[dict]: a list of dict with keys "time" and "average_consumed_l".
+    """
+    first_scan = self.GetEarliestTimestamp()
+    first_day = first_scan.replace(hour=0, minute=0, second=0, microsecond=0)
+    last_scan = self.GetLatestTimestamp()
+    days = (last_scan.date() - first_scan.date()).days + 1
+    averages = []
+    for day in range(days):
+      first_scan_day = self.GetEarliestEntry(
+        after=first_day + datetime.timedelta(days=day) + datetime.timedelta(hours=self.cutoff_hour)
+      )
+      if first_scan_day is None:
+        continue
+      first_scan_day = first_scan_day.timestamp
+      last_scan_day = self.GetLatestEntry(
+        before=first_day
+        + datetime.timedelta(days=day + 1)
+        + datetime.timedelta(hours=self.cutoff_hour)
+      )
+      if last_scan_day is None:
+        continue
+      last_scan_day = last_scan_day.timestamp
+      amount = self.GetAmountInWindow(start=first_scan_day, end=last_scan_day)
+      drinking_hours = (last_scan_day - first_scan_day).total_seconds() / 3600
+      if drinking_hours <= 0:
+        continue
+      averages.append(amount / drinking_hours)
+
+    return round(sum(averages) / len(averages), 2) if averages else 0.0
+
+  def MakeKegPrediction(self, keg_size_cl, now: datetime.datetime | None = None):
+    if keg_size_cl <= 100 and now is not None:
+      raise errors.BeerLogError(
+        f"A keg size of {keg_size_cl} cL is too small for a prediction. Please provide a valid keg size in cL."
+      )
+    now = datetime.datetime.now() if now is None else now
+    today_start = now.replace(hour=self.cutoff_hour, minute=0, second=0, microsecond=0)
+    elapsed_seconds = max(1, (now - today_start).total_seconds())
+
+    total_today_cl = self.GetAmountInWindow(start=today_start, end=now)
+    if total_today_cl == 0:
+      raise errors.BeerLogError(
+        "Not enough data to make a prediction for today (between {0} and {1})".format(
+          today_start, now
+        )
+      )
+    total_cl = self.GetTotalAmount() * (1 + self.pertes_percent / 100)
+    first_scan = self.GetEarliestTimestamp()
+    days_of_data = max(1, (now.date() - first_scan.date()).days + 1)
+    avg_daily_cl = total_cl / days_of_data
+
+    average_hourly_cl = self.GetAverageTotalHourlyConsumption()
+
+    amount_left_cl = keg_size_cl - (total_cl % keg_size_cl)
+
+    if average_hourly_cl <= 0:
+      empty_time = None
+      empty_in_hours = None
+    else:
+      empty_in_hours = amount_left_cl / average_hourly_cl
+      empty_time = now + datetime.timedelta(hours=empty_in_hours)
+
+    should_open_new_keg = False
+    if amount_left_cl <= 0 or (
+      empty_time
+      and empty_time
+      <= now.replace(hour=1, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)
+    ):
+      should_open_new_keg = True
+
+    return {
+      "pertes_percent": self.pertes_percent,
+      "keg_size_cl": keg_size_cl,
+      "current_time": now.isoformat(),
+      "today_consumed_cl": total_today_cl,
+      "total_consumed_cl": total_cl,
+      "average_hourly_cl": average_hourly_cl,
+      "estimated_left_cl": round(amount_left_cl),
+      "predicted_empty_time": empty_time.strftime("%Y-%m-%dT%H:%M:%S") if empty_time else None,
+      "empty_in_hours": round(empty_in_hours, 2) if empty_in_hours is not None else None,
+      "should_open_new_keg": should_open_new_keg,
+      "avg_daily_consumption": avg_daily_cl,
+      "elapsed_hours_today": round(elapsed_seconds / 3600.0, 2),
+    }
+
+  def GetAmountInWindow(self, start, end, name=None):
+    """Gets the amount of beer consumed by a character in a specific time window.
+
+    Args:
+      start(datetime): the start of the time window.
+      end(datetime): the end of the time window.
+      name(str): the realname of the character. If None, gets the total amount for all characters.
+    """
+    total = 0
+    for entry in self.GetAllData():
+      if entry.timestamp >= start and entry.timestamp <= end:
+        if name is None or entry.character_name.lower() == name.lower():
+          total += entry.amount
+
+    return total
 
 
 # vim: tabstop=2 shiftwidth=2 expandtab

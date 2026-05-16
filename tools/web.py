@@ -2,11 +2,13 @@
 
 import argparse
 import datetime
+import html
 import os
 import sys
 import http.server
 import json
 import socketserver
+import urllib.parse
 
 from beerlog import beerlogdb
 
@@ -72,30 +74,116 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
   def do_GET(self):  # pylint: disable=invalid-name
     """Handles all GET requests."""
-    if self.path == "/":
+    parsed_path = urllib.parse.urlparse(self.path)
+    if parsed_path.path == "/":
       self.send_response(200)
       self.send_header("Content-type", "text/html")
       self.end_headers()
       self.wfile.write(self.TEMPLATE_HTML.encode())
-    elif self.path == "/chart.js":
+    elif parsed_path.path == "/chart.js":
       self.send_response(200)
       self.send_header("Content-type", "text/html")
       self.end_headers()
       with open(os.path.join("assets", "web", "chart.js"), "rb") as js:
         self.wfile.write(js.read())
-    elif self.path == "/beer.js":
+    elif parsed_path.path == "/beer.js":
       self.send_response(200)
       self.send_header("Content-type", "text/html")
       self.end_headers()
       with open(os.path.join("assets", "web", "beer.js"), "rb") as js:
         self.wfile.write(js.read())
-    elif self.path == "/data":
+    elif parsed_path.path == "/predict":
+      self._HandlePredictRequest()
+    elif parsed_path.path == "/data":
       self.send_response(200)
       self.send_header("Content-type", "application/json")
       self.end_headers()
       self.wfile.write(self.GetData())
     else:
       self.send_error(404, "error")
+
+  def _ParseQueryParams(self):
+    parsed = urllib.parse.urlparse(self.path)
+    return urllib.parse.parse_qs(parsed.query)
+
+  def _HandlePredictRequest(self):
+    params = self._ParseQueryParams()
+    keg_sizes = params.get("keg_size") or params.get("size")
+    if not keg_sizes:
+      self._RenderPredictPage()
+      return
+
+    try:
+      keg_size_cl = float(keg_sizes[0]) * 100.0
+      if keg_size_cl <= 0:
+        raise ValueError
+    except ValueError:
+      self._RenderPredictPage(error="keg_size must be a positive number", keg_size=keg_sizes[0])
+      return
+
+    prediction = self._db.MakeKegPrediction(keg_size_cl)
+    self._RenderPredictPage(prediction=prediction, keg_size=keg_size_cl)
+
+  def _RenderPredictPage(self, prediction=None, keg_size=None, error=None):
+    error_html = ""
+    if error:
+      error_html = '<p style="color:red;">{0}</p>'.format(html.escape(error))
+
+    page = """
+<html>
+<head>
+  <title>Keg prediction</title>
+  <style>
+    body {{ font-family: sans-serif; padding: 1em; }}
+    table {{ border-collapse: collapse; width: 100%; max-width: 720px; }}
+    th, td {{ border: 1px solid #ccc; padding: 0.5em 0.75em; text-align: left; }}
+    th {{ background: #f8f8f8; }}
+    input[type=text] {{ width: 4em; }}
+    .content {{ max-width: 800px; }}
+  </style>
+</head>
+<body>
+  <div class="content">
+    <h1>Keg prediction</h1>
+    <form action="/predict" method="get">
+      <label for="keg_size">Keg size (liters):</label>
+      <input id="keg_size" name="keg_size" type="text" value="{keg_size}" />
+      <button type="submit">Predict</button>
+    </form>
+    {error_html}
+""".format(keg_size=int((keg_size or 0) / 100), error_html=error_html)
+
+    if prediction is not None:
+      page += f"""
+    <h2>Prediction result</h2>
+    <table>
+      <tbody>
+        <tr>
+          <th>Keg size (L)</th><td>{prediction["keg_size_cl"] / 100:.2f}</td>
+        </tr>
+        <tr>
+          <th>Estimated left (L)</th><td>{prediction["estimated_left_cl"] / 100:.2f} ({prediction["total_consumed_cl"] / 100:.2f}L consumed and {prediction["pertes_percent"]}% loss)</td>
+        </tr>
+        <tr>
+          <th>Average daily(active) L/h</th><td>{prediction["average_hourly_cl"] / 100:.2f}</td>
+        </tr>
+        <tr>
+          <th>Predicted empty time</th><td>{prediction["predicted_empty_time"]}</td>
+        </tr>
+        <tr>
+          <th>Should open new keg?</th><td><strong>{"Yes" if prediction["should_open_new_keg"] else "No"}</strong> (empty before {datetime.datetime.now().replace(hour=1, minute=0, second=0, microsecond=0) + datetime.timedelta(days=1)})</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
+"""
+
+    self.send_response(200)
+    self.send_header("Content-type", "text/html")
+    self.end_headers()
+    self.wfile.write(page.encode())
 
   def _GetAmountFromName(self, name, at=None):
     """Gets the amount of beer consumed by a character at a specific time.
@@ -113,22 +201,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
     for entry in reversed(self._all_data):
       if entry.character_name.lower() == name.lower() and entry.timestamp <= at:
         total += entry.amount
-
-    return total
-
-  def _GetAmountInWindow(self, start, end, name=None):
-    """Gets the amount of beer consumed by a character in a specific time window.
-
-    Args:
-      start(datetime): the start of the time window.
-      end(datetime): the end of the time window.
-      name(str): the realname of the character. If None, gets the total amount for all characters.
-    """
-    total = 0
-    for entry in self._all_data:
-      if entry.timestamp >= start and entry.timestamp <= end:
-        if name is None or entry.character_name.lower() == name.lower():
-          total += entry.amount
 
     return total
 
@@ -150,7 +222,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     fields = []  # This is the X axis
     datasets = {}  # {'alcoolique': ['L cummulés']}
 
-    total_drunk = self._GetAmountInWindow(start=first_scan, end=last_scan)
+    total_drunk = self._db.GetAmountInWindow(start=first_scan, end=last_scan)
 
     for hour in range(total_hours + 1):
       timestamp = first_scan + datetime.timedelta(seconds=hour * 3600)
@@ -173,7 +245,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     if total_hours > window_size:
       for hour in range(total_hours + 1):
         total_l_per_hour = (
-          self._GetAmountInWindow(
+          self._db.GetAmountInWindow(
             start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
             end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
           )
@@ -186,7 +258,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             "time": str(first_scan + datetime.timedelta(seconds=hour * 3600)),
           }
         for alcoolique in self._characters:
-          consumed_char = self._GetAmountInWindow(
+          consumed_char = self._db.GetAmountInWindow(
             start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
             end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
             name=alcoolique,
@@ -278,15 +350,15 @@ def MakeHandlerClassFromArgv(init_args: argparse.Namespace):
   return CustomHandler
 
 
-app_args = ParseArguments()
+if __name__ == "__main__":
+  app_args = ParseArguments()
+  HandlerClass = MakeHandlerClassFromArgv(app_args)
 
-HandlerClass = MakeHandlerClassFromArgv(app_args)
-
-print("Server listening on port {0:d}...".format(app_args.port))
-httpd = socketserver.TCPServer(("", app_args.port), HandlerClass)
-try:
-  httpd.serve_forever()
-except KeyboardInterrupt:
-  pass
-print("Shutting Down")
-httpd.server_close()
+  print("Server listening on port {0:d}...".format(app_args.port))
+  httpd = socketserver.TCPServer(("", app_args.port), HandlerClass)
+  try:
+    httpd.serve_forever()
+  except KeyboardInterrupt:
+    pass
+  print("Shutting Down")
+  httpd.server_close()

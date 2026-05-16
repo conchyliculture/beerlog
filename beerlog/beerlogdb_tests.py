@@ -75,6 +75,20 @@ class BeerLogDBTests(unittest.TestCase):
     self.db.AddEntry("0x2", "pic2")
     self.assertEqual(["toto", "tutu"], self.db.GetAllCharacterNames())
 
+  def testGetTotalDailyAverage(self):
+    """Tests the GetTotalDailyAverage() method."""
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 2, 14, 00))
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 3, 14, 00))
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 3, 14, 00))
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 3, 14, 00))
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 3, 15, 00))
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 3, 16, 00))
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 4, 16, 30))
+    self.db.AddEntry("0x1", time=datetime.datetime(2019, 1, 4, 17, 00))
+
+    # Total of 3*33 + 45 + 50 = 244 cl in one day
+    self.assertEqual(137, int(self.db.GetTotalDailyAverageConsumption()))
+
   def testGetAmount(self):
     """Tests for counting total amount drunk per character"""
     self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 1, 14, 00))
@@ -129,6 +143,103 @@ class BeerLogDBTests(unittest.TestCase):
 
       self.assertEqual(self.db.GetNameFromHexID("0x0"), "Kikoo")
       self.assertEqual(self.db.GetNameFromHexID("0x2"), "realname")
+
+  def testMakeKegPredictionBasic(self):
+    """Tests the MakeKegPrediction() method with moderate consumption."""
+    # Add entries over 4 days with consistent consumption
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 7, 10, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 7, 20, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 10, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 20, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 9, 10, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 9, 20, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 10, 0))  # 33 cl
+
+    result = self.db.MakeKegPrediction(200.0, now=datetime.datetime(2019, 1, 10, 20, 0))
+
+    expected_results = {
+      "average_hourly_cl": 6.6,
+      "avg_daily_consumption": 60.6375,
+      "elapsed_hours_today": 14.0,
+      "current_time": "2019-01-10T20:00:00",
+      "keg_size_cl": 200.0,
+      "today_consumed_cl": 33,
+      "pertes_percent": 5,
+      "total_consumed_cl": 7 * 33 * (1.05),
+      "estimated_left_cl": 157,
+      "predicted_empty_time": "2019-01-11T19:51:21",
+      "empty_in_hours": 23.86,
+      "should_open_new_keg": False,
+    }
+
+    self.maxDiff = None
+    self.assertEqual(expected_results, result)
+
+  def testMakeKegPredictionShouldOpenNewKeg(self):
+    """Tests the MakeKegPrediction() when keg should be opened."""
+
+    # Heavy consumption today (multiple entries within the last few hours)
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 5, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 6, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 7, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 10, 0))
+
+    # Add historical data from past days for daily average
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 10, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 14, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 9, 10, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 9, 14, 0))  # 33 cl
+
+    result = self.db.MakeKegPrediction(200.0, now=datetime.datetime(2019, 1, 10, 12, 0))
+
+    self.assertEqual(result["keg_size_cl"], 200.0)
+    self.assertEqual(result["today_consumed_cl"], (33 * 3))
+    self.assertEqual(result["estimated_left_cl"], 123)
+    self.assertEqual(result["empty_in_hours"], 7.7)
+    self.assertTrue(result["should_open_new_keg"])
+
+  def testMakeKegPredictionSmallKeg(self):
+    """Tests the MakeKegPrediction() with a small keg size."""
+    # Moderate consumption over 4 days
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 7, 10, 0))  # 50 cl
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 7, 20, 0))  # 50 cl
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 8, 10, 0))  # 50 cl
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 9, 10, 0))  # 50 cl
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 10, 10, 0))  # 50 cl
+
+    result = self.db.MakeKegPrediction(500.0, now=datetime.datetime(2019, 1, 10, 12, 0))
+
+    self.assertEqual(result["keg_size_cl"], 500.0)
+    self.assertIsNotNone(result["predicted_empty_time"])
+    self.assertIsNotNone(result["empty_in_hours"])
+    self.assertGreater(result["estimated_left_cl"], 0)
+
+  def testMakeKegPredictionLargeKeg(self):
+    """Tests the MakeKegPrediction() with a large keg size."""
+    # Light consumption over 4 days
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 7, 10, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 7, 12, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 7, 11, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 12, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 13, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 14, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 8, 15, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 9, 16, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 20, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 21, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 22, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 10, 23, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 11, 1, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 11, 2, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 11, 13, 0))  # 33 cl
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 11, 14, 0))  # 33 cl
+
+    result = self.db.MakeKegPrediction(200.0, now=datetime.datetime(2019, 1, 11, 20, 0))
+
+    self.assertEqual(result["keg_size_cl"], 200.0)
+    self.assertTrue(result["should_open_new_keg"])
+    # With light consumption, estimated left should be high
+    self.assertGreater(result["estimated_left_cl"], 40.0)
 
 
 if __name__ == "__main__":

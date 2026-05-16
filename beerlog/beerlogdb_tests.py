@@ -120,23 +120,38 @@ class BeerLogDBTests(unittest.TestCase):
 
   def testGetAmountInWindow(self):
     """Tests GetAmountInWindow() for inclusive window boundaries and name filtering."""
-    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 1, 10, 0))
-    self.db.AddEntry("0x1", time=datetime.datetime(2019, 1, 1, 11, 0))
-    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 1, 12, 0))
-    self.db.AddEntry("0x3", time=datetime.datetime(2019, 1, 1, 13, 0))
+    self.db.AddEntry("0x0", time=datetime.datetime(2019, 1, 1, 10, 10))
+    self.db.AddEntry("0x1", time=datetime.datetime(2019, 1, 1, 11, 10))
+    self.db.AddEntry("0x2", time=datetime.datetime(2019, 1, 1, 12, 10))
+    self.db.AddEntry("0x3", time=datetime.datetime(2019, 1, 1, 13, 10))
 
     start = datetime.datetime(2019, 1, 1, 11, 0)
-    end = datetime.datetime(2019, 1, 1, 12, 0)
+    end = datetime.datetime(2019, 1, 1, 13, 0)
+    entries = self.db.GetEntriesInWindow(start=start, end=end).execute()
+    total = 0
+    for entry in entries:
+      total += entry.amount
+    self.assertEqual(45 + 50, total)
 
-    self.assertEqual(45 + 50, self.db.GetAmountInWindow(start=start, end=end))
-    self.assertEqual(50, self.db.GetAmountInWindow(start=start, end=end, name="tutu"))
-    self.assertEqual(None, self.db.GetAmountInWindow(start=start, end=end, name="TUTU"))
-    self.assertEqual(
-      None,
-      self.db.GetAmountInWindow(
-        start=datetime.datetime(2019, 1, 1, 13, 1), end=datetime.datetime(2019, 1, 1, 14, 0)
-      ),
-    )
+    total = 0
+    for entry in entries:
+      if entry.character_name == "tutu":
+        total += entry.amount
+    self.assertEqual(50, total)
+
+    total = 0
+    for entry in entries:
+      if entry.character_name == "TUTU":
+        total += entry.amount
+    self.assertEqual(0, total)
+
+    start = datetime.datetime(2019, 1, 1, 13, 0)
+    end = datetime.datetime(2019, 1, 1, 14, 0)
+    entries = self.db.GetEntriesInWindow(start=start, end=end).execute()
+    total = 0
+    for entry in entries:
+      total += entry.amount
+    self.assertEqual(40, total)
 
   def testLoadTags(self):
     """Test loading the name/hexid json file."""

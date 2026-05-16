@@ -225,7 +225,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
     fields = []  # This is the X axis
     datasets = {}  # {'alcoolique': ['L cummulés']}
 
-    total_drunk = self._db.GetAmountInWindow(start=first_scan, end=last_scan)
+    total_drunk = 0
+    for entry in self._db.GetEntriesInWindow(start=first_scan, end=last_scan).execute():
+      total_drunk += entry.amount
 
     for hour in range(total_hours + 1):
       timestamp = first_scan + datetime.timedelta(seconds=hour * 3600)
@@ -243,30 +245,31 @@ class Handler(http.server.BaseHTTPRequestHandler):
     window_size = 2
     peaks_window = {"total": {"amount": 0, "start": None}}
 
-    speed_by_hour = []
+    speeds_by_hour = []
 
     if total_hours > window_size:
       for hour in range(total_hours + 1):
-        total_l_per_hour = (
-          self._db.GetAmountInWindow(
-            start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
-            end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
-          )
-          or 0
-        ) / window_size
-        speed_by_hour.append(total_l_per_hour / 100.0)
+        total_l_per_hour = 0
+        entries_hour = self._db.GetEntriesInWindow(
+          start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
+          end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
+        ).execute()
+        for entry in entries_hour:
+          total_l_per_hour += entry.amount
+
+        total_l_per_hour = total_l_per_hour / window_size
+        speeds_by_hour.append(total_l_per_hour / 100.0)
         if total_l_per_hour / 100 > peaks_window["total"]["amount"]:
           peaks_window["total"] = {
             "amount": total_l_per_hour / 100,
             "time": str(first_scan + datetime.timedelta(seconds=hour * 3600)),
           }
         for alcoolique in self._characters:
-          consumed_char = self._db.GetAmountInWindow(
-            start=first_scan + datetime.timedelta(seconds=(hour - (window_size / 2)) * 3600),
-            end=first_scan + datetime.timedelta(seconds=(hour + (window_size / 2)) * 3600),
-            name=alcoolique,
-          )
-          consumed_char_speed = (consumed_char or 0) / window_size / 100.0
+          consumed_char = 0
+          for entry in entries_hour:
+            if entry.character_name == alcoolique:
+              consumed_char += entry.amount
+          consumed_char_speed = consumed_char / window_size / 100.0
           if (
             alcoolique not in peaks_window
             or consumed_char_speed > peaks_window[alcoolique]["amount"]
@@ -285,7 +288,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     for k, v in sorted(datasets.items(), key=lambda x: x[1][-1], reverse=True):
       output_datasets.append({"label": k, "data": v})
     output_datasets.append({"label": "Total cumulative", "data": total_by_hour, "order": 0})
-    output_datasets.append({"label": "Total speed", "data": speed_by_hour, "order": 1})
+    output_datasets.append({"label": "Total speed", "data": speeds_by_hour, "order": 1})
     return json.dumps(
       {
         "data": {

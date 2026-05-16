@@ -404,7 +404,9 @@ class BeerLogDB:
       if last_scan_day is None:
         continue
       last_scan_day = last_scan_day.timestamp
-      amount = self.GetAmountInWindow(start=first_scan_day, end=last_scan_day)
+      amount = 0
+      for entry in self.GetEntriesInWindow(start=first_scan_day, end=last_scan_day).execute():  # pyright: ignore[reportArgumentType]
+        amount += entry.amount
       drinking_hours = (last_scan_day - first_scan_day).total_seconds() / 3600
       if drinking_hours <= 0:
         continue
@@ -421,7 +423,10 @@ class BeerLogDB:
     today_start = now.replace(hour=self.cutoff_hour, minute=0, second=0, microsecond=0)
     elapsed_seconds = max(1, (now - today_start).total_seconds())
 
-    total_today_cl = self.GetAmountInWindow(start=today_start, end=now)
+    total_today_cl = 0
+    for entry in self.GetEntriesInWindow(start=today_start, end=now).execute():
+      total_today_cl += entry.amount
+
     if total_today_cl == 0:
       raise errors.BeerLogError(
         "Not enough data to make a prediction for today (between {0} and {1})".format(
@@ -467,23 +472,15 @@ class BeerLogDB:
       "elapsed_hours_today": round(elapsed_seconds / 3600.0, 2),
     }
 
-  def GetAmountInWindow(self, start, end, name=None):
+  def GetEntriesInWindow(self, start: datetime.datetime, end: datetime.datetime) -> peewee.Select:
     """Gets the amount of beer consumed by a character in a specific time window.
 
     Args:
       start(datetime): the start of the time window.
       end(datetime): the end of the time window.
-      name(str): the realname of the character. If None, gets the total amount for all characters.
     """
-    total = 0
-    query = Entry.select(peewee.fn.SUM(Entry.amount)).where(
-      Entry.timestamp >= start, Entry.timestamp <= end
-    )
-    if name is not None:
-      query = query.where(Entry.character_name == name)
-    total = query.scalar()
-
-    return total
+    query = Entry.select(Entry).where(Entry.timestamp >= start, Entry.timestamp <= end)
+    return query
 
 
 # vim: tabstop=2 shiftwidth=2 expandtab

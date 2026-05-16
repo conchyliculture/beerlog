@@ -1,7 +1,14 @@
 function update_graph(path, func) {
     var xhttp = new XMLHttpRequest(), method = "GET", url=path;
+    var loadingEl = document.getElementById('loading');
+    if (loadingEl) {
+        loadingEl.style.display = 'flex';
+    }
     xhttp.onreadystatechange = function() {
         if (this.readyState == 4 && this.status == 200) {
+            if (loadingEl) {
+                loadingEl.style.display = 'none';
+            }
             info = JSON.parse(xhttp.responseText);
             func(info['data']);
         }

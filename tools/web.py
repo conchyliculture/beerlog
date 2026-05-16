@@ -35,6 +35,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
     #peak-speeds { width: 80%; clear: both; }
     #peak-speed-table { width: 100%; border-collapse: collapse; }
     #peak-speed-table th, #peak-speed-table td { border: 1px solid #ccc; padding: 0.4em 0.6em; text-align: left; }
+    #loading { display: flex; justify-content: center; align-items: center; margin: 2em 0; }
+    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
   <script src="beer.js"></script>
   <script src="chart.js"></script>
@@ -44,6 +47,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
   </div>
   <div id="page-actions" style="margin-bottom:1em;">
     <a href="/predict"><button type="button">Keg prediction</button></a>
+  </div>
+  <div id="loading" style="display:none;">
+    <div class="spinner"></div>
   </div>
   <div id="chart-container" style="min-height:360px; margin-bottom:1.5em;">
     <canvas id="myChart"></canvas>
